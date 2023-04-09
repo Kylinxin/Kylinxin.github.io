@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Kyのblog</title>
+  
+  <subtitle>分享学习经验</subtitle>
+  <link href="https://kylinxin.github.io/atom.xml" rel="self"/>
+  
+  <link href="https://kylinxin.github.io/"/>
+  <updated>2023-04-07T12:44:57.790Z</updated>
+  <id>https://kylinxin.github.io/</id>
+  
+  <author>
+    <name>枕木</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title></title>
+    <link href="https://kylinxin.github.io/2023/04/08/BBC/"/>
+    <id>https://kylinxin.github.io/2023/04/08/BBC/</id>
+    <published>2023-04-08T15:59:16.148Z</published>
+    <updated>2023-04-07T12:44:57.790Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;h1 id=&quot;救赎&quot;&gt;&lt;a href=&quot;#救赎&quot; class=&quot;headerlink&quot; title=&quot;救赎&quot;&gt;&lt;/a&gt;救赎&lt;/h1&gt;&lt;h2 id=&quot;基础知识&quot;&gt;&lt;a href=&quot;#基础知识&quot; class=&quot;headerlink&quot;</summary>
+        
+      
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>My New Post</title>
+    <link href="https://kylinxin.github.io/2023/04/08/My-New-Post/"/>
+    <id>https://kylinxin.github.io/2023/04/08/My-New-Post/</id>
+    <published>2023-04-08T15:58:02.000Z</published>
+    <updated>2023-04-08T15:58:27.066Z</updated>
+    
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="https://kylinxin.github.io/2023/04/08/hello-world/"/>
+    <id>https://kylinxin.github.io/2023/04/08/hello-world/</id>
+    <published>2023-04-08T15:01:54.527Z</published>
+    <updated>2023-04-08T15:01:54.528Z</updated>
+    
+    
+      
+      
+        
+        
+    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot;&gt;documentation&lt;/a&gt;</summary>
+        
+      
+    
+    
+    
+    
+  </entry>
+  
+</feed>
