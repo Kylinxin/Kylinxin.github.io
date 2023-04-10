@@ -4,8 +4,9 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="Hello World, Ky不是枕木">
-    <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hex">
+    <meta name="keywords" content="蓝桥杯, Ky不是枕木">
+    <meta name="description" content="救赎基础知识1.欧几里得辗转相除法 求解 最大公约数 最小公倍数int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
+int lcm(int a, int b){return a">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="renderer" content="webkit|ie-stand|ie-comp">
@@ -17,7 +18,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>Hello World | Ky不是枕木</title>
+    <title>蓝桥杯 | Ky不是枕木</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     
 
@@ -337,12 +338,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/12.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/7.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">Hello World</h1>
+                    <h1 class="description center-align post-title">蓝桥杯</h1>
                 </div>
             </div>
         </div>
@@ -364,9 +365,13 @@
             <div class="row tag-cate">
                 <div class="col s7">
                     
-                          <div class="article-tag">
-                            <span class="chip bg-color">无标签</span>
-                          </div>
+                    <div class="article-tag">
+                        
+                            <a href="/tags/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">
+                                <span class="chip bg-color">蓝桥杯刷题总结</span>
+                            </a>
+                        
+                    </div>
                     
                 </div>
                 <div class="col s5 right-align">
@@ -378,28 +383,28 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2023-04-08
+                    2023-04-10
                 </div>
                 
 
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-check fa-fw"></i>更新日期:&nbsp;&nbsp;
-                    2023-04-08
+                    2023-04-10
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
-                    73
+                    1.5k
                 </div>
                 
 
                 
                 <div class="info-break-policy">
                     <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
-                    1 分
+                    7 分
                 </div>
                 
 
@@ -419,19 +424,257 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><pre><code class="bash">$ hexo new "My New Post"
+                <h2 id=""><a href="#" class="headerlink" title=""></a></h2><h1 id="救赎"><a href="#救赎" class="headerlink" title="救赎"></a>救赎</h1><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><h3 id="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"><a href="#1-欧几里得辗转相除法-求解-最大公约数-最小公倍数" class="headerlink" title="1.欧几里得辗转相除法 求解 最大公约数 最小公倍数"></a>1.欧几里得辗转相除法 求解 最大公约数 最小公倍数</h3><pre><code class="c++">int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
+int lcm(int a, int b){return a / gcd(a, b) * b;}
 </code></pre>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><pre><code class="bash">$ hexo server
+<h3 id="2-求质数"><a href="#2-求质数" class="headerlink" title="2.求质数"></a>2.求质数</h3><pre><code class="c++">/* 判断素数 */
+bool isPrime(LL n) {
+    for (int i = 2; i * i &lt;= n; ++i)
+        if (n % i == 0)
+            return false;
+    return true;
+}
 </code></pre>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><pre><code class="bash">$ hexo generate
+<h3 id="3-栈"><a href="#3-栈" class="headerlink" title="3.栈"></a>3.栈</h3><pre><code class="c++">#include &lt;stack&gt;
+stack&lt;类型&gt; mystack;
+s.empty();         //如果栈为空则返回true, 否则返回false;
+s.size();          //返回栈中元素的个数
+s.top();           //返回栈顶元素, 但不删除该元素
+s.pop();           //弹出栈顶元素, 但不返回其值
+s.push();          //将元素压入栈顶
 </code></pre>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><pre><code class="bash">$ hexo deploy
+<h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4.队列"></a>4.队列</h3><pre><code class="c++">#include &lt;queue&gt;
+queue&lt;类型&gt; myqueue;
+push() //在队尾插入一个元素
+pop() //删除队列第一个元素
+size() //返回队列中元素个数
+empty() //如果队列空则返回true
+front() //返回队列中的第一个元素
+back() //返回队列中最后一个元素
 </code></pre>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<h3 id="5-DFS-深度优先"><a href="#5-DFS-深度优先" class="headerlink" title="5.DFS(深度优先)"></a>5.DFS(深度优先)</h3><pre><code class="c++">int dx[4] = {0,0,-1,1};
+int dy[4] = {-1,1,0,0};
+int mp[N][N];//存放迷宫
+int vis[N][N];//表示是否访问过，初始为flase
+void DFS(int x, int y)	//x,y是坐标点的位置 
+{
+    if(vis[x][y] || (x==n &amp;&amp; y==n)) return; //表示已经访问过了或者到达终点,递归的出口
+    vis[x][y] = true; //表示没有访问过，现在正在访问，置为访问过
+    for(int i=0; i &lt; 4; i++){	//遍历四个方向，顺序依次是，上下左右
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+      //进行了合法性检验，
+      //1.首先判断了该点是否越界，即是否在迷宫内  nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n
+      //2.然后判断是否访问过  !vis[nx][ny] 未访问过就继续
+      //3.最后判断是否为路  mp[nx][ny] == '0' 为路就继续
+        if(nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n &amp;&amp; !vis[nx][ny] &amp;&amp; mp[nx][ny] == '0')
+            dfs(nx,ny);
+    } 
+}
+//注意!! 应该判断一下起点是否可走
+</code></pre>
+<h3 id="6-BFS-广度优先搜索"><a href="#6-BFS-广度优先搜索" class="headerlink" title="6.BFS(广度优先搜索)"></a>6.BFS(广度优先搜索)</h3><pre><code class="c++">int X[4]={0, 0, -1, 1};
+int Y[4]={-1, 1, 0, 0};
+int matrix[N][N]; //存储迷宫信息
+int vis[N][N];	//存储每个状态点是否走过
+
+struct node{
+    int x;
+    int y;
+}Node, top;
+
+bool judge(int xx, int yy)
+{
+    if(xx&lt;0||yy&lt;0||xx&gt;=N||yy&gt;=N) //注意边界
+        return false;
+    if(vis[xx][yy]==true||matrix[xx][yy]==0)	//下一个点走过或者为墙 0不能走，1能走
+        return false;
+    return true;
+}
+
+
+void BFS(int x, int y)
+{
+    queue&lt;node&gt; q;
+    Node.x=x;
+    Node.y=y;
+    q.push(Node);	//将起点入队列
+    while(!q.empty())	//队列不空就扩散
+    {
+        top=q.front();	//取出队首元素
+        int nx=top.x;
+        int ny=top.y;	//从四个方面机进行扩散
+         if(nx == ex &amp;&amp; ny == ey) //找到终点
+             return top;
+        for(int i=0; i&lt;4; i++)
+        {
+            if(judge(nx+X[i], ny+Y[i])) //检查四个方向，如果有路就进队列
+            {
+                Node.x=nx+X[i];
+                Node.y=ny+Y[i];
+                q.push(Node);	
+            }
+        }
+        ans++;	//计数器
+        vis[nx][ny]=true;
+        q.pop();	//表示这个点的邻接点已经全部入队列，丢弃这个点
+    }
+}
+</code></pre>
+<h3 id="7-二分模板"><a href="#7-二分模板" class="headerlink" title="7.二分模板"></a>7.二分模板</h3><pre><code class="c++">/*
+    作者:FengBOOOOOOOOOOOOOOO
+    二分模板返回大于x的第一个位置    
+*/
+#include&lt;cstdio&gt;
+#include&lt;algorithm&gt;
+#include&lt;cstring&gt;
+#define N 1005
+using namespace std;
+
+int a[N],n,q;
+
+int find(int l,int r,int key)//l为-1，r为数组长度
+{
+    while(l + 1 &lt; r)
+    {
+        int mid = l + r&gt;&gt;1;
+        if(a[mid] &lt;= key)
+        　　l = mid;
+        else
+        　　r = mid;
+    }
+    return r;//返回大于Key的第一个位置
+}
+
+int main()
+{
+    int k;
+    scanf("%d%d",&amp;n,&amp;q);
+    for(int i = 0; i &lt; n; ++i)
+    　　scanf("%d",&amp;a[i]);
+    for(int i = 0; i &lt; q; ++i)
+    {
+        scanf("%d",&amp;k);
+        printf("%d\n",find(-1,n,k));
+    }
+} 
+</code></pre>
+<h2 id="最短路径问题"><a href="#最短路径问题" class="headerlink" title="最短路径问题"></a>最短路径问题</h2><h3 id="1-SPFA最短路径-类似与BFS"><a href="#1-SPFA最短路径-类似与BFS" class="headerlink" title="1.SPFA最短路径(类似与BFS)"></a>1.SPFA最短路径(类似与BFS)</h3><pre><code class="c++">#include &lt;iostream&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;algorithm&gt;
+#include &lt;queue&gt;
+#include &lt;vector&gt;
+#define ll long long
+#define inf 0x3f3f3f3f
+#define pii pair&lt;int, int&gt;
+const int mod = 1e9+7;
+const int maxn = 2e5+7;
+using namespace std;
+struct node {int to,w,next;} edge[maxn];
+int head[maxn], cnt;
+int dis[maxn], vis[maxn];
+int n, m, s, t;
+struct Spfa
+{
+    void init()
+    {
+        memset(head,-1,sizeof(head));
+        memset(dis,0x3f3f3f3f,sizeof(dis));
+        memset(vis,0,sizeof(vis));
+        cnt = 0;
+    }
+ 
+    void add(int u,int v,int w)
+    {
+        edge[cnt].to = v;
+        edge[cnt].w = w;
+        edge[cnt].next = head[u];
+        head[u] = cnt ++;
+    }
+ 
+    void spfa()
+    {
+        dis[s] = 0; vis[s] = 1;
+        queue &lt;int&gt; Q; Q.push(s);
+        while(!Q.empty())
+        {
+            int now = Q.front();
+            Q.pop(); vis[now] = 0;    //从队列中弹出now , vis[now] 标记为未访问
+            for(int i = head[now]; i != -1; i = edge[i].next)
+            {
+                int v = edge[i].to;
+                if(dis[v] &lt; dis[now] + edge[i].w)
+                {
+                    dis[v] = dis[now] + edge[i].w;
+                    if(vis[v]) continue;    //如果访问过了(也就是 已经在队列中),就不用再push
+                    vis[v] = 1; Q.push(v);
+                }
+            }
+        }
+    }
+}sp;
+ 
+int main()
+{
+    while(~scanf("%d%d",&amp;n,&amp;m) &amp;&amp; n+m)
+    {
+        sp.init();
+        for(int i = 0; i &lt; m; i++)
+        {
+            int u, v, w;
+            scanf("%d%d%d",&amp;u, &amp;v, &amp;w);
+            sp.add(u, v, w);
+            sp.add(v, u, w);
+        }
+        s = 1, t = n; //s起点，t终点
+        sp.spfa();
+        printf("%d\n", dis[t]);
+    }
+}
+</code></pre>
+<h3 id="2-Dijkstra"><a href="#2-Dijkstra" class="headerlink" title="2.Dijkstra"></a>2.Dijkstra</h3><pre><code class="c++">//主要思想一个大循环+两个小循环
+void dijkstra(){
+    int u, minx;
+    book[S] = 1;
+    for(int i = 0; i &lt; N; i++){
+    //dist[]数组初始化，把起始结点S到i结点的距离赋值给diat[i]
+        dist[i] = v[S][i];
+    }
+
+    for(int i = 0; i &lt; N; i++){//大循环
+        minx = INT_MAX;
+        for(int j = 0; j &lt; N; j++){//寻找没有被标记并且最短的路径，并记录此结点 
+            if(!book[j] &amp;&amp; minx &gt; dist[j]){
+                minx = dist[j];
+                u = j;
+            } 
+        }
+        book[u] = 1;
+        for(int k = 0; k &lt; N; k++){
+        //如果A到B的距离大于A到C的距离加C到B的距离，那么更新数据
+            if(!book[k] &amp;&amp; dist[k] &gt; dist[u]+v[u][k]){
+                dist[k] = dist[u]+v[u][k];
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="3-Floyd"><a href="#3-Floyd" class="headerlink" title="3.Floyd"></a>3.Floyd</h3><pre><code class="c++">//初始化：
+    for (int i = 1; i &lt;= n; i ++ )
+        for (int j = 1; j &lt;= n; j ++ )
+            if (i == j) d[i][j] = 0;
+            else d[i][j] = INF;
+
+// 算法结束后，d[a][b]表示a到b的最短距离
+void floyd()
+{
+    for (int k = 1; k &lt;= n; k ++ )
+        for (int i = 1; i &lt;= n; i ++ )
+            for (int j = 1; j &lt;= n; j ++ )
+                d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+}
+</code></pre>
 
                 
             </div>
@@ -458,7 +701,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://kylinxin.github.io/2023/04/08/hello-world/">https://kylinxin.github.io/2023/04/08/hello-world/</a>
+                    <a href="https://kylinxin.github.io/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">https://kylinxin.github.io/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -495,7 +738,11 @@
                 <div class="post-meta__tag-list" style="display: inline-block;">
                     
                         <div class="article-tag">
-                            <span class="chip bg-color">无标签</span>
+                            
+                                <a href="/tags/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">
+                                    <span class="chip bg-color">蓝桥杯刷题总结</span>
+                                </a>
+                            
                         </div>
                     
                 </div>
@@ -572,54 +819,18 @@
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
+                <i class="far fa-dot-circle"></i>&nbsp;本篇
+            </div>
             <div class="card">
-                <a href="/2023/04/08/My-New-Post/">
+                <a href="/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/20.jpg" class="responsive-img" alt="My New Post">
+                        <img src="/medias/featureimages/7.jpg" class="responsive-img" alt="蓝桥杯">
                         
-                        <span class="card-title">My New Post</span>
-                    </div>
-                </a>
-                <div class="card-content article-content">
-                    <div class="summary block-with-text">
-                        
-                            
-                        
-                    </div>
-                    <div class="publish-info">
-                        <span class="publish-date">
-                            <i class="far fa-clock fa-fw icon-date"></i>2023-04-08
-                        </span>
-                        <span class="publish-author">
-                            
-                            <i class="fas fa-user fa-fw"></i>
-                            枕木
-                            
-                        </span>
-                    </div>
-                </div>
-                
-            </div>
-        </div>
-        
-        
-        <div class="article col s12 m6" data-aos="fade-up">
-            <div class="article-badge right-badge text-color">
-                本篇&nbsp;<i class="far fa-dot-circle"></i>
-            </div>
-            <div class="card">
-                <a href="/2023/04/08/hello-world/">
-                    <div class="card-image">
-                        
-                        
-                        <img src="/medias/featureimages/12.jpg" class="responsive-img" alt="Hello World">
-                        
-                        <span class="card-title">Hello World</span>
+                        <span class="card-title">蓝桥杯</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -630,7 +841,7 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2023-04-08
+                                <i class="far fa-clock fa-fw icon-date"></i>2023-04-10
                             </span>
                         <span class="publish-author">
                             
@@ -641,6 +852,59 @@
                     </div>
                 </div>
 
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">
+                        <span class="chip bg-color">蓝桥杯刷题总结</span>
+                    </a>
+                    
+                </div>
+                
+            </div>
+        </div>
+        
+        
+        <div class="article col s12 m6" data-aos="fade-up">
+            <div class="article-badge right-badge text-color">
+                下一篇&nbsp;<i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="card">
+                <a href="/2023/04/10/%E5%AF%86%E7%A0%81%E5%AD%A6%E5%AE%9E%E9%AA%8C/">
+                    <div class="card-image">
+                        
+                        
+                        <img src="/medias/featureimages/1.jpg" class="responsive-img" alt="密码学实验">
+                        
+                        <span class="card-title">密码学实验</span>
+                    </div>
+                </a>
+                <div class="card-content article-content">
+                    <div class="summary block-with-text">
+                        
+                            
+                        
+                    </div>
+                    <div class="publish-info">
+                            <span class="publish-date">
+                                <i class="far fa-clock fa-fw icon-date"></i>2023-04-10
+                            </span>
+                        <span class="publish-author">
+                            
+                            <i class="fas fa-user fa-fw"></i>
+                            枕木
+                            
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E5%AF%86%E7%A0%81%E5%AD%A6%E5%AE%9E%E9%AA%8C%E4%BB%A3%E7%A0%81%E9%9B%86%E5%90%88/">
+                        <span class="chip bg-color">密码学实验代码集合</span>
+                    </a>
+                    
+                </div>
                 
             </div>
         </div>
@@ -832,7 +1096,7 @@
             <br>
             
                 &nbsp;<i class="fas fa-chart-area"></i>&nbsp;站点总字数:&nbsp;<span
-                        class="white-color">7k</span>
+                        class="white-color">6.9k</span>
             
             
             
