@@ -1,0 +1,288 @@
+<!DOCTYPE html><html lang="zh-CN" theme-mode="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Ky不是枕木</title><link rel="icon" type="image/x-icon" href="/favicon.ico"><script>var config = {"root":"/","search":{"preload":false,"activeHolder":"Enter here","blurHolder":"Search","noResult":"Data \"$0\" not found"},"code":{"codeInfo":"$0 - $1 lines","copy":"code.copy","copyFinish":"code.copyFinish","expand":"code.expand"}}</script><script src="//unpkg.com/mermaid@9.2.2/dist/mermaid.min.js"></script><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lightgallery.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-zoom.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-thumbnail.css"><link type="text/css" rel="stylesheet" href="/lib/fontawesome/css/all.min.css"><link rel="stylesheet" href="/css/arknights.css"><script>if (window.localStorage.getItem('theme-mode') === 'light')
+ document.documentElement.setAttribute('theme-mode', 'light')
+if (window.localStorage.getItem('theme-mode') === 'dark')
+ document.documentElement.setAttribute('theme-mode', 'dark')</script><style>@font-face {
+ font-family: Bender;
+ src: local('Bender'), url("/font/Bender.ttf"), url("/font/Bender.otf");
+}
+@font-face {
+ font-family: BenderLight;
+ src: local('BenderLight'), url("/font/BenderLight.ttf");
+}
+@font-face {
+ font-family: 'JetBrains Mono';
+ src: local('JetBrains Mono'), url('/font/JetBrainsMono-Regular.woff2') format('woff2');
+}</style><style>:root {
+  --dark-background: url('https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg');
+  --light-background: url('/img/bk.jpg');
+}</style><meta name="generator" content="Hexo 6.3.0">
+<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
+</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1></h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-09-11T14:53:45.390Z" id="date"> 2023-09-11</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-09-11T14:55:12.712Z" id="updated"> 2023-09-11</time></div></span></div></div><hr><div id="post-content"><h1>PWN入门（3-12-1）-House Of Force（控制top_chunk）（基础）</h1>
+<p>参考资料：<br>
+CTF-wiki：<a target="_blank" rel="noopener" href="https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/">https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/</a><br>
+附件下载：<br>
+链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA">https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA</a>  密码: np57<br>
+–来自百度网盘超级会员V3的分享</p>
+<p>House Of Force是一种堆的利用方法，其主要原理是控制heap中的top_chunk并malloc来达到控制任意内存的空间。在讲解原理之前，首先来看一个示例。</p>
+<p>Linux环境</p>
+<p>ldd</p>
+<p>-version</p>
+<p>Ldd(UBuntuGLIBC2.23-Oubuntu11.2)2.23</p>
+<p>copyright()2016FreeSoftwareFoundation,I</p>
+<p>ThereisNo</p>
+<p>Thisisfree</p>
+<p>eforcopyingconditions</p>
+<p>software;seethesourcefor</p>
+<p>ULARPURPOSE</p>
+<p>ARRANtYteVFrMERCHANTABILITYORFITNESSFORAPARTICULARPU</p>
+<p>WrittenbyRolandMccrathandULrichrepper</p>
+<p>lsbrelease-a</p>
+<p>NoLSBmodulesareavailable.</p>
+<p>DistributorID:Ubuntu</p>
+<p>Description:</p>
+<p>Ubuntu16,04.7LTS</p>
+<p>Release:</p>
+<p>16.04</p>
+<p>codename:</p>
+<p>xenial</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996548718-98d3fe7f-6b0a-4943-8e8c-fba3696e8929.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_39%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996548718-98d3fe7f-6b0a-4943-8e8c-fba3696e8929.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_39%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.22.22.png"></p>
+<p>/main_arena/lib/x86_64-linux-gnu/libe.so6</p>
+<p>tgit:(master)</p>
+<p>main_arenaoffsetg</p>
+<p>jLibcve</p>
+<p>version:glibe2.23</p>
+<p>dD:BuiLdD[sh1C4FD86ECLEED579C79CE601F6C63796F574DF</p>
+<p>JbuitdID</p>
+<p>Jmain_arena_offset:ox3c4b20</p>
+<p>main-_arena_offsetgit:(master)Xi</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996640357-17fb2a11-4916-43a4-8d41-d791cbc58a7f.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_41%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996640357-17fb2a11-4916-43a4-8d41-d791cbc58a7f.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_41%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.23.52.png"></p>
+<p>Ubuntu版本为16.04，libc版本为2.23。</p>
+<p>Demo1</p>
+<p>pwndbg</p>
+<p>编译命令：gcc -g -z execstack -fno-stack-protector top_chunk_demo.c -o top_chunk_demo</p>
+<p>编译完成之后检查一下文件的保护：</p>
+<p>pchecksec–file-top_chunk_demo</p>
+<p>Desktop</p>
+<p>[*]"/home/ubuntu/Desktop/top_chunk_demo</p>
+<p>ayd64-64-Little</p>
+<p>Arch:</p>
+<p>RELRO:</p>
+<p>PartialRELRO</p>
+<p>NOCanaryFOund</p>
+<p>staCk:</p>
+<p>NXdisabled</p>
+<p>NX:</p>
+<p>(0x400000)</p>
+<p>PIE</p>
+<p>PIE:</p>
+<p>No</p>
+<p>RWX</p>
+<p>RWX:</p>
+<p>Has</p>
+<p>segmentS</p>
+<p>Desktop</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996739742-105e6fb0-694e-4744-8694-fd99c5885550.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_21%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996739742-105e6fb0-694e-4744-8694-fd99c5885550.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_21%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.25.34.png"></p>
+<p>编译好之后，对其进行gdb调试。对代码的第5行下断点：</p>
+<p>看一下heap的状况：</p>
+<p>这里记下此时top_chunk的大小为0x20fe1。执行同样的步骤，让程序执行malloc(0x20);这时的heap情况如下：</p>
+<p>从上面的代码框可以看到，系统新开辟了一个大小为0x31的内存空间。此时的top_chunk_size减少了0x30大小。</p>
+<p>继续调试，让程序执行malloc(0x30);，再来看一下heap：</p>
+<p>此时的top_chunk减小了0x40。</p>
+<p>结论</p>
+<p>从上面可以看出，在分配比top_chunk小的chunk时，会从top_chunk中分割出要分配的chunk，并且top_chunk向下移动。</p>
+<p>攻击原理</p>
+<p>好了，看过了Demo1现在讲解House Of Force原理就应该没有问题了。</p>
+<p>如果一个堆漏洞要想通过House Of Force进行利用，那么必须满足以下条件：</p>
+<p>●能够以溢出等方式控制到top_chunk的size域</p>
+<p>●能够自由的控制堆分配尺寸的大小</p>
+<p>House Of Force产生的原因在于glibc对top_chunk的处理：根据分配堆块的原理我们得知，进行堆分配时，如果所有空闲的块（bin）都无法满足需求，那么就会从 top chunk 中分割出相应的大小作为堆块的空间。</p>
+<p>假如说 top_chunk_size 值是由用户控制的任意值时会发生什么？答案是，可以使得 top chunk 指向我们期望的任何位置，这就相当于一次任意地址写。</p>
+<p>然而在 glibc 中，会对用户请求的大小和 top chunk 现有的 size 进行验证：</p>
+<p>根据上面的源码知道，假如说top_chunk_size被篡改成很大的值，就可以很轻松的通过这个验证，这也就是前面我们所说的需要一个能够控制top_chunk_size的漏洞。若要绕过这个验证，一般的做法是将top_chunk_size改为-1，因为在进行比较的时候会将size转换为无符号数。进一步来说就是将-1转换为unsigned long中最大的数，所以无论如何可以通过验证。验证通过之后，会将top_chunk指针进行更新，接下来的堆块就会分配到这个位置。用户只要控制了这个指针就相当于控制了任意地址。与此同时，top_chunk的size也会更新。</p>
+<p>总结一下：如果我们想要下次在指定位置分配大小为 x 的 chunk，我们需要确保 remainder_size 不小于 x+ MINSIZE。</p>
+<p>向前控制内存-Demo2</p>
+<p>在学习完原理之后，我们通过一个简单的示例来进一步说明House Of Force的利用。</p>
+<p>这个例子的目标是通过HOF（House Of Force）来篡改malloc@got.plt 实现劫持程序流程。<br>
+Demo2和之后的Demo3都会出现在我的电脑上gdb调试不出错，但是直接运行程序就会崩溃的情况，暂不清楚导致这种情况的原因。</p>
+<p>示例的源代码如下：</p>
+<p>gcc -g -z execstack -fno-stack-protector top_chunk_demo1.c -o top_chunk_demo1</p>
+<p>和上面的调试步骤相同，对代码的第6行下断点，然后运行程序，查看堆的情况：</p>
+<p>对程序第7行下断点，让程序运行ptr=(long *)(((long)ptr)+24);</p>
+<p>相同的步骤，让程序继续执行*ptr=-1;：</p>
+<p>从上面的代码框中可以看出top_chunk_size已经被改成了0xffffffffffffffff，在真正的题目中，这一步可以通过堆溢出等漏洞来实现。 因为 -1 在补码中是以 0xffffffffffffffff 表示的，所以我们直接赋值 -1 就可以。</p>
+<p>还记得我们的目标吗？通过HOF（House Of Force）来篡改malloc@got.plt 实现劫持程序流程。</p>
+<p>接下来程序就开始执行malloc(-4120);了，有个疑问，-4120这个数字是怎么来的？</p>
+<p>由于我们的目标是malloc@got.plt，因此将程序拖入IDA中：</p>
+<p>got.p1t000000000060101wor11</p>
+<p>xREF:sub4003F0+6t</p>
+<p>DATA</p>
+<p>libcstart</p>
+<p>daoffset</p>
+<p>gotp0000000000001</p>
+<p>main</p>
+<p>got.p1t:0000000000601018</p>
+<p>1ibcstart_maint</p>
+<p>DATAXREF:</p>
+<p>got.p000000000060102102</p>
+<p>dgoffset</p>
+<p>ma11oc</p>
+<p>DATAXREF:</p>
+<p>malloct</p>
+<p>got.p1t:0000000000601020</p>
+<p>ends</p>
+<p>gotP1+</p>
+<p>got.p1t:0000000000601020</p>
+<p>DAta:0000000000601028</p>
+<p>DATA:Q000000000601028</p>
+<p>data</p>
+<p>PUKe</p>
+<p>data:0000000000601028</p>
+<p>type</p>
+<p>Segment</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1605015661033-f8aba608-ba19-4040-8430-7ff57c77784e.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_51%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1605015661033-f8aba608-ba19-4040-8430-7ff57c77784e.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_51%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 21.40.56.png"></p>
+<p>从IDA中可以看到malloc@got.plt所在的地址为0x601020:</p>
+<p>所以我们应该将 top_chunk 指向0x601010处，这样当下次再分配chunk时，就可以分配到malloc@got.plt处的内存了。</p>
+<p>根据前面描述top_chunk位于0x602020，所以我们可以计算偏移0x601010-0x602020=-4112。</p>
+<p>此外，用户申请的内存大小，一旦进入申请内存的函数中就变成了无符号整数：</p>
+<p>输入的大小后需要经过checked_request2size函数：</p>
+<p>一方面，我们需要绕过 REQUEST_OUT_OF_RANGE(req) 这个检测，即我们传给 malloc 的值在负数范围内，不得大于 -2 * MINSIZE，这个一般情况下都是可以满足的。</p>
+<p>另一方面，在满足对应的约束后，我们需要使得 request2size正好转换为对应的大小，也就是说，我们需要使得 ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK 恰好为 - 4112。首先，很显然，-4112 是 chunk 对齐的，那么我们只需要将其减去 SIZE_SZ和MALLOC_ALIGN_MASK 就可以得到对应的需要申请的值。其实我们这里只需要减 SIZE_SZ 就可以了，因为多减的 MALLOC_ALIGN_MASK 最后还会被对齐掉。而如果 -4112 不是 MALLOC_ALIGN 的时候，我们就需要多减一些了。当然，我们最好使得分配之后得到的 chunk 也是对齐的，因为在释放一个 chunk 的时候，会进行对齐检查。</p>
+<p>32 位系统中，SIZE_SZ 是 4；64 位系统中，SIZE_SZ 是 8。<br>
+malloc(-4112-SIZE_SZ)=malloc(-4112-8)=malloc(-4120)。</p>
+<p>因此，我们当调用malloc(-4120)之后，我们可以观察到 top chunk 被抬高到我们想要的位置。</p>
+<p>对代码的第9行下断点，执行代码malloc(-4120);：</p>
+<p>最后程序malloc(0x10);之后，就可以控制malloc@got.plt处的地址：</p>
+<p>但是需要注意的是，在被抬高的同时，malloc@got 附近的内容也会被修改。</p>
+<p>向后控制内存-Demo3</p>
+<p>在上一个示例中，我们演示了篡改top_chunk使得top_chunk指针减小来修改位于其上面 (低地址) 的 got 表中的内容。同样的，利用此方式可以修改其下面（高地址）的内容。这次同样的利用代码进行演示：</p>
+<p>编译命令：gcc -g -z execstack -fno-stack-protector top_chunk_demo2.c -o top_chunk_demo2</p>
+<p>编译完成之后，开始对其进行调试，对代码的第6行下断点，看一下堆的情况：</p>
+<p>对代码的第7行下断点，继续运行程序，再来看一下堆的情况：</p>
+<p>从上面可以看到top_chunk的size域已经被修改，让程序继续执行malloc(140737345551056);</p>
+<p>为什么是malloc这么一长串数字？</p>
+<p>这次我们的目标是__malloc_hook，我们知道__malloc_hook 是位于 <a target="_blank" rel="noopener" href="http://libc.so">libc.so</a> 里的全局变量值，首先查看内存布局:</p>
+<p>可以看到heap的基址在0x602000，而libc的基址在0x7ffff7a0d000，因此我们需要通过HOF扩大top_chunk指针的值来实现对__malloc_hook的写。 首先，由pwndbg得知 __malloc_hook 的地址位于 0x7ffff7dd1b10 :</p>
+<p>采取计算0x7ffff7dd1b00-0x602020-0x10=140737345551056</p>
+<p>经过这次 malloc 之后，我们可以观察到 top_chunk 的地址被抬高到了 0x00007ffff7dd1b00：</p>
+<p>C</p>
+<p>1</p>
+<p>2</p>
+<p>3</p>
+<p>4</p>
+<p>5</p>
+<p>6</p>
+<p>7</p>
+<p>8</p>
+<p>9</p>
+<p>10</p>
+<p>11</p>
+<p>12</p>
+<p>13</p>
+<p>14</p>
+<p>15</p>
+<p>16</p>
+<p>17</p>
+<p>18</p>
+<p>19</p>
+<p>20</p>
+<p>21</p>
+<p>22</p>
+<p>23</p>
+<p>24</p>
+<p>25</p>
+<p>26</p>
+<p>27</p>
+<p>28</p>
+<p>29</p>
+<p>30</p>
+<p>pwndbg&gt; info local</p>
+<p>ptr = 0x602028</p>
+<p>pwndbg&gt; heap</p>
+<p>Allocated chunk</p>
+<p>Addr: 0x7ffff7dd1000</p>
+<p>Size: 0x7ffff7fdb000</p>
+<p>pwndbg&gt; top_chunk</p>
+<p>Top chunk</p>
+<p>Addr: 0x7ffff7dd1b00</p>
+<p>Size: 0x-7ffff77cfae7</p>
+<p>pwndbg&gt; x/16gx &amp;main_arena</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b00 #top_chunk</p>
+<p>0x7ffff7dd1b80 &lt;main_arena+96&gt;:	0x0000000000000000	0x00007ffff7dd1b78</p>
+<p>0x7ffff7dd1b90 &lt;main_arena+112&gt;:	0x00007ffff7dd1b78	0x00007ffff7dd1b88</p>
+<p>pwndbg&gt; x/16gx 0x7ffff7dd1b00</p>
+<p>0x7ffff7dd1b00 &lt;__memalign_hook&gt;:	0x00007ffff7a92ea0	0xffff800008830519</p>
+<p>0x7ffff7dd1b10 &lt;__malloc_hook&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b00 #top_chunk</p>
+<p>pwndbg&gt;</p>
+<p>之后，我们只要再次分配就可以控制 0x7ffff7dd1b10 处的 __malloc_hook 值了：</p>
+<p>C</p>
+<p>1</p>
+<p>2</p>
+<p>3</p>
+<p>4</p>
+<p>5</p>
+<p>6</p>
+<p>7</p>
+<p>8</p>
+<p>9</p>
+<p>10</p>
+<p>11</p>
+<p>12</p>
+<p>13</p>
+<p>14</p>
+<p>15</p>
+<p>16</p>
+<p>17</p>
+<p>18</p>
+<p>19</p>
+<p>20</p>
+<p>21</p>
+<p>pwndbg&gt; heap</p>
+<p>Allocated chunk</p>
+<p>Addr: 0x7ffff7dd1000</p>
+<p>Size: 0x7ffff7fdb000</p>
+<p>pwndbg&gt; top_chunk</p>
+<p>Top chunk</p>
+<p>Addr: 0x7ffff7dd1b20</p>
+<p>Size: 0x-7ffff77cfb07</p>
+<p>pwndbg&gt; x/20gx 0x7ffff7dd1b00</p>
+<p>0x7ffff7dd1b00 &lt;__memalign_hook&gt;:	0x00007ffff7a92ea0	0x0000000000000021#new_chunk</p>
+<p>0x7ffff7dd1b10 &lt;__malloc_hook&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0xffff8000088304f9 #top_chunk</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b20 #指向top_chunk</p>
+<p>0x7ffff7dd1b80 &lt;main_arena+96&gt;:	0x0000000000000000	0x00007ffff7dd1b78</p>
+<p>0x7ffff7dd1b90 &lt;main_arena+112&gt;:	0x00007ffff7dd1b78	0x00007ffff7dd1b88</p>
+<p>pwndbg&gt;</p>
+<p>记住两个公式解题更简单，下一小节将会讲解。</p>
+<div id="paginator"></div></div><div id="post-footer"><div id="pages" style="justify-content: flex-end"><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/04/10/%E5%AF%86%E7%A0%81%E5%AD%A6%E5%AE%9E%E9%AA%8C/">密码学实验 Prev →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">枕木</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">PWN入门（3-12-1）-House Of Force（控制top_chunk）（基础）</span></a></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
+lightGallery(document.getElementById('post-bg'), {
+  plugins: [lgZoom,lgThumbnail],
+  selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
+ cacheBust: false,
+ selectors: ['title','article','#aside-block','.pjax-js'],
+ switches: {'article': Pjax.switches.sideBySide},
+ switchesOptions: {
+   'article': {
+     classNames: {
+       remove: "pjax-out",
+       add: "pjax-in"
+     }
+   }
+ }
+});
+document.addEventListener("pjax:complete", reset);reset()})</script></body></html>

@@ -1,43 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title></title>
-    <url>/2023/05/05/%E5%BF%83%E8%B7%AF%E5%8E%86%E7%A8%8B/</url>
-    <content><![CDATA[<h2 id="心路历程：记录5-6月软件杯-信息安全竞赛的备赛过程"><a href="#心路历程：记录5-6月软件杯-信息安全竞赛的备赛过程" class="headerlink" title="心路历程：记录5-6月软件杯 信息安全竞赛的备赛过程"></a>心路历程：记录5-6月软件杯 信息安全竞赛的备赛过程</h2><hr>
-<h3 id="2023-4-20-星期四"><a href="#2023-4-20-星期四" class="headerlink" title="2023.4.20 星期四"></a>2023.4.20 星期四</h3><ol>
-<li>集中开会，大家针对软件杯选题进行了合理分析，结合信息安全竞赛，决定从软件杯的选题中选择跟安全相关的进行剖析，最后确立了<strong>《基于机器学习的分布式机器》</strong></li>
-<li>由于我们四个人都是大二，初步接触相关内容，我们认为得先恶补知识，才能进一步完成选题</li>
-</ol>
-<hr>
-<h3 id="2023-4-26-星期三"><a href="#2023-4-26-星期三" class="headerlink" title="2023.4.26  星期三"></a>2023.4.26  星期三</h3><ol>
-<li>通过大赛对于赛题的解读和要求，我们整理了一下整个过程，在课上进行了讲解，得到了导师的指导，告诉了我们应该从哪些方向入手，选择什么框架进行具体的搭建实现。</li>
-<li>通过具体指点，我们集中开会确立分工 ，由我和某个队员实现具体算法，通过分析相关代码，提升题目要求的数据F1，其余两个队员实现前后端搭建，采用vue + sprintboot + JavaScript 的方法</li>
-</ol>
-<hr>
-<h3 id="2023-5-5-星期四"><a href="#2023-5-5-星期四" class="headerlink" title="2023.5.5  星期四"></a>2023.5.5  星期四</h3><p>计划讨论内容：五一准备了啥，自己学习的知识内容，哪方面的，如何结合起来，如何提升</p>
-<p>SVM + VISIO</p>
-<p>​	1.讨论完后，算法部分还得继续加油，这周争取跑到0.85，多深入学习一下机器学习，人工智能算法，之后可以拿测试数据进行预测，做一套符合要求的demo版本。</p>
-<p>​	2.web前后端，目前…</p>
-<h3 id="2023-5-10-星期三"><a href="#2023-5-10-星期三" class="headerlink" title="2023.5.10 星期三"></a>2023.5.10 星期三</h3><hr>
-<p>数据marco_f1成功从0.80 -&gt; 0.85</p>
-<p>Q：上周总结</p>
-<p>A：算法部成功跑到0.85。</p>
-<p>​	技术部利用金蝶平台装好连上了本地数据库，还在找共同的框架。</p>
-<p>本次需要解决问题</p>
-<p>Q：如何将软件杯的内容 切合实际的转入到 国赛中去？</p>
-<p>A： </p>
-<p>数据集是我们自己的，我们可以找更大的数据，或者找平替的大数据。</p>
-<p>明天约hp解决问题</p>
-<p>Q：下周计划</p>
-<p>A：先准备密码学考试哦！</p>
-<p>算法部门：实现json文件输出序列和标签！计划提升0.85-&gt;0.88 or 0.89</p>
-<p>技术部门：找个具体的模板进行模仿</p>
-]]></content>
-  </entry>
-  <entry>
     <title>密码学实验</title>
     <url>/2023/04/10/%E5%AF%86%E7%A0%81%E5%AD%A6%E5%AE%9E%E9%AA%8C/</url>
-    <content><![CDATA[<h2 id="DES"><a href="#DES" class="headerlink" title="DES"></a>DES</h2><pre><code class="C++">#include &lt;bits/stdc++.h&gt;
+    <content><![CDATA[<h2 id="DES"><a href="#DES" class="headerlink" title="DES"></a>DES</h2>
+<pre><code class="language-C++">#include &lt;bits/stdc++.h&gt;
 using namespace std;
 string string_to_hex(const string&amp; str) //字符串转化为十六进制
 {
@@ -195,7 +162,7 @@ string encrypt(string pt, vector&lt;string&gt; rkb,
     int s[8][4][16] = {
             { 14, 4,  13, 1, 2,  15, 11, 8,  3,  10, 6,  12, 5,9,  0,  7,  0, 15, 7,  4,  14, 2,  13, 1,  10, 6,12, 11, 9,  5, 3,  8,  4,  1,  14, 8,  13, 6,  2, 11, 15, 12, 9, 7,  3,  10, 5,  0,  15, 12, 8,  2, 4,  9,  1,  7, 5,  11, 3,  14, 10, 0,  6,  13 },
             { 15, 1,  8,  14, 6,  11, 3, 4,  9,  7,  2,  13, 12, 0,  5,  10, 3,  13, 4,  7, 15, 2,  8,  14, 12, 0, 1,  10, 6,  9,  11, 5,  0, 14, 7,  11, 10, 4,  13, 1,  5,  8,  12, 6,  9,  3, 2,  15, 13, 8,  10, 1, 3,  15, 4,  2,  11, 6,  7, 12, 0,  5,  14, 9 },
-            { 10, 0,  9,  14, 6,  3,  15, 5,  1,  13, 12, 7,  11, 4,  2,  8,  13, 7,  0,  9,  3,  4, 6,  10, 2,  8,  5,  14, 12, 11, 15, 1,  13, 6,  4,  9,  8,  15, 3,  0,  11, 1,  2,  12, 5,  10, 14, 7,  1,  10, 13, 0,  6,  9,  8, 7,  4,  15, 14, 3,  11, 5,  2,  12 },
+			{ 10, 0,  9,  14, 6,  3,  15, 5,  1,  13, 12, 7,  11, 4,  2,  8,  13, 7,  0,  9,  3,  4, 6,  10, 2,  8,  5,  14, 12, 11, 15, 1,  13, 6,  4,  9,  8,  15, 3,  0,  11, 1,  2,  12, 5,  10, 14, 7,  1,  10, 13, 0,  6,  9,  8, 7,  4,  15, 14, 3,  11, 5,  2,  12 },
             { 7,  13, 14, 3,  0,  6,  9,  10, 1,  2, 8,  5,  11, 12, 4,  15, 13, 8,  11, 5,  6,  15, 0, 3,  4,  7, 2,  12, 1,  10, 14, 9,  10, 6,  9,  0, 12, 11, 7, 13, 15, 1,  3,  14, 5,  2,  8,  4,  3, 15, 0,  6, 10, 1,  13, 8,  9,  4,  5,  11, 12, 7, 2,  14 },
             { 2,  12, 4, 1,  7,  10, 11, 6, 8,  5,  3,  15, 13, 0,  14, 9, 14, 11, 2,  12, 4, 7,  13, 1,  5,  0, 15, 10, 3, 9,  8,  6,  4,  2, 1,  11, 10, 13, 7, 8,  15, 9, 12, 5,  6,  3,  0, 14, 11, 8,  12, 7, 1,  14, 2, 13, 6,  15, 0,  9, 10, 4,  5,  3 },
             { 12, 1,  10, 15, 9,  2,  6,  8,  0,  13, 3, 4, 14, 7,  5,  11, 10, 15, 4,  2,  7,  12, 9,  5, 6, 1, 13, 14, 0,  11, 3,  8,  9,  14, 15, 5,  2, 8, 12, 3,  7,  0,  4,  10, 1,  13, 11, 6,  4,  3, 2, 12, 9,  5,  15, 10, 11, 14, 1,  7,  6,  0,  8, 13 },
@@ -323,7 +290,8 @@ int main()
     cout &lt;&lt; "明文: " &lt;&lt; text &lt;&lt; endl;
 }
 </code></pre>
-<h2 id="AES"><a href="#AES" class="headerlink" title="AES"></a>AES</h2><pre><code class="c++">#include &lt;iostream&gt;
+<h2 id="AES"><a href="#AES" class="headerlink" title="AES"></a>AES</h2>
+<pre><code class="language-c++">#include &lt;iostream&gt;
 #include &lt;bits/stdc++.h&gt;
 #include &lt;stdint.h&gt;
 #include&lt;iomanip&gt;
@@ -755,7 +723,8 @@ int main()
     return 0;
 }
 </code></pre>
-<h2 id="SM4"><a href="#SM4" class="headerlink" title="SM4"></a>SM4</h2><pre><code class="c++">#include "string.h"
+<h2 id="SM4"><a href="#SM4" class="headerlink" title="SM4"></a>SM4</h2>
+<pre><code class="language-c++">#include "string.h"
 #include&lt;iostream&gt;
 #include &lt;stdint.h&gt;
 #include&lt;string&gt;
@@ -918,6 +887,7 @@ int main() {
     cout&lt;&lt;endl;
     return 0;
 }
+
 </code></pre>
 ]]></content>
       <tags>
@@ -927,18 +897,24 @@ int main() {
   <entry>
     <title>蓝桥杯</title>
     <url>/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/</url>
-    <content><![CDATA[<h2 id=""><a href="#" class="headerlink" title=""></a></h2><h1 id="救赎"><a href="#救赎" class="headerlink" title="救赎"></a>救赎</h1><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><h3 id="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"><a href="#1-欧几里得辗转相除法-求解-最大公约数-最小公倍数" class="headerlink" title="1.欧几里得辗转相除法 求解 最大公约数 最小公倍数"></a>1.欧几里得辗转相除法 求解 最大公约数 最小公倍数</h3><pre><code class="c++">int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
+    <content><![CDATA[<h2 id=""><a href="#" class="headerlink" title=""></a></h2>
+<h1>救赎</h1>
+<h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2>
+<h3 id="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"><a href="#1-欧几里得辗转相除法-求解-最大公约数-最小公倍数" class="headerlink" title="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"></a>1.欧几里得辗转相除法 求解 最大公约数 最小公倍数</h3>
+<pre><code class="language-c++">int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
 int lcm(int a, int b){return a / gcd(a, b) * b;}
 </code></pre>
-<h3 id="2-求质数"><a href="#2-求质数" class="headerlink" title="2.求质数"></a>2.求质数</h3><pre><code class="c++">/* 判断素数 */
+<h3 id="2-求质数"><a href="#2-求质数" class="headerlink" title="2-求质数"></a>2.求质数</h3>
+<pre><code class="language-c++">/* 判断素数 */
 bool isPrime(LL n) {
-    for (int i = 2; i * i &lt;= n; ++i)
-        if (n % i == 0)
-            return false;
-    return true;
+	for (int i = 2; i * i &lt;= n; ++i)
+		if (n % i == 0)
+			return false;
+	return true;
 }
 </code></pre>
-<h3 id="3-栈"><a href="#3-栈" class="headerlink" title="3.栈"></a>3.栈</h3><pre><code class="c++">#include &lt;stack&gt;
+<h3 id="3-栈"><a href="#3-栈" class="headerlink" title="3-栈"></a>3.栈</h3>
+<pre><code class="language-c++">#include &lt;stack&gt;
 stack&lt;类型&gt; mystack;
 s.empty();         //如果栈为空则返回true, 否则返回false;
 s.size();          //返回栈中元素的个数
@@ -946,7 +922,8 @@ s.top();           //返回栈顶元素, 但不删除该元素
 s.pop();           //弹出栈顶元素, 但不返回其值
 s.push();          //将元素压入栈顶
 </code></pre>
-<h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4.队列"></a>4.队列</h3><pre><code class="c++">#include &lt;queue&gt;
+<h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4-队列"></a>4.队列</h3>
+<pre><code class="language-c++">#include &lt;queue&gt;
 queue&lt;类型&gt; myqueue;
 push() //在队尾插入一个元素
 pop() //删除队列第一个元素
@@ -955,76 +932,79 @@ empty() //如果队列空则返回true
 front() //返回队列中的第一个元素
 back() //返回队列中最后一个元素
 </code></pre>
-<h3 id="5-DFS-深度优先"><a href="#5-DFS-深度优先" class="headerlink" title="5.DFS(深度优先)"></a>5.DFS(深度优先)</h3><pre><code class="c++">int dx[4] = {0,0,-1,1};
+<h3 id="5-DFS-深度优先"><a href="#5-DFS-深度优先" class="headerlink" title="5-DFS-深度优先"></a>5.DFS(深度优先)</h3>
+<pre><code class="language-c++">int dx[4] = {0,0,-1,1};
 int dy[4] = {-1,1,0,0};
 int mp[N][N];//存放迷宫
 int vis[N][N];//表示是否访问过，初始为flase
 void DFS(int x, int y)	//x,y是坐标点的位置 
 {
-    if(vis[x][y] || (x==n &amp;&amp; y==n)) return; //表示已经访问过了或者到达终点,递归的出口
-    vis[x][y] = true; //表示没有访问过，现在正在访问，置为访问过
-    for(int i=0; i &lt; 4; i++){	//遍历四个方向，顺序依次是，上下左右
-        int nx = x + dx[i];
-        int ny = y + dy[i];
+	if(vis[x][y] || (x==n &amp;&amp; y==n)) return; //表示已经访问过了或者到达终点,递归的出口
+	vis[x][y] = true; //表示没有访问过，现在正在访问，置为访问过
+	for(int i=0; i &lt; 4; i++){	//遍历四个方向，顺序依次是，上下左右
+		int nx = x + dx[i];
+		int ny = y + dy[i];
       //进行了合法性检验，
       //1.首先判断了该点是否越界，即是否在迷宫内  nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n
       //2.然后判断是否访问过  !vis[nx][ny] 未访问过就继续
       //3.最后判断是否为路  mp[nx][ny] == '0' 为路就继续
-        if(nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n &amp;&amp; !vis[nx][ny] &amp;&amp; mp[nx][ny] == '0')
-            dfs(nx,ny);
-    } 
+		if(nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n &amp;&amp; !vis[nx][ny] &amp;&amp; mp[nx][ny] == '0')
+			dfs(nx,ny);
+	} 
 }
 //注意!! 应该判断一下起点是否可走
 </code></pre>
-<h3 id="6-BFS-广度优先搜索"><a href="#6-BFS-广度优先搜索" class="headerlink" title="6.BFS(广度优先搜索)"></a>6.BFS(广度优先搜索)</h3><pre><code class="c++">int X[4]={0, 0, -1, 1};
+<h3 id="6-BFS-广度优先搜索"><a href="#6-BFS-广度优先搜索" class="headerlink" title="6-BFS-广度优先搜索"></a>6.BFS(广度优先搜索)</h3>
+<pre><code class="language-c++">int X[4]={0, 0, -1, 1};
 int Y[4]={-1, 1, 0, 0};
 int matrix[N][N]; //存储迷宫信息
 int vis[N][N];	//存储每个状态点是否走过
 
 struct node{
-    int x;
-    int y;
+	int x;
+	int y;
 }Node, top;
 
 bool judge(int xx, int yy)
 {
-    if(xx&lt;0||yy&lt;0||xx&gt;=N||yy&gt;=N) //注意边界
-        return false;
-    if(vis[xx][yy]==true||matrix[xx][yy]==0)	//下一个点走过或者为墙 0不能走，1能走
-        return false;
-    return true;
+	if(xx&lt;0||yy&lt;0||xx&gt;=N||yy&gt;=N) //注意边界
+		return false;
+	if(vis[xx][yy]==true||matrix[xx][yy]==0)	//下一个点走过或者为墙 0不能走，1能走
+		return false;
+	return true;
 }
 
 
 void BFS(int x, int y)
 {
-    queue&lt;node&gt; q;
-    Node.x=x;
-    Node.y=y;
-    q.push(Node);	//将起点入队列
-    while(!q.empty())	//队列不空就扩散
-    {
-        top=q.front();	//取出队首元素
-        int nx=top.x;
-        int ny=top.y;	//从四个方面机进行扩散
+	queue&lt;node&gt; q;
+	Node.x=x;
+	Node.y=y;
+	q.push(Node);	//将起点入队列
+	while(!q.empty())	//队列不空就扩散
+	{
+		top=q.front();	//取出队首元素
+		int nx=top.x;
+		int ny=top.y;	//从四个方面机进行扩散
          if(nx == ex &amp;&amp; ny == ey) //找到终点
              return top;
-        for(int i=0; i&lt;4; i++)
-        {
-            if(judge(nx+X[i], ny+Y[i])) //检查四个方向，如果有路就进队列
-            {
-                Node.x=nx+X[i];
-                Node.y=ny+Y[i];
-                q.push(Node);	
-            }
-        }
-        ans++;	//计数器
-        vis[nx][ny]=true;
-        q.pop();	//表示这个点的邻接点已经全部入队列，丢弃这个点
-    }
+		for(int i=0; i&lt;4; i++)
+		{
+			if(judge(nx+X[i], ny+Y[i])) //检查四个方向，如果有路就进队列
+			{
+				Node.x=nx+X[i];
+				Node.y=ny+Y[i];
+				q.push(Node);	
+			}
+		}
+		ans++;	//计数器
+		vis[nx][ny]=true;
+		q.pop();	//表示这个点的邻接点已经全部入队列，丢弃这个点
+	}
 }
 </code></pre>
-<h3 id="7-二分模板"><a href="#7-二分模板" class="headerlink" title="7.二分模板"></a>7.二分模板</h3><pre><code class="c++">/*
+<h3 id="7-二分模板"><a href="#7-二分模板" class="headerlink" title="7-二分模板"></a>7.二分模板</h3>
+<pre><code class="language-c++">/*
     作者:FengBOOOOOOOOOOOOOOO
     二分模板返回大于x的第一个位置    
 */
@@ -1061,8 +1041,11 @@ int main()
         printf("%d\n",find(-1,n,k));
     }
 } 
+
 </code></pre>
-<h2 id="最短路径问题"><a href="#最短路径问题" class="headerlink" title="最短路径问题"></a>最短路径问题</h2><h3 id="1-SPFA最短路径-类似与BFS"><a href="#1-SPFA最短路径-类似与BFS" class="headerlink" title="1.SPFA最短路径(类似与BFS)"></a>1.SPFA最短路径(类似与BFS)</h3><pre><code class="c++">#include &lt;iostream&gt;
+<h2 id="最短路径问题"><a href="#最短路径问题" class="headerlink" title="最短路径问题"></a>最短路径问题</h2>
+<h3 id="1-SPFA最短路径-类似与BFS"><a href="#1-SPFA最短路径-类似与BFS" class="headerlink" title="1-SPFA最短路径-类似与BFS"></a>1.SPFA最短路径(类似与BFS)</h3>
+<pre><code class="language-c++">#include &lt;iostream&gt;
 #include &lt;string.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;algorithm&gt;
@@ -1135,35 +1118,39 @@ int main()
         printf("%d\n", dis[t]);
     }
 }
-</code></pre>
-<h3 id="2-Dijkstra"><a href="#2-Dijkstra" class="headerlink" title="2.Dijkstra"></a>2.Dijkstra</h3><pre><code class="c++">//主要思想一个大循环+两个小循环
-void dijkstra(){
-    int u, minx;
-    book[S] = 1;
-    for(int i = 0; i &lt; N; i++){
-    //dist[]数组初始化，把起始结点S到i结点的距离赋值给diat[i]
-        dist[i] = v[S][i];
-    }
 
-    for(int i = 0; i &lt; N; i++){//大循环
-        minx = INT_MAX;
-        for(int j = 0; j &lt; N; j++){//寻找没有被标记并且最短的路径，并记录此结点 
-            if(!book[j] &amp;&amp; minx &gt; dist[j]){
-                minx = dist[j];
-                u = j;
-            } 
-        }
-        book[u] = 1;
-        for(int k = 0; k &lt; N; k++){
-        //如果A到B的距离大于A到C的距离加C到B的距离，那么更新数据
-            if(!book[k] &amp;&amp; dist[k] &gt; dist[u]+v[u][k]){
-                dist[k] = dist[u]+v[u][k];
-            }
-        }
-    }
-}
 </code></pre>
-<h3 id="3-Floyd"><a href="#3-Floyd" class="headerlink" title="3.Floyd"></a>3.Floyd</h3><pre><code class="c++">//初始化：
+<h3 id="2-Dijkstra"><a href="#2-Dijkstra" class="headerlink" title="2-Dijkstra"></a>2.Dijkstra</h3>
+<pre><code class="language-c++">//主要思想一个大循环+两个小循环
+void dijkstra(){
+	int u, minx;
+	book[S] = 1;
+	for(int i = 0; i &lt; N; i++){
+	//dist[]数组初始化，把起始结点S到i结点的距离赋值给diat[i]
+		dist[i] = v[S][i];
+	}
+
+	for(int i = 0; i &lt; N; i++){//大循环
+		minx = INT_MAX;
+		for(int j = 0; j &lt; N; j++){//寻找没有被标记并且最短的路径，并记录此结点 
+			if(!book[j] &amp;&amp; minx &gt; dist[j]){
+				minx = dist[j];
+				u = j;
+			} 
+		}
+		book[u] = 1;
+		for(int k = 0; k &lt; N; k++){
+		//如果A到B的距离大于A到C的距离加C到B的距离，那么更新数据
+			if(!book[k] &amp;&amp; dist[k] &gt; dist[u]+v[u][k]){
+				dist[k] = dist[u]+v[u][k];
+			}
+		}
+	}
+}
+
+</code></pre>
+<h3 id="3-Floyd"><a href="#3-Floyd" class="headerlink" title="3-Floyd"></a>3.Floyd</h3>
+<pre><code class="language-c++">//初始化：
     for (int i = 1; i &lt;= n; i ++ )
         for (int j = 1; j &lt;= n; j ++ )
             if (i == j) d[i][j] = 0;
@@ -1177,10 +1164,267 @@ void floyd()
             for (int j = 1; j &lt;= n; j ++ )
                 d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
 }
+
 </code></pre>
 ]]></content>
       <tags>
         <tag>蓝桥杯刷题总结</tag>
       </tags>
+  </entry>
+  <entry>
+    <title></title>
+    <url>/2023/09/11/House-Of-Force/</url>
+    <content><![CDATA[<h1>PWN入门（3-12-1）-House Of Force（控制top_chunk）（基础）</h1>
+<p>参考资料：<br>
+CTF-wiki：<a href="https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/">https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/</a><br>
+附件下载：<br>
+链接: <a href="https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA">https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA</a>  密码: np57<br>
+–来自百度网盘超级会员V3的分享</p>
+<p>House Of Force是一种堆的利用方法，其主要原理是控制heap中的top_chunk并malloc来达到控制任意内存的空间。在讲解原理之前，首先来看一个示例。</p>
+<p>Linux环境</p>
+<p>ldd</p>
+<p>-version</p>
+<p>Ldd(UBuntuGLIBC2.23-Oubuntu11.2)2.23</p>
+<p>copyright()2016FreeSoftwareFoundation,I</p>
+<p>ThereisNo</p>
+<p>Thisisfree</p>
+<p>eforcopyingconditions</p>
+<p>software;seethesourcefor</p>
+<p>ULARPURPOSE</p>
+<p>ARRANtYteVFrMERCHANTABILITYORFITNESSFORAPARTICULARPU</p>
+<p>WrittenbyRolandMccrathandULrichrepper</p>
+<p>lsbrelease-a</p>
+<p>NoLSBmodulesareavailable.</p>
+<p>DistributorID:Ubuntu</p>
+<p>Description:</p>
+<p>Ubuntu16,04.7LTS</p>
+<p>Release:</p>
+<p>16.04</p>
+<p>codename:</p>
+<p>xenial</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996548718-98d3fe7f-6b0a-4943-8e8c-fba3696e8929.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_39%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996548718-98d3fe7f-6b0a-4943-8e8c-fba3696e8929.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_39%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.22.22.png"></p>
+<p>/main_arena/lib/x86_64-linux-gnu/libe.so6</p>
+<p>tgit:(master)</p>
+<p>main_arenaoffsetg</p>
+<p>jLibcve</p>
+<p>version:glibe2.23</p>
+<p>dD:BuiLdD[sh1C4FD86ECLEED579C79CE601F6C63796F574DF</p>
+<p>JbuitdID</p>
+<p>Jmain_arena_offset:ox3c4b20</p>
+<p>main-_arena_offsetgit:(master)Xi</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996640357-17fb2a11-4916-43a4-8d41-d791cbc58a7f.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_41%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996640357-17fb2a11-4916-43a4-8d41-d791cbc58a7f.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_41%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.23.52.png"></p>
+<p>Ubuntu版本为16.04，libc版本为2.23。</p>
+<p>Demo1</p>
+<p>pwndbg</p>
+<p>编译命令：gcc -g -z execstack -fno-stack-protector top_chunk_demo.c -o top_chunk_demo</p>
+<p>编译完成之后检查一下文件的保护：</p>
+<p>pchecksec–file-top_chunk_demo</p>
+<p>Desktop</p>
+<p>[*]"/home/ubuntu/Desktop/top_chunk_demo</p>
+<p>ayd64-64-Little</p>
+<p>Arch:</p>
+<p>RELRO:</p>
+<p>PartialRELRO</p>
+<p>NOCanaryFOund</p>
+<p>staCk:</p>
+<p>NXdisabled</p>
+<p>NX:</p>
+<p>(0x400000)</p>
+<p>PIE</p>
+<p>PIE:</p>
+<p>No</p>
+<p>RWX</p>
+<p>RWX:</p>
+<p>Has</p>
+<p>segmentS</p>
+<p>Desktop</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1604996739742-105e6fb0-694e-4744-8694-fd99c5885550.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_21%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1604996739742-105e6fb0-694e-4744-8694-fd99c5885550.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_21%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 16.25.34.png"></p>
+<p>编译好之后，对其进行gdb调试。对代码的第5行下断点：</p>
+<p>看一下heap的状况：</p>
+<p>这里记下此时top_chunk的大小为0x20fe1。执行同样的步骤，让程序执行malloc(0x20);这时的heap情况如下：</p>
+<p>从上面的代码框可以看到，系统新开辟了一个大小为0x31的内存空间。此时的top_chunk_size减少了0x30大小。</p>
+<p>继续调试，让程序执行malloc(0x30);，再来看一下heap：</p>
+<p>此时的top_chunk减小了0x40。</p>
+<p>结论</p>
+<p>从上面可以看出，在分配比top_chunk小的chunk时，会从top_chunk中分割出要分配的chunk，并且top_chunk向下移动。</p>
+<p>攻击原理</p>
+<p>好了，看过了Demo1现在讲解House Of Force原理就应该没有问题了。</p>
+<p>如果一个堆漏洞要想通过House Of Force进行利用，那么必须满足以下条件：</p>
+<p>●能够以溢出等方式控制到top_chunk的size域</p>
+<p>●能够自由的控制堆分配尺寸的大小</p>
+<p>House Of Force产生的原因在于glibc对top_chunk的处理：根据分配堆块的原理我们得知，进行堆分配时，如果所有空闲的块（bin）都无法满足需求，那么就会从 top chunk 中分割出相应的大小作为堆块的空间。</p>
+<p>假如说 top_chunk_size 值是由用户控制的任意值时会发生什么？答案是，可以使得 top chunk 指向我们期望的任何位置，这就相当于一次任意地址写。</p>
+<p>然而在 glibc 中，会对用户请求的大小和 top chunk 现有的 size 进行验证：</p>
+<p>根据上面的源码知道，假如说top_chunk_size被篡改成很大的值，就可以很轻松的通过这个验证，这也就是前面我们所说的需要一个能够控制top_chunk_size的漏洞。若要绕过这个验证，一般的做法是将top_chunk_size改为-1，因为在进行比较的时候会将size转换为无符号数。进一步来说就是将-1转换为unsigned long中最大的数，所以无论如何可以通过验证。验证通过之后，会将top_chunk指针进行更新，接下来的堆块就会分配到这个位置。用户只要控制了这个指针就相当于控制了任意地址。与此同时，top_chunk的size也会更新。</p>
+<p>总结一下：如果我们想要下次在指定位置分配大小为 x 的 chunk，我们需要确保 remainder_size 不小于 x+ MINSIZE。</p>
+<p>向前控制内存-Demo2</p>
+<p>在学习完原理之后，我们通过一个简单的示例来进一步说明House Of Force的利用。</p>
+<p>这个例子的目标是通过HOF（House Of Force）来篡改malloc@got.plt 实现劫持程序流程。<br>
+Demo2和之后的Demo3都会出现在我的电脑上gdb调试不出错，但是直接运行程序就会崩溃的情况，暂不清楚导致这种情况的原因。</p>
+<p>示例的源代码如下：</p>
+<p>gcc -g -z execstack -fno-stack-protector top_chunk_demo1.c -o top_chunk_demo1</p>
+<p>和上面的调试步骤相同，对代码的第6行下断点，然后运行程序，查看堆的情况：</p>
+<p>对程序第7行下断点，让程序运行ptr=(long *)(((long)ptr)+24);</p>
+<p>相同的步骤，让程序继续执行*ptr=-1;：</p>
+<p>从上面的代码框中可以看出top_chunk_size已经被改成了0xffffffffffffffff，在真正的题目中，这一步可以通过堆溢出等漏洞来实现。 因为 -1 在补码中是以 0xffffffffffffffff 表示的，所以我们直接赋值 -1 就可以。</p>
+<p>还记得我们的目标吗？通过HOF（House Of Force）来篡改malloc@got.plt 实现劫持程序流程。</p>
+<p>接下来程序就开始执行malloc(-4120);了，有个疑问，-4120这个数字是怎么来的？</p>
+<p>由于我们的目标是malloc@got.plt，因此将程序拖入IDA中：</p>
+<p>got.p1t000000000060101wor11</p>
+<p>xREF:sub4003F0+6t</p>
+<p>DATA</p>
+<p>libcstart</p>
+<p>daoffset</p>
+<p>gotp0000000000001</p>
+<p>main</p>
+<p>got.p1t:0000000000601018</p>
+<p>1ibcstart_maint</p>
+<p>DATAXREF:</p>
+<p>got.p000000000060102102</p>
+<p>dgoffset</p>
+<p>ma11oc</p>
+<p>DATAXREF:</p>
+<p>malloct</p>
+<p>got.p1t:0000000000601020</p>
+<p>ends</p>
+<p>gotP1+</p>
+<p>got.p1t:0000000000601020</p>
+<p>DAta:0000000000601028</p>
+<p>DATA:Q000000000601028</p>
+<p>data</p>
+<p>PUKe</p>
+<p>data:0000000000601028</p>
+<p>type</p>
+<p>Segment</p>
+<p class='item-img' data-src='https://cdn.nlark.com/yuque/0/2020/png/574026/1605015661033-f8aba608-ba19-4040-8430-7ff57c77784e.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_51%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10'><img src="https://cdn.nlark.com/yuque/0/2020/png/574026/1605015661033-f8aba608-ba19-4040-8430-7ff57c77784e.png?x-oss-process=image%2Fwatermark%2Ctype_d3F5LW1pY3JvaGVp%2Csize_51%2Ctext_Q3liZXJhbmdlbA%3D%3D%2Ccolor_FFFFFF%2Cshadow_50%2Ct_80%2Cg_se%2Cx_10%2Cy_10" alt="截屏2020-11-10 21.40.56.png"></p>
+<p>从IDA中可以看到malloc@got.plt所在的地址为0x601020:</p>
+<p>所以我们应该将 top_chunk 指向0x601010处，这样当下次再分配chunk时，就可以分配到malloc@got.plt处的内存了。</p>
+<p>根据前面描述top_chunk位于0x602020，所以我们可以计算偏移0x601010-0x602020=-4112。</p>
+<p>此外，用户申请的内存大小，一旦进入申请内存的函数中就变成了无符号整数：</p>
+<p>输入的大小后需要经过checked_request2size函数：</p>
+<p>一方面，我们需要绕过 REQUEST_OUT_OF_RANGE(req) 这个检测，即我们传给 malloc 的值在负数范围内，不得大于 -2 * MINSIZE，这个一般情况下都是可以满足的。</p>
+<p>另一方面，在满足对应的约束后，我们需要使得 request2size正好转换为对应的大小，也就是说，我们需要使得 ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK 恰好为 - 4112。首先，很显然，-4112 是 chunk 对齐的，那么我们只需要将其减去 SIZE_SZ和MALLOC_ALIGN_MASK 就可以得到对应的需要申请的值。其实我们这里只需要减 SIZE_SZ 就可以了，因为多减的 MALLOC_ALIGN_MASK 最后还会被对齐掉。而如果 -4112 不是 MALLOC_ALIGN 的时候，我们就需要多减一些了。当然，我们最好使得分配之后得到的 chunk 也是对齐的，因为在释放一个 chunk 的时候，会进行对齐检查。</p>
+<p>32 位系统中，SIZE_SZ 是 4；64 位系统中，SIZE_SZ 是 8。<br>
+malloc(-4112-SIZE_SZ)=malloc(-4112-8)=malloc(-4120)。</p>
+<p>因此，我们当调用malloc(-4120)之后，我们可以观察到 top chunk 被抬高到我们想要的位置。</p>
+<p>对代码的第9行下断点，执行代码malloc(-4120);：</p>
+<p>最后程序malloc(0x10);之后，就可以控制malloc@got.plt处的地址：</p>
+<p>但是需要注意的是，在被抬高的同时，malloc@got 附近的内容也会被修改。</p>
+<p>向后控制内存-Demo3</p>
+<p>在上一个示例中，我们演示了篡改top_chunk使得top_chunk指针减小来修改位于其上面 (低地址) 的 got 表中的内容。同样的，利用此方式可以修改其下面（高地址）的内容。这次同样的利用代码进行演示：</p>
+<p>编译命令：gcc -g -z execstack -fno-stack-protector top_chunk_demo2.c -o top_chunk_demo2</p>
+<p>编译完成之后，开始对其进行调试，对代码的第6行下断点，看一下堆的情况：</p>
+<p>对代码的第7行下断点，继续运行程序，再来看一下堆的情况：</p>
+<p>从上面可以看到top_chunk的size域已经被修改，让程序继续执行malloc(140737345551056);</p>
+<p>为什么是malloc这么一长串数字？</p>
+<p>这次我们的目标是__malloc_hook，我们知道__malloc_hook 是位于 <a href="http://libc.so">libc.so</a> 里的全局变量值，首先查看内存布局:</p>
+<p>可以看到heap的基址在0x602000，而libc的基址在0x7ffff7a0d000，因此我们需要通过HOF扩大top_chunk指针的值来实现对__malloc_hook的写。 首先，由pwndbg得知 __malloc_hook 的地址位于 0x7ffff7dd1b10 :</p>
+<p>采取计算0x7ffff7dd1b00-0x602020-0x10=140737345551056</p>
+<p>经过这次 malloc 之后，我们可以观察到 top_chunk 的地址被抬高到了 0x00007ffff7dd1b00：</p>
+<p>C</p>
+<p>1</p>
+<p>2</p>
+<p>3</p>
+<p>4</p>
+<p>5</p>
+<p>6</p>
+<p>7</p>
+<p>8</p>
+<p>9</p>
+<p>10</p>
+<p>11</p>
+<p>12</p>
+<p>13</p>
+<p>14</p>
+<p>15</p>
+<p>16</p>
+<p>17</p>
+<p>18</p>
+<p>19</p>
+<p>20</p>
+<p>21</p>
+<p>22</p>
+<p>23</p>
+<p>24</p>
+<p>25</p>
+<p>26</p>
+<p>27</p>
+<p>28</p>
+<p>29</p>
+<p>30</p>
+<p>pwndbg&gt; info local</p>
+<p>ptr = 0x602028</p>
+<p>pwndbg&gt; heap</p>
+<p>Allocated chunk</p>
+<p>Addr: 0x7ffff7dd1000</p>
+<p>Size: 0x7ffff7fdb000</p>
+<p>pwndbg&gt; top_chunk</p>
+<p>Top chunk</p>
+<p>Addr: 0x7ffff7dd1b00</p>
+<p>Size: 0x-7ffff77cfae7</p>
+<p>pwndbg&gt; x/16gx &amp;main_arena</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b00 #top_chunk</p>
+<p>0x7ffff7dd1b80 &lt;main_arena+96&gt;:	0x0000000000000000	0x00007ffff7dd1b78</p>
+<p>0x7ffff7dd1b90 &lt;main_arena+112&gt;:	0x00007ffff7dd1b78	0x00007ffff7dd1b88</p>
+<p>pwndbg&gt; x/16gx 0x7ffff7dd1b00</p>
+<p>0x7ffff7dd1b00 &lt;__memalign_hook&gt;:	0x00007ffff7a92ea0	0xffff800008830519</p>
+<p>0x7ffff7dd1b10 &lt;__malloc_hook&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b00 #top_chunk</p>
+<p>pwndbg&gt;</p>
+<p>之后，我们只要再次分配就可以控制 0x7ffff7dd1b10 处的 __malloc_hook 值了：</p>
+<p>C</p>
+<p>1</p>
+<p>2</p>
+<p>3</p>
+<p>4</p>
+<p>5</p>
+<p>6</p>
+<p>7</p>
+<p>8</p>
+<p>9</p>
+<p>10</p>
+<p>11</p>
+<p>12</p>
+<p>13</p>
+<p>14</p>
+<p>15</p>
+<p>16</p>
+<p>17</p>
+<p>18</p>
+<p>19</p>
+<p>20</p>
+<p>21</p>
+<p>pwndbg&gt; heap</p>
+<p>Allocated chunk</p>
+<p>Addr: 0x7ffff7dd1000</p>
+<p>Size: 0x7ffff7fdb000</p>
+<p>pwndbg&gt; top_chunk</p>
+<p>Top chunk</p>
+<p>Addr: 0x7ffff7dd1b20</p>
+<p>Size: 0x-7ffff77cfb07</p>
+<p>pwndbg&gt; x/20gx 0x7ffff7dd1b00</p>
+<p>0x7ffff7dd1b00 &lt;__memalign_hook&gt;:	0x00007ffff7a92ea0	0x0000000000000021#new_chunk</p>
+<p>0x7ffff7dd1b10 &lt;__malloc_hook&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b20 &lt;main_arena&gt;:	0x0000000100000000	0xffff8000088304f9 #top_chunk</p>
+<p>0x7ffff7dd1b30 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b40 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b50 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b60 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000</p>
+<p>0x7ffff7dd1b70 &lt;main_arena+80&gt;:	0x0000000000000000	0x00007ffff7dd1b20 #指向top_chunk</p>
+<p>0x7ffff7dd1b80 &lt;main_arena+96&gt;:	0x0000000000000000	0x00007ffff7dd1b78</p>
+<p>0x7ffff7dd1b90 &lt;main_arena+112&gt;:	0x00007ffff7dd1b78	0x00007ffff7dd1b88</p>
+<p>pwndbg&gt;</p>
+<p>记住两个公式解题更简单，下一小节将会讲解。</p>
+]]></content>
   </entry>
 </search>
