@@ -18,25 +18,25 @@ if (window.localStorage.getItem('theme-mode') === 'dark')
 }</style><meta name="generator" content="Hexo 6.3.0">
 <style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
 <link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
-</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>密码学实验</h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-04-10T15:14:29.000Z" id="date"> 2023-04-10</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-05-05T12:10:42.242Z" id="updated"> 2023-05-05</time></div></span></div></div><hr><div id="post-content"><h2 id="DES"><a href="#DES" class="headerlink" title="DES"></a>DES</h2><pre><code class="C++">#include &lt;bits/stdc++.h&gt;
+<link rel="stylesheet" href="/css/prism.css" type="text/css"></head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>密码学实验</h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-04-10T15:14:29.000Z" id="date"> 2023-04-10</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-05-05T12:10:42.242Z" id="updated"> 2023-05-05</time></div></span></div></div><hr><div id="post-content"><h2 id="DES"><a href="#DES" class="headerlink" title="DES"></a>DES</h2><pre class=" language-C++"><code class="language-C++">#include <bits/stdc++.h>
 using namespace std;
-string string_to_hex(const string&amp; str) //字符串转化为十六进制
+string string_to_hex(const string& str) //字符串转化为十六进制
 {
     string result="";
     string tmp;
     stringstream ss;
-    for(int i=0;i&lt;str.size();i++)
+    for(int i=0;i<str.size();i++)
     {
-        ss&lt;&lt;hex&lt;&lt;int(str[i])&lt;&lt;endl;
-        ss&gt;&gt;tmp;
+        ss<<hex<<int(str[i])<<endl;
+        ss>>tmp;
         result+=tmp;
     }
     return result;
 }
-string hex_to_string(const std::string&amp; str)
+string hex_to_string(const std::string& str)
 {
     std::string result;
-    for (size_t i = 0; i &lt; str.length(); i += 2)//十六进制两个字符为原始字符一个字符
+    for (size_t i = 0; i < str.length(); i += 2)//十六进制两个字符为原始字符一个字符
     {
         std::string byte = str.substr(i, 2);//每次切两个字符
         //将十六进制的string转成long再强转成int再转成char
@@ -49,7 +49,7 @@ string hex_to_string(const std::string&amp; str)
 string hex2bin(string s)
 {
     //十六进制转化为二进制
-    unordered_map&lt;char, string&gt; mp;
+    unordered_map<char, string> mp;
     mp['0'] = "0000";
     mp['1'] = "0001";
     mp['2'] = "0010";
@@ -67,7 +67,7 @@ string hex2bin(string s)
     mp['E'] = "1110";
     mp['F'] = "1111";
     string bin = "";
-    for (int i = 0; i &lt; s.size(); i++) {
+    for (int i = 0; i < s.size(); i++) {
         bin += mp[s[i]];
     }
     return bin;
@@ -75,7 +75,7 @@ string hex2bin(string s)
 string bin2hex(string s)
 {
     // 二进制转化为16进制
-    unordered_map&lt;string, string&gt; mp;
+    unordered_map<string, string> mp;
     mp["0000"] = "0";
     mp["0001"] = "1";
     mp["0010"] = "2";
@@ -93,7 +93,7 @@ string bin2hex(string s)
     mp["1110"] = "E";
     mp["1111"] = "F";
     string hex = "";
-    for (int i = 0; i &lt; s.length(); i += 4) {
+    for (int i = 0; i < s.length(); i += 4) {
         string ch = "";
         ch += s[i];
         ch += s[i + 1];
@@ -107,7 +107,7 @@ string bin2hex(string s)
 string permute(string k, int* arr, int n)
 {
     string per = "";
-    for (int i = 0; i &lt; n; i++) {
+    for (int i = 0; i < n; i++) {
         per += k[arr[i] - 1];
     }
     return per;
@@ -116,8 +116,8 @@ string permute(string k, int* arr, int n)
 string shift_left(string k, int shifts)
 {
     string s = "";
-    for (int i = 0; i &lt; shifts; i++) {
-        for (int j = 1; j &lt; 28; j++) {
+    for (int i = 0; i < shifts; i++) {
+        for (int j = 1; j < 28; j++) {
             s += k[j];
         }
         s += k[0];
@@ -130,7 +130,7 @@ string shift_left(string k, int shifts)
 string xor_(string a, string b)
 {
     string ans = "";
-    for (int i = 0; i &lt; a.size(); i++) {
+    for (int i = 0; i < a.size(); i++) {
         if (a[i] == b[i]) {
             ans += "0";
         }
@@ -140,10 +140,10 @@ string xor_(string a, string b)
     }
     return ans;
 }
-string encrypt(string pt, vector&lt;string&gt; rkb,
-               vector&lt;string&gt; rk)
+string encrypt(string pt, vector<string> rkb,
+               vector<string> rk)
 {
-    // 16-&gt;2
+    // 16->2
     pt = hex2bin(pt);
 
     // 初始置换
@@ -156,14 +156,14 @@ string encrypt(string pt, vector&lt;string&gt; rkb,
                 5,  63, 55, 47, 39, 31, 23, 15, 7 };
     // 初始置换
     pt = permute(pt, initial_perm, 64);
-    cout &lt;&lt; "初始置换后: " &lt;&lt; bin2hex(pt)
-         &lt;&lt; endl;
+    cout << "初始置换后: " << bin2hex(pt)
+         << endl;
 
     // 拆分成左右32比特
     string left = pt.substr(0, 32);
     string right = pt.substr(32, 32);
-    cout &lt;&lt; "拆分后: L0=" &lt;&lt; bin2hex(left)
-         &lt;&lt; " R0=" &lt;&lt; bin2hex(right) &lt;&lt; endl;
+    cout << "拆分后: L0=" << bin2hex(left)
+         << " R0=" << bin2hex(right) << endl;
 
     // E盒扩展
     int exp_d[48]
@@ -190,15 +190,15 @@ string encrypt(string pt, vector&lt;string&gt; rkb,
                 26, 5, 18, 31, 10, 2,  8,  24, 14, 32, 27,
                 3,  9, 19, 13, 30, 6,  22, 11, 4,  25 };
 
-    cout &lt;&lt; endl;
-    for (int i = 0; i &lt; 16; i++) {
+    cout << endl;
+    for (int i = 0; i < 16; i++) {
         string right_expanded = permute(right, exp_d, 48);
 
         string x = xor_(rkb[i], right_expanded);
 
         // S
         string op = "";
-        for (int i = 0; i &lt; 8; i++) {
+        for (int i = 0; i < 8; i++) {
             int row = 2 * int(x[i * 6] - '0')
                       + int(x[i * 6 + 5] - '0');
             int col = 8 * int(x[i * 6 + 1] - '0')
@@ -224,9 +224,9 @@ string encrypt(string pt, vector&lt;string&gt; rkb,
         if (i != 15) {
             swap(left, right);
         }
-        cout &lt;&lt; "轮数: " &lt;&lt; i + 1 &lt;&lt; " " &lt;&lt; bin2hex(left)
-             &lt;&lt; " " &lt;&lt; bin2hex(right) &lt;&lt; " " &lt;&lt; rk[i]
-             &lt;&lt; endl;
+        cout << "轮数: " << i + 1 << " " << bin2hex(left)
+             << " " << bin2hex(right) << " " << rk[i]
+             << endl;
     }
 
     // 左右结合
@@ -248,12 +248,12 @@ string encrypt(string pt, vector&lt;string&gt; rkb,
 int main()
 {
     string pt, key;
-    cout&lt;&lt;"请输入明文: ";
-    cin&gt;&gt;pt;
-    cout&lt;&lt;"请输入密文: ";
-    cin&gt;&gt;key;
+    cout<<"请输入明文: ";
+    cin>>pt;
+    cout<<"请输入密文: ";
+    cin>>key;
     pt = string_to_hex(pt);
-    cout&lt;&lt;pt;
+    cout<<pt;
     key = string_to_hex(key);
     key = hex2bin(key);
     int keyp[56]
@@ -278,9 +278,9 @@ int main()
     string left = key.substr(0, 28);
     string right = key.substr(28, 28);
 
-    vector&lt;string&gt; rkb;
-    vector&lt;string&gt; rk;
-    for (int i = 0; i &lt; 16; i++) {
+    vector<string> rkb;
+    vector<string> rk;
+    for (int i = 0; i < 16; i++) {
         left = shift_left(left, shift_table[i]);
         right = shift_left(right, shift_table[i]);
 
@@ -292,22 +292,22 @@ int main()
         rk.push_back(bin2hex(RoundKey));
     }
 
-    cout &lt;&lt; "加密:\n";
+    cout << "加密:\n";
     string cipher = encrypt(pt, rkb, rk);
-    cout &lt;&lt; "密文: " &lt;&lt; cipher &lt;&lt; endl;
+    cout << "密文: " << cipher << endl;
 
-    cout &lt;&lt; "解密:\n";
+    cout << "解密:\n";
     reverse(rkb.begin(), rkb.end());
     reverse(rk.begin(), rk.end());
     string text = encrypt(cipher, rkb, rk);
     text = hex_to_string(text);
-    cout &lt;&lt; "明文: " &lt;&lt; text &lt;&lt; endl;
+    cout << "明文: " << text << endl;
 }
 </code></pre>
-<h2 id="AES"><a href="#AES" class="headerlink" title="AES"></a>AES</h2><pre><code class="c++">#include &lt;iostream&gt;
-#include &lt;bits/stdc++.h&gt;
-#include &lt;stdint.h&gt;
-#include&lt;iomanip&gt;
+<h2 id="AES"><a href="#AES" class="headerlink" title="AES"></a>AES</h2><pre class=" language-c++"><code class="language-c++">#include <iostream>
+#include <bits/stdc++.h>
+#include <stdint.h>
+#include<iomanip>
 void AddRoundKey(uint8_t mtx[],uint32_t w[]);
 uint32_t SubKeys(uint32_t temp);
 void SubBytes(uint8_t mtx[],int len);
@@ -368,26 +368,26 @@ uint32_t LunMiYaoJia[10] = {0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10
 uint32_t left_bit_move(uint32_t val, int n) {
     uint32_t size = sizeof(val) * 8;
     n = n % size;
-    return (val &gt;&gt; (size - n) | (val &lt;&lt; n));//左移
-    //return (val &lt;&lt; (size - n) | (val &gt;&gt; n));//右移
+    return (val >> (size - n) | (val << n));//左移
+    //return (val << (size - n) | (val >> n));//右移
 }
-string string_to_hex(const string&amp; str) //字符串转化为十六进制
+string string_to_hex(const string& str) //字符串转化为十六进制
 {
     string result="";
     string tmp;
     stringstream ss;
-    for(int i=0;i&lt;str.size();i++)
+    for(int i=0;i<str.size();i++)
     {
-        ss&lt;&lt;hex&lt;&lt;int(str[i])&lt;&lt;endl;
-        ss&gt;&gt;tmp;
+        ss<<hex<<int(str[i])<<endl;
+        ss>>tmp;
         result+=tmp;
     }
     return result;
 }
-string hex_to_string(const std::string&amp; str)
+string hex_to_string(const std::string& str)
 {
     std::string result;
-    for (size_t i = 0; i &lt; str.length(); i += 2)//十六进制两个字符为原始字符一个字符
+    for (size_t i = 0; i < str.length(); i += 2)//十六进制两个字符为原始字符一个字符
     {
         std::string byte = str.substr(i, 2);//每次切两个字符
         //将十六进制的string转成long再强转成int再转成char
@@ -399,71 +399,71 @@ string hex_to_string(const std::string&amp; str)
 //制作列混淆表
 uint8_t Mul_02(uint8_t x)
 {
-    if((x&gt;&gt;7) == 0)
-        return x&lt;&lt;1;
+    if((x>>7) == 0)
+        return x<<1;
     else
-        return ((x&lt;&lt;1)^0x1b)&amp;0xff;
+        return ((x<<1)^0x1b)&0xff;
 }
 uint32_t get_output_col1(uint8_t x)
 {
     x = (uint32_t)x;
-    return (Mul_02(x)&lt;&lt;24)|(x&lt;&lt;16)|(x&lt;&lt;8)|(x^ Mul_02(x));
+    return (Mul_02(x)<<24)|(x<<16)|(x<<8)|(x^ Mul_02(x));
     //2113
 }
 
 uint32_t get_output_col2(uint8_t x)
 {
     x = (uint32_t)x;
-    return ((x^Mul_02(x))&lt;&lt;24)|(Mul_02(x)&lt;&lt;16)|(x&lt;&lt;8)|(x);
+    return ((x^Mul_02(x))<<24)|(Mul_02(x)<<16)|(x<<8)|(x);
     //3211
 }
 uint32_t get_output_col3(uint8_t x)
 {
     x = (uint32_t)x;
-    return (x&lt;&lt;24)|((x^Mul_02(x))&lt;&lt;16)|(Mul_02(x)&lt;&lt;8)|(x);
+    return (x<<24)|((x^Mul_02(x))<<16)|(Mul_02(x)<<8)|(x);
     //1321
 }
 uint32_t get_output_col4(uint8_t x)
 {
     x = (uint32_t)x;
-    return (x&lt;&lt;24)|(x&lt;&lt;16)|((x^Mul_02(x))&lt;&lt;8)|(Mul_02(x));
+    return (x<<24)|(x<<16)|((x^Mul_02(x))<<8)|(Mul_02(x));
     //1132
 }
 void get_TAB()
 {
-    for(int i=0;i&lt;4;i++) {
-        for (int j = 0; j &lt; 256; j++) {
+    for(int i=0;i<4;i++) {
+        for (int j = 0; j < 256; j++) {
             T[i][j]=0;
         }
     }
-    for(int i=0;i&lt;256;i++) {
+    for(int i=0;i<256;i++) {
         T[0][i] = get_output_col1((uint8_t) i);
         T[1][i] = get_output_col2((uint8_t) i);
         T[2][i] = get_output_col3((uint8_t) i);
         T[3][i] = get_output_col4((uint8_t) i);
     }
     //输出列混淆表
-//    for(int i=0;i&lt;4;i++) {
-//        for (int j = 0; j &lt; 256; j++) {
+//    for(int i=0;i<4;i++) {
+//        for (int j = 0; j < 256; j++) {
 //            //printf("%8x ",T[i][j]);
-//            cout &lt;&lt;setw(8)&lt;&lt;setfill('0')&lt;&lt; hex &lt;&lt; T[i][j] &lt;&lt; " ";
+//            cout <<setw(8)<<setfill('0')<< hex << T[i][j] << " ";
 //        }
-//        cout&lt;&lt;endl;
+//        cout<<endl;
 //    }
 }
 
 uint8_t GFMul(uint8_t a, uint8_t b) {
     uint8_t p = 0;
     uint8_t high;
-    for (int counter = 0; counter &lt; 8; counter++)
+    for (int counter = 0; counter < 8; counter++)
     {
-        if ((b &amp; uint8_t(1)) != 0){//判断当前b的最后一位是否为0
+        if ((b & uint8_t(1)) != 0){//判断当前b的最后一位是否为0
             p ^= a;}// p与a异或  即如果b当前最后一位不是0，就加上现在的a
-        high = (uint8_t) (a &amp; uint8_t(0x80));//高4位，看是否会溢出，high=1就是溢出
-        a &lt;&lt;= 1;//a左移一位，即乘以2
+        high = (uint8_t) (a & uint8_t(0x80));//高4位，看是否会溢出，high=1就是溢出
+        a <<= 1;//a左移一位，即乘以2
         if (high != 0){//发生溢出
             a ^= 0x1b; }// x^8 + x^4 + x^3 + x + 1
-        b &gt;&gt;= 1;//右移，看b的下一位了
+        b >>= 1;//右移，看b的下一位了
 
     }
     return p;
@@ -474,13 +474,13 @@ void KeyExpansion(uint8_t key[], uint32_t w[])
     int j=0;
     uint32_t temp=0;
     // w[]的前4个就是输入的key
-    //初始化w[0]-&gt;w[3]
-    for(int i=0; i&lt;4;i++){
-        w[i] = (key[4*i]&lt;&lt;24)|(key[4*i+1]&lt;&lt;16)|(key[4*i+2]&lt;&lt;8)|(key[4*i+3]);
+    //初始化w[0]->w[3]
+    for(int i=0; i<4;i++){
+        w[i] = (key[4*i]<<24)|(key[4*i+1]<<16)|(key[4*i+2]<<8)|(key[4*i+3]);
         //printf("%d:%x\n",i,w[i]);
     }
-    //创建w[4]-&gt;w[43]
-    for(int i=4; i&lt;44;i++){
+    //创建w[4]->w[43]
+    for(int i=4; i<44;i++){
         if(i%4==0){
             temp = left_bit_move(w[i-1],8);//循环左移8位
             temp =  SubKeys(temp);
@@ -497,11 +497,11 @@ void KeyExpansion(uint8_t key[], uint32_t w[])
 void AddRoundKey(uint8_t mtx[],uint32_t w[])
 {
 
-    for(int i=0; i&lt;4; i++){
-        uint8_t w1 = w[i] &gt;&gt; 24 &amp; 0xff;
-        uint8_t w2 = (w[i] &gt;&gt; 16) &amp; 0xff;
-        uint8_t w3 = (w[i] &gt;&gt; 8) &amp; 0xff;
-        uint8_t w4 = (w[i]) &amp; 0xff;
+    for(int i=0; i<4; i++){
+        uint8_t w1 = w[i] >> 24 & 0xff;
+        uint8_t w2 = (w[i] >> 16) & 0xff;
+        uint8_t w3 = (w[i] >> 8) & 0xff;
+        uint8_t w4 = (w[i]) & 0xff;
         mtx[i] ^= w1;  //按列异或
         mtx[i+4] ^= w2;
         mtx[i+8] ^= w3;
@@ -515,29 +515,29 @@ uint32_t SubKeys(uint32_t temp)
     uint8_t w[4] = {0};
     int j=0;
     //循环4次
-    for(int i=3; i&gt;=0; i--){
-        w[j++] = (temp&gt;&gt;(i*8))&amp;0xff;
+    for(int i=3; i>=0; i--){
+        w[j++] = (temp>>(i*8))&0xff;
     }
     SubBytes(w,4);
-    return (w[0]&lt;&lt;24|w[1]&lt;&lt;16|w[2]&lt;&lt;8|w[3]);
+    return (w[0]<<24|w[1]<<16|w[2]<<8|w[3]);
 }
 
 //  S盒变换 - 前4位为行号，后4位为列号
 void SubBytes(uint8_t mtx[],int len)
 {
-    for(int i=0; i&lt;len; ++i)
+    for(int i=0; i<len; ++i)
     {
-        int row = ((mtx[i]&gt;&gt;7)&amp;0x1)*8 + ((mtx[i]&gt;&gt;6)&amp;0x1)*4 + ((mtx[i]&gt;&gt;5)&amp;0x1)*2 + ((mtx[i]&gt;&gt;4)&amp;0x1)*1;    //第4 5 6 7位确定行
-        int col = ((mtx[i]&gt;&gt;3)&amp;0x1)*8 + ((mtx[i]&gt;&gt;2)&amp;0x1)*4 + ((mtx[i]&gt;&gt;1)&amp;0x1)*2 + (mtx[i]&amp;0x1)*1;       //第0 1 2 3位确定列
+        int row = ((mtx[i]>>7)&0x1)*8 + ((mtx[i]>>6)&0x1)*4 + ((mtx[i]>>5)&0x1)*2 + ((mtx[i]>>4)&0x1)*1;    //第4 5 6 7位确定行
+        int col = ((mtx[i]>>3)&0x1)*8 + ((mtx[i]>>2)&0x1)*4 + ((mtx[i]>>1)&0x1)*2 + (mtx[i]&0x1)*1;       //第0 1 2 3位确定列
         mtx[i] = S_Box[row][col];
     }
 }
 void InvSubBytes(uint8_t mtx[],int len)
 {
-    for(int i=0; i&lt;len; ++i)
+    for(int i=0; i<len; ++i)
     {
-        int row = ((mtx[i]&gt;&gt;7)&amp;0x1)*8 + ((mtx[i]&gt;&gt;6)&amp;0x1)*4 + ((mtx[i]&gt;&gt;5)&amp;0x1)*2 + ((mtx[i]&gt;&gt;4)&amp;0x1)*1;    //第4 5 6 7位确定行
-        int col = ((mtx[i]&gt;&gt;3)&amp;0x1)*8 + ((mtx[i]&gt;&gt;2)&amp;0x1)*4 + ((mtx[i]&gt;&gt;1)&amp;0x1)*2 + (mtx[i]&amp;0x1)*1;       //第0 1 2 3位确定列
+        int row = ((mtx[i]>>7)&0x1)*8 + ((mtx[i]>>6)&0x1)*4 + ((mtx[i]>>5)&0x1)*2 + ((mtx[i]>>4)&0x1)*1;    //第4 5 6 7位确定行
+        int col = ((mtx[i]>>3)&0x1)*8 + ((mtx[i]>>2)&0x1)*4 + ((mtx[i]>>1)&0x1)*2 + (mtx[i]&0x1)*1;       //第0 1 2 3位确定列
         mtx[i] = Inv_S_Box[row][col];
     }
 }
@@ -546,19 +546,19 @@ void ShiftRows(uint8_t mtx[])
 {
     uint8_t temp=mtx[4];
     //第二行左移一位
-    for(int i=0; i&lt;3; i++){
+    for(int i=0; i<3; i++){
         mtx[i+4] = mtx[i+5];
     }
     mtx[7] = temp;
     //第三行左移二位
-    for(int i=0; i&lt;2; i++){
+    for(int i=0; i<2; i++){
         temp = mtx[i+8];
         mtx[i+8] = mtx[i+10];
         mtx[i+10] = temp;
     }
     //第四行左移三位
     temp = mtx[15];
-    for(int i=3; i&gt;0; i--) {
+    for(int i=3; i>0; i--) {
         mtx[i + 12] = mtx[i + 11];
     }
     mtx[12] = temp;
@@ -568,11 +568,11 @@ void InvShiftRows(uint8_t mtx[])
 {
     // 第二行循环右移一位
     uint8_t temp = mtx[7];
-    for(int i=3; i&gt;0; --i)
+    for(int i=3; i>0; --i)
         mtx[i+4] = mtx[i+3];
     mtx[4] = temp;
     // 第三行循环右移两位
-    for(int i=0; i&lt;2; ++i)
+    for(int i=0; i<2; ++i)
     {
         temp = mtx[i+8];
         mtx[i+8] = mtx[i+10];
@@ -580,7 +580,7 @@ void InvShiftRows(uint8_t mtx[])
     }
     // 第四行循环右移三位
     temp = mtx[12];
-    for(int i=0; i&lt;3; ++i)
+    for(int i=0; i<3; ++i)
         mtx[i+12] = mtx[i+13];
     mtx[15] = temp;
 }
@@ -589,23 +589,23 @@ void MixColumns(uint8_t c[])
 {
     uint32_t total[4]={0};  //存储每一列取出的4个32比特字节异或的结果，即列混淆后的第i列
     uint32_t temp[16]={0};  //存储16个 每个字节从T表得到的32比特的4字节一列
-    for(int i=0;i&lt;16;i++){
+    for(int i=0;i<16;i++){
         temp[i] = T[i/4][c[i]];
     }
 
-    for(int i=0; i&lt;4;i++) {
+    for(int i=0; i<4;i++) {
         total[i] = temp[i] ^ temp[i+4] ^ temp[i+8] ^ temp[i+12];
-        c[i] = (total[i]&gt;&gt;24)&amp;0xff;
-        c[i+4]=(total[i]&gt;&gt;16)&amp;0xff;
-        c[i+8] = (total[i]&gt;&gt;8)&amp;0xff;
-        c[i+12] = (total[i])&amp;0xff;
+        c[i] = (total[i]>>24)&0xff;
+        c[i+4]=(total[i]>>16)&0xff;
+        c[i+8] = (total[i]>>8)&0xff;
+        c[i+12] = (total[i])&0xff;
     }
 }
 void InvMixColumns(uint8_t mtx[])
 {
     uint8_t arr[4];
-    for(int i=0; i&lt;4; ++i) {
-        for (int j = 0; j &lt; 4; ++j)
+    for(int i=0; i<4; ++i) {
+        for (int j = 0; j < 4; ++j)
             arr[j] = mtx[i + j * 4];
 
         mtx[i] = GFMul(0x0e, arr[0]) ^ GFMul(0x0b, arr[1]) ^ GFMul(0x0d, arr[2]) ^ GFMul(0x09, arr[3]);
@@ -620,28 +620,28 @@ void Encrypt(uint8_t m[],uint32_t key[],uint8_t c[])
     //首先进行开始的轮密钥加
     int round=0;
     uint32_t w[4]={0};
-    for(int k=0; k&lt;4; k++)
+    for(int k=0; k<4; k++)
         w[k] = key[4*round+k];
-    for(int i=0; i&lt;16; i++)
+    for(int i=0; i<16; i++)
         c[i] = m[i];
     AddRoundKey(c,w);
     //接下来是9轮一摸一样的函数
-    for(int i = 1;i&lt;=9;i++)
+    for(int i = 1;i<=9;i++)
     {
         SubBytes(c,16);//字节替代
         ShiftRows(c);//行移位
         MixColumns(c);//列混淆
         round++;
-        //cout&lt;&lt;"轮数"&lt;&lt;round&lt;&lt;endl;
-        for(int k=0; k&lt;4; k++) {
+        //cout<<"轮数"<<round<<endl;
+        for(int k=0; k<4; k++) {
             w[k] = key[4 * round + k];
         }
         AddRoundKey(c,w);//轮密钥加
     }
     //最后一轮
     round++;
-    //cout&lt;&lt;"轮数"&lt;&lt;round&lt;&lt;endl;
-    for(int k=0; k&lt;4; k++) {
+    //cout<<"轮数"<<round<<endl;
+    for(int k=0; k<4; k++) {
         w[k] = key[4 * round + k];
         //("%x ",w[k]);
     }
@@ -655,19 +655,19 @@ void Decrypt(uint8_t c[],uint32_t key[],uint8_t m[])
     //注意密钥反着来
     int round=10;
     uint32_t w[4]={0};
-    for(int k=0; k&lt;4; k++)
+    for(int k=0; k<4; k++)
         w[k] = key[4*round+k];  //密钥赋值
-    for(int i=0; i&lt;16; i++)
+    for(int i=0; i<16; i++)
         m[i] = c[i];
     AddRoundKey(m,w);
     //接下来是9轮一摸一样的函数
-    for(int i = 1;i&lt;=9;i++)
+    for(int i = 1;i<=9;i++)
     {
         InvShiftRows(m);//行移位
         InvSubBytes(m,16);//字节替代
         round--;
-        //cout&lt;&lt;"轮数"&lt;&lt;round&lt;&lt;endl;
-        for(int k=0; k&lt;4; k++) {
+        //cout<<"轮数"<<round<<endl;
+        for(int k=0; k<4; k++) {
             w[k] = key[4 * round + k];
         }
         AddRoundKey(m,w);//轮密钥加
@@ -675,8 +675,8 @@ void Decrypt(uint8_t c[],uint32_t key[],uint8_t m[])
     }
     //最后一轮
     round--;
-    //cout&lt;&lt;"轮数"&lt;&lt;round&lt;&lt;endl;
-    for(int k=0; k&lt;4; k++) {
+    //cout<<"轮数"<<round<<endl;
+    for(int k=0; k<4; k++) {
         w[k] = key[4 * round + k];
         //("%x ",w[k]);
     }
@@ -686,15 +686,15 @@ void Decrypt(uint8_t c[],uint32_t key[],uint8_t m[])
 }
 void Display(uint8_t Matrix[])
 {
-    for(int i=0; i&lt;16; i++) {
+    for(int i=0; i<16; i++) {
         printf("%x ", Matrix[i]);
         if(i%4==3)
-            cout&lt;&lt;endl;
+            cout<<endl;
     }
 }
 void DisplayKeys(uint32_t Matrix[])
 {
-    for(int i=0; i&lt;44; i++) {
+    for(int i=0; i<44; i++) {
         printf("第%d列:%x\n",i,Matrix[i]);
     }
 }
@@ -704,11 +704,11 @@ int main()
     string miwen;
     uint8_t key[16]={0};
     uint8_t m[16]={0};
-    cout&lt;&lt;"请输入明文(128bits):";
-    cin&gt;&gt;mingwen;
-    cout&lt;&lt;"请输入密文(128bits):";
-    cin&gt;&gt;miwen;
-    for(int i=0;i&lt;16;i++)
+    cout<<"请输入明文(128bits):";
+    cin>>mingwen;
+    cout<<"请输入密文(128bits):";
+    cin>>miwen;
+    for(int i=0;i<16;i++)
     {
         m[i] = (uint8_t)(mingwen[i]);
         key[i] = (uint8_t)(miwen[i]);
@@ -716,35 +716,35 @@ int main()
     uint8_t c[16]={0};
     uint8_t x[16]={0};
     uint32_t new_key[44]={0};   //存储44列密钥
-    cout&lt;&lt;"明文:"&lt;&lt;endl;
+    cout<<"明文:"<<endl;
     Display(m);
-    cout&lt;&lt;"密钥:"&lt;&lt;endl;
+    cout<<"密钥:"<<endl;
     Display(key);
     get_TAB();//生成列混淆表
     KeyExpansion(key,new_key);
-    cout&lt;&lt;"生成密钥"&lt;&lt;endl;
+    cout<<"生成密钥"<<endl;
     //DisplayKeys(new_key);
     Encrypt(m,new_key,c);
-    cout&lt;&lt;"加密结果"&lt;&lt;endl;
+    cout<<"加密结果"<<endl;
     Display(c);
     Decrypt(c,new_key,x);
-    cout&lt;&lt;"解密结果(hex)"&lt;&lt;endl;
+    cout<<"解密结果(hex)"<<endl;
     Display(x);
-    cout&lt;&lt;"解密结果(string)"&lt;&lt;endl;
-    for(int i=0;i&lt;16;i++)
-        cout&lt;&lt;(char)x[i];
+    cout<<"解密结果(string)"<<endl;
+    for(int i=0;i<16;i++)
+        cout<<(char)x[i];
     return 0;
 }
 </code></pre>
-<h2 id="SM4"><a href="#SM4" class="headerlink" title="SM4"></a>SM4</h2><pre><code class="c++">#include "string.h"
-#include&lt;iostream&gt;
-#include &lt;stdint.h&gt;
-#include&lt;string&gt;
+<h2 id="SM4"><a href="#SM4" class="headerlink" title="SM4"></a>SM4</h2><pre class=" language-c++"><code class="language-c++">#include "string.h"
+#include<iostream>
+#include <stdint.h>
+#include<string>
 using namespace std;
 uint32_t shift_l(uint32_t s,int n)//循环左移n位
 {
     int size=sizeof (s)*8;      //字节数乘以8代表一共多少位
-    return s&lt;&lt;(n)|(s&gt;&gt;size-n);
+    return s<<(n)|(s>>size-n);
 }
 uint32_t Sb(uint32_t s) {
 
@@ -767,18 +767,18 @@ uint32_t Sb(uint32_t s) {
                     {0x89, 0x69, 0x97, 0x4a, 0x0c, 0x96, 0x77, 0x7e, 0x65, 0xb9, 0xf1, 0x09, 0xc5, 0x6e, 0xc6, 0x84},
                     {0x18, 0xf0, 0x7d, 0xec, 0x3a, 0xdc, 0x4d, 0x20, 0x79, 0xee, 0x5f, 0x3e, 0xd7, 0xcb, 0x39, 0x48}};
     uint8_t a[4];
-    a[0]=(s&gt;&gt;24)&amp;0xff;     //最高8位
-    a[1]=(s&gt;&gt;16)&amp;0xff;
-    a[2]=(s&gt;&gt;8)&amp;0xff;
-    a[3]=s&amp;0xff;
+    a[0]=(s>>24)&0xff;     //最高8位
+    a[1]=(s>>16)&0xff;
+    a[2]=(s>>8)&0xff;
+    a[3]=s&0xff;
     uint8_t b[4];
-    for(int i=0;i&lt;4;i++) {
-        int row = ((a[i] &gt;&gt; 7) &amp; 1) * 8 + ((a[i] &gt;&gt; 6) &amp; 1) * 4 + ((a[i] &gt;&gt; 5) &amp; 1) * 2 + ((a[i] &gt;&gt; 4) &amp; 1) * 1;
-        int col = ((a[i] &gt;&gt; 3) &amp; 1) * 8 + ((a[i] &gt;&gt; 2) &amp; 1) * 4 + ((a[i] &gt;&gt; 1) &amp; 1) * 2 + ((a[i]) &amp; 1) * 1;
+    for(int i=0;i<4;i++) {
+        int row = ((a[i] >> 7) & 1) * 8 + ((a[i] >> 6) & 1) * 4 + ((a[i] >> 5) & 1) * 2 + ((a[i] >> 4) & 1) * 1;
+        int col = ((a[i] >> 3) & 1) * 8 + ((a[i] >> 2) & 1) * 4 + ((a[i] >> 1) & 1) * 2 + ((a[i]) & 1) * 1;
         b[i] = SboxTable[row][col];
     }
     uint32_t result;
-    result=(b[0]&lt;&lt;24)|(b[1]&lt;&lt;16)|(b[2]&lt;&lt;8)|b[3];
+    result=(b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3];
     return result;
 }
 
@@ -805,13 +805,13 @@ void keyexpand(uint32_t MK[4],uint32_t rk[32])
                         0x10171E25, 0x2C333A41, 0x484F565D, 0x646B7279 };
     uint32_t k[4]={MK[0]^FK[0],MK[1]^FK[1],MK[2]^FK[2],MK[3]^FK[3]};
     uint32_t K[36];
-    for(int i=0;i&lt;=3;i++)
+    for(int i=0;i<=3;i++)
         K[i]=k[i];
-    for(int i=0;i&lt;32;i++)
+    for(int i=0;i<32;i++)
     {
         K[i+4]=K[i]^ T_change(K[i+1]^K[i+2]^K[i+3]^CK[i]);
     }
-    for(int i=0;i&lt;32;i++)
+    for(int i=0;i<32;i++)
         rk[i]=K[i+4];
 
 }
@@ -841,10 +841,10 @@ void SM4(uint32_t X[4],uint32_t rk[32])
     Y[1]=X[1];
     Y[2]=X[2];
     Y[3]=X[3];
-    for(int i=0;i&lt;=31;i++) {
+    for(int i=0;i<=31;i++) {
         Y[i + 4] = Y[i] ^ Tchange(Y[i + 1] ^ Y[i + 2] ^ Y[i + 3] ^ rk[i]);
     }
-//    for(int i=0;i&lt;36;i++) {
+//    for(int i=0;i<36;i++) {
 //        printf("第%d轮:%x \n",i,Y[i]);
 //    }
     out1[0]=Y[35];
@@ -862,7 +862,7 @@ void sm4(uint32_t Y[4],uint32_t rk[32])
     X[34]=Y[1];
     X[33]=Y[2];
     X[32]=Y[3];
-    for(int i=31;i&gt;=0;i--)
+    for(int i=31;i>=0;i--)
     {
         X[i]=X[i+4]^ Tchange(X[i+3]^X[i+2]^X[i+1]^rk[i]);
     }
@@ -873,34 +873,34 @@ void sm4(uint32_t Y[4],uint32_t rk[32])
 }
 int main() {
     uint32_t ming[4]={0x01234567,0x89ABCDEF,0xFEDCBA98,0x76543210};
-    cout&lt;&lt;"明文:"&lt;&lt;endl;
-    for(int i=0;i&lt;4;i++)
-        cout&lt;&lt;hex&lt;&lt;ming[i]&lt;&lt;" ";
-    cout&lt;&lt;endl;
+    cout<<"明文:"<<endl;
+    for(int i=0;i<4;i++)
+        cout<<hex<<ming[i]<<" ";
+    cout<<endl;
     uint32_t MK[4]={0x01234567,0x89ABCDEF,0xFEDCBA98,0x76543210};
-    cout&lt;&lt;"密钥："&lt;&lt;endl;
-    for(int i=0;i&lt;4;i++)
-        cout&lt;&lt;hex&lt;&lt;MK[i]&lt;&lt;" ";
-    cout&lt;&lt;endl;
+    cout<<"密钥："<<endl;
+    for(int i=0;i<4;i++)
+        cout<<hex<<MK[i]<<" ";
+    cout<<endl;
     uint32_t rk[32];
     keyexpand(MK,rk);
-//    cout&lt;&lt;"扩展密钥："&lt;&lt;endl;
-//    for(int i=0;i&lt;32;i++)
-//        cout&lt;&lt;i&lt;&lt;"轮扩展密钥"&lt;&lt;rk[i]&lt;&lt;endl;
-    cout&lt;&lt;"加密结果："&lt;&lt;endl;
+//    cout<<"扩展密钥："<<endl;
+//    for(int i=0;i<32;i++)
+//        cout<<i<<"轮扩展密钥"<<rk[i]<<endl;
+    cout<<"加密结果："<<endl;
     SM4(ming,rk);
-    for(int i=0;i&lt;4;i++)
-        cout&lt;&lt;out1[i]&lt;&lt;" ";
-    cout&lt;&lt;endl;
-    cout&lt;&lt;"解密结果:"&lt;&lt;endl;
+    for(int i=0;i<4;i++)
+        cout<<out1[i]<<" ";
+    cout<<endl;
+    cout<<"解密结果:"<<endl;
     sm4(out1,rk);
-    for(int i=0;i&lt;4;i++)
-        cout&lt;&lt;out2[i]&lt;&lt;" ";
-    cout&lt;&lt;endl;
+    for(int i=0;i<4;i++)
+        cout<<out2[i]<<" ";
+    cout<<endl;
     return 0;
 }
 </code></pre>
-<div id="paginator"></div></div><div id="post-footer"><div id="pages" style="justify-content: flex-start"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">← Next 蓝桥杯</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">枕木</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#DES"><span class="toc-number">1.</span> <span class="toc-text">DES</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AES"><span class="toc-number">2.</span> <span class="toc-text">AES</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SM4"><span class="toc-number">3.</span> <span class="toc-text">SM4</span></a></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
+<div id="paginator"></div></div><div id="post-footer"><div id="pages"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/04/10/fastbin%20attack/">← Next fastbin attack</a></div><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/">蓝桥杯 Prev →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">Kylinxin</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#DES"><span class="toc-number">1.</span> <span class="toc-text">DES</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AES"><span class="toc-number">2.</span> <span class="toc-text">AES</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SM4"><span class="toc-number">3.</span> <span class="toc-text">SM4</span></a></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
 lightGallery(document.getElementById('post-bg'), {
   plugins: [lgZoom,lgThumbnail],
   selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
