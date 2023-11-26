@@ -1,0 +1,937 @@
+<!DOCTYPE html><html lang="zh-CN" theme-mode="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Glibc堆利用之house of 系列 | Ky不是枕木</title><link rel="icon" type="image/x-icon" href="/favicon.ico"><script>var config = {"root":"/","search":{"preload":false,"activeHolder":"键入以继续","blurHolder":"数据检索","noResult":"无 $0 相关数据"},"code":{"codeInfo":"$0 - $1 行","copy":"code.copy","copyFinish":"code.copyFinish","expand":"code.expand"}}</script><script src="//unpkg.com/mermaid@9.2.2/dist/mermaid.min.js"></script><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lightgallery.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-zoom.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-thumbnail.css"><link type="text/css" rel="stylesheet" href="/lib/fontawesome/css/all.min.css"><link rel="stylesheet" href="/css/arknights.css"><script>if (window.localStorage.getItem('theme-mode') === 'light')
+ document.documentElement.setAttribute('theme-mode', 'light')
+if (window.localStorage.getItem('theme-mode') === 'dark')
+ document.documentElement.setAttribute('theme-mode', 'dark')</script><style>@font-face {
+ font-family: Bender;
+ src: local('Bender'), url("/font/Bender.ttf"), url("/font/Bender.otf");
+}
+@font-face {
+ font-family: BenderLight;
+ src: local('BenderLight'), url("/font/BenderLight.ttf");
+}
+@font-face {
+ font-family: 'JetBrains Mono';
+ src: local('JetBrains Mono'), url('/font/JetBrainsMono-Regular.woff2') format('woff2');
+}</style><style>:root {
+  --dark-background: url('https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg');
+  --light-background: url('/img/bk.jpg');
+}</style><meta name="generator" content="Hexo 6.3.0">
+<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
+</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="数据检索" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>Glibc堆利用之house of 系列</h1><div id="post-info"><span>文章发布时间: <div class="control"><time datetime="2023-11-25T15:14:29.000Z" id="date"> 2023-11-25</time></div></span><br><span>最后更新时间: <div class="control"><time datetime="2023-11-26T07:17:41.049Z" id="updated"> 2023-11-26</time></div></span><br><span>文章总字数: <div class="control">9.7k</div></span><br><span>预计阅读时间: <div class="control">40 分钟</div></span></div></div><hr><div id="post-content"><p>转载自<a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/2023-02-27-house-of-all-about-glibc-heap-exploitation/#1-%E5%89%8D%E8%A8%80">Glibc堆利用之house of系列总结 - roderick - record and learn! (roderickchan.cn)</a></p>
+<h1 id="1-前言"><a href="#1-前言" class="headerlink" title="1 - 前言"></a>1 - 前言</h1><p><code>Glibc</code> 的 <code>house of</code> 系列攻击手法基于都是围绕着堆利用和 <code>IO FILE</code> 利用。还有很多堆利用手法也非常经典，但是由于其没有被冠以 <code>house of xxxx</code>，故没有收录到本文中。如果想学习所有的详细的堆攻击手法，强烈建议 <code>follow</code> 仓库 <a target="_blank" rel="noopener" href="https://github.com/shellphish/how2heap">how2heap</a>进行学习。我相信，只要把 <code>how2heap</code> 里面的每一个堆利用手法都学懂学透了，<code>glibc</code> 堆利用你将尽在掌握。</p>
+<p>在开始系列总结之前，我会给出一个表格，表格里面分别是 <code>house of xxxx</code> 和对应的优秀的解析文章，在此非常感谢各位师傅们的总结。如果你在阅读本文的过程中想完整地查看某一个手法地详细利用过程，那么可以直接回到表格，点击对应的链接进行学习。目前的最新版本为 <code>2.37</code>，但是，目前的 <code>ubuntu:23.04</code> 还没开始用 <code>glibc-2.37</code>，使用的仍然是 <code>glibc-2.36</code>。</p>
+<p>如果还有哪些 <code>house of xxxx</code> 的利用手法没有收录进来，或你对本文存有一些疑问，或者你发现本文某些内容编写错误，还请留言指正。</p>
+<p>需要注意的是，除了关注各种 <code>house of</code> 利用技巧本身，更重要的是，需要关注该利用技巧背后的思想和原理。如果你能从这一系列的利用手法中提炼出一些通用的攻击向量或者攻击思想，日后在面对其他的场景，你也能更快的找到系统的漏洞点并加以利用。学习 <code>glibc</code> 堆利用更多的是为了举一反三，为了更好地掌握漏洞挖掘模式、漏洞分析方法，而不仅仅是为了比赛。</p>
+<p><code>house of</code> 系列的表格如下，适用版本不考虑低于 <code>glibc-2.23</code> 的版本。我将在下文中进一步阐述每一个利用手法的原理、使用场景与适用范围。</p>
+<table>
+<thead>
+<tr>
+<th>攻击方法</th>
+<th>影响范围</th>
+<th>学习链接</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>house of spirit</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/244158">堆利用系列之 house of spirit - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of einherjar</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/251596">PWN——House Of Einherjar CTF Wiki 例题详解 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of force</td>
+<td>2.23——2.29</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/175630">Top chunk 劫持：House of force 攻击 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of lore</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://ctf-wiki.org/pwn/linux/user-mode/heap/ptmalloc2/house-of-lore/">House of Lore - CTF Wiki (ctf-wiki.org)</a></td>
+</tr>
+<tr>
+<td>house of orange</td>
+<td>2.23——2.26</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/218887">House of orange - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of rabbit</td>
+<td>2.23——2.28</td>
+<td><a target="_blank" rel="noopener" href="http://p4nda.top/2018/04/18/house-of-rabbit/">http://p4nda.top/2018/04/18/house-of-rabbit/</a></td>
+</tr>
+<tr>
+<td>house of roman</td>
+<td>2.23——2.29</td>
+<td><a target="_blank" rel="noopener" href="https://ctf-wiki.org/pwn/linux/user-mode/heap/ptmalloc2/house-of-roman/">House of Roman - CTF Wiki (ctf-wiki.org)</a></td>
+</tr>
+<tr>
+<td>house of storm</td>
+<td>2.23——2.29</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/203096">House of storm 原理及利用 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of corrosion</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6862#toc-5">House-of-Corrosion 一种新的堆利用技巧 - 先知社区 (aliyun.com)</a></td>
+</tr>
+<tr>
+<td>house of husk</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/202387">house-of-husk 学习笔记 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of atum</td>
+<td>2.26——2.30</td>
+<td><a target="_blank" rel="noopener" href="https://abf1ag.github.io/2021/06/11/house-of-atum/">https://abf1ag.github.io/2021/06/11/house-of-atum/</a></td>
+</tr>
+<tr>
+<td>house of kauri</td>
+<td>2.26——2.32</td>
+<td><a target="_blank" rel="noopener" href="https://0x434b.dev/overview-of-glibc-heap-exploitation-techniques/#house-of-kauri">Overview of GLIBC heap exploitation techniques (0x434b.dev)</a></td>
+</tr>
+<tr>
+<td>house of fun</td>
+<td>2.23——2.30</td>
+<td><a target="_blank" rel="noopener" href="https://0x434b.dev/overview-of-glibc-heap-exploitation-techniques/#house-of-fun">Overview of GLIBC heap exploitation techniques (0x434b.dev)</a></td>
+</tr>
+<tr>
+<td>house of mind</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/shellphish/how2heap/blob/master/glibc_2.35/house_of_mind_fastbin.c">how2heap/house_of_mind_fastbin.c at master · shellphish/how2heap (github.com)</a></td>
+</tr>
+<tr>
+<td>house of muney</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/254797">House of Muney 分析 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of botcake</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://forum.butian.net/share/1709">奇安信攻防社区 - 深入理解 House of Botcake 堆利用手法 (butian.net)</a></td>
+</tr>
+<tr>
+<td>house of rust</td>
+<td>2.26—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/c4ebt/House-of-Rust">c4ebt/House-of-Rust</a></td>
+</tr>
+<tr>
+<td>house of crust</td>
+<td>2.26——2.37</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/c4ebt/House-of-Rust">c4ebt/House-of-Rust</a></td>
+</tr>
+<tr>
+<td>house of io</td>
+<td>2.26—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://0x434b.dev/overview-of-glibc-heap-exploitation-techniques/#house-of-io">Overview of GLIBC heap exploitation techniques (0x434b.dev)</a></td>
+</tr>
+<tr>
+<td>house of banana</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/222948">house of banana - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of kiwi</td>
+<td>2.23——2.36</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/235598">House OF Kiwi - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of emma</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/260614">house of emma</a></td>
+</tr>
+<tr>
+<td>house of pig</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/242640">house of pig 一个新的堆利用详解 - 安全客 - 安全资讯平台 (anquanke.com)</a></td>
+</tr>
+<tr>
+<td>house of obstack</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://tttang.com/archive/1845/">一条新的 glibc IO_FILE 利用链：_IO_obstack_jumps 利用分析 - 跳跳糖 (tttang.com)</a></td>
+</tr>
+<tr>
+<td>house of apple1</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-1/">House of Apple 一种新的 glibc 中 IO 攻击方法 (1) - roderick - record and learn! (roderickchan.cn)</a></td>
+</tr>
+<tr>
+<td>house of apple2</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/">House of Apple 一种新的 glibc 中 IO 攻击方法 (2) - roderick - record and learn! (roderickchan.cn)</a></td>
+</tr>
+<tr>
+<td>house of apple3</td>
+<td>2.23—— 至今</td>
+<td><a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-3/">House of Apple 一种新的 glibc 中 IO 攻击方法 (3) - roderick - record and learn! (roderickchan.cn)</a></td>
+</tr>
+<tr>
+<td>house of gods</td>
+<td>2.23——2.27</td>
+<td><a target="_blank" rel="noopener" href="https://github.com/Milo-D/house-of-gods/blob/master/rev2/HOUSE_OF_GODS.TXT">house-of-gods/HOUSE_OF_GODS.TXT at master · Milo-D/house-of-gods (github.com)</a></td>
+</tr>
+</tbody></table>
+<p>此外，阅读下文之前需要了解：</p>
+<ul>
+<li>下面所述的 <code>chunk A</code>，地址 <code>A</code> 指的是 <code>chunk header</code> 地址，而不是 <code>user data</code> 地址。</li>
+<li>漏洞成因基本上都是堆溢出、<code>UAF</code> 等</li>
+</ul>
+<h1 id="2-house-of-系列"><a href="#2-house-of-系列" class="headerlink" title="2-house of 系列"></a>2-house of 系列</h1><h2 id="2-1-house-of-spirit"><a href="#2-1-house-of-spirit" class="headerlink" title="2.1-house of spirit"></a>2.1-house of spirit</h2><h3 id="漏洞成因"><a href="#漏洞成因" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出写</p>
+<h3 id="适用范围"><a href="#适用范围" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+</ul>
+<h3 id="利用原理"><a href="#利用原理" class="headerlink" title="利用原理"></a>利用原理</h3><p>利用堆溢出，修改 <code>chunk size</code>，伪造出 <code>fake chunk</code>，然后通过堆的释放和排布，控制 <code>fake chunk</code>。<code>house of spirit</code> 的操作思路有很多，比如可以按如下操作进行利用：</p>
+<ul>
+<li>申请 <code>chunk A、chunk B、chunk C、chunk D</code></li>
+<li>对 <code>A</code> 写操作的时候溢出，修改 <code>B</code> 的 <code>size</code> 域，使其能包括 <code>chunk C</code></li>
+<li>释放 <code>B</code>，然后把 <code>B</code> 申请回来，再释放 <code>C</code>，则可以通过读写 <code>B</code> 来控制 <code>C</code> 的内容</li>
+</ul>
+<h3 id="相关技巧"><a href="#相关技巧" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>起初 <code>house of spirit</code> 主要是针对 <code>fastbin</code>，后来引入了 <code>tcachebin</code> 后，也可以使用 <code>tcachebin</code> 版本的 <code>house of spirit</code>。利用方法与 <code>fastbin</code> 场景下类似，注意好不同版本下的检查条件即可。</p>
+<h3 id="利用效果"><a href="#利用效果" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>劫持 <code>fastbin/tcachebin</code> 的 <code>fd</code> 之后，可以任意地址分配、任意地址读写</li>
+</ul>
+<h2 id="2-2-house-of-einherjar"><a href="#2-2-house-of-einherjar" class="headerlink" title="2.2-house of einherjar"></a>2.2-house of einherjar</h2><h3 id="漏洞成因-1"><a href="#漏洞成因-1" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>溢出写、<code>off by one</code>、<code>off by null</code></p>
+<h3 id="适用范围-1"><a href="#适用范围-1" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可分配大于处于 <code>unsortedbin</code> 的 <code>chunk</code></li>
+</ul>
+<h3 id="利用原理-1"><a href="#利用原理-1" class="headerlink" title="利用原理"></a>利用原理</h3><p>利用 <code>off by null</code> 修改掉 <code>chunk</code> 的 <code>size</code> 域的 <code>P</code> 位，绕过 <code>unlink</code> 检查，在堆的后向合并过程中构造出 <code>chunk overlapping</code>。</p>
+<ul>
+<li>申请 <code>chunk A、chunk B、chunk C、chunk D</code>，<code>chunk D</code> 用来做 <code>gap</code>，<code>chunk A、chunk C</code> 都要处于 <code>unsortedbin</code> 范围</li>
+<li>释放 <code>A</code>，进入 <code>unsortedbin</code></li>
+<li>对 <code>B</code> 写操作的时候存在 <code>off by null</code>，修改了 <code>C</code> 的 <code>P</code> 位</li>
+<li>释放 <code>C</code> 的时候，堆后向合并，直接把 <code>A、B、C</code> 三块内存合并为了一个 <code>chunk</code>，并放到了 <code>unsortedbin</code> 里面</li>
+<li>读写合并后的大 <code>chunk</code> 可以操作 <code>chunk B</code> 的内容，<code>chunk B</code> 的头</li>
+</ul>
+<h3 id="相关技巧-1"><a href="#相关技巧-1" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>虽然该利用技巧至今仍可以利用，但是需要对 <code>unlink</code> 绕过的条件随着版本的增加有所变化。</p>
+<p>最开始的 <code>unlink</code> 的代码是：</p>
+<p>| <code>1 2 3 4 5 6 7 8 9 10</code> | <code>/* Take a chunk off a bin list */ #define unlink(AV, P, BK, FD) {                                            \    FD = P-&gt;fd;								      \    BK = P-&gt;bk;								      \    if (__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, 0))		      \      malloc_printerr (check_action, "corrupted double-linked list", P, AV);  \    else {								      \ 	// .....							      \      }									      \ }</code> |<br>| ———————— | ———————————————————— |<br>|                          |                                                              |</p>
+<p>只需要绕过<code>__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, 0)</code> 即可，因此，不需要伪造地址处于高位的 <code>chunk</code> 的 <code>presize</code> 域。</p>
+<p>高版本的 <code>unlink</code> 的条件是：</p>
+<p>新增了 <code>chunksize (p) != prev_size (next_chunk (p))</code>，对 <code>chunksize</code> 有了检查，伪造的时候需要绕过。</p>
+<h3 id="利用效果-1"><a href="#利用效果-1" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>构造 <code>chunk overlap</code> 后，可以任意地址分配</li>
+<li>结合其他方法进行任意地址读写</li>
+</ul>
+<h3 id="例题"><a href="#例题" class="headerlink" title="例题"></a>例题</h3><h2 id="例题："><a href="#例题：" class="headerlink" title="例题："></a>例题：</h2><h3 id="2016-seccon-tinypad"><a href="#2016-seccon-tinypad" class="headerlink" title="2016_seccon_tinypad"></a>2016_seccon_tinypad</h3><h2 id="2-3-house-of-force"><a href="#2-3-house-of-force" class="headerlink" title="2.3-house of force"></a>2.3-house of force</h2><h3 id="漏洞成因-2"><a href="#漏洞成因-2" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出写 <code>top_chunk</code></p>
+<h3 id="适用范围-2"><a href="#适用范围-2" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.29</code></li>
+<li>可分配任意大小的 <code>chunk</code></li>
+<li>需要泄露或已知地址</li>
+</ul>
+<h3 id="利用原理-2"><a href="#利用原理-2" class="headerlink" title="利用原理"></a>利用原理</h3><p>对 <code>top_chunk</code> 的利用，过程如下：</p>
+<ul>
+<li>申请 <code>chunk A</code></li>
+<li>写 <code>A</code> 的时候溢出，修改 <code>top_chunk</code> 的 <code>size</code> 为很大的数</li>
+<li>分配很大的 <code>chunk</code> 到任意已知地址</li>
+</ul>
+<h3 id="相关技巧-2"><a href="#相关技巧-2" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>注意，在 <code>glibc-2.29</code> 后加入了检测，<code>house of force</code> 基本失效：</p>
+<p class='item-img' data-src='https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20230303194137930.png'><img src="https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20230303194137930.png" alt="image-20230303194137930"></p>
+<h3 id="利用效果-2"><a href="#利用效果-2" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+<li>任意地址读写</li>
+</ul>
+<h2 id="2-4-house-of-lore"><a href="#2-4-house-of-lore" class="headerlink" title="2.4-house of lore"></a>2.4-house of lore</h2><h3 id="漏洞成因-3"><a href="#漏洞成因-3" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出、<code>use after free</code>、<code>edit after free</code></p>
+<h3 id="适用范围-3"><a href="#适用范围-3" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>需要泄露或已知地址</li>
+</ul>
+<h3 id="利用原理-3"><a href="#利用原理-3" class="headerlink" title="利用原理"></a>利用原理</h3><p>控制 <code>smallbin</code> 的 <code>bk</code> 指针，示例如下：</p>
+<ul>
+<li>申请 <code>chunk A、chunk B、chunk C</code>，其中 <code>chunk B</code> 大小位于 <code>smallbin</code></li>
+<li>释放 <code>B</code>，申请更大的 <code>chunk D</code>，使得 <code>B</code> 进入 <code>smallbin</code></li>
+<li>写 <code>A</code>，溢出修改 <code>B</code> 的 <code>bk</code>，指向地址 <code>X</code>，这里有 <code>fake chunk</code></li>
+<li>布置 <code>X-&gt;fd == &amp;B</code></li>
+<li>分配两次后即可取出位于 <code>X</code> 地址处的 <code>fake chunk</code></li>
+</ul>
+<h3 id="相关技巧-3"><a href="#相关技巧-3" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>在引入了 <code>tcache stash unlink</code> 的时候，需要注意绕过：</p>
+<p>要么使其满足 <code>tc_victim = last (bin)) == bin</code>、要么使其满足：<code>tcache-&gt;counts[tc_idx] ≥ mp_.tcache_count</code>。否则可能会因为非法内存访问使得程序 <code>down</code> 掉。</p>
+<p>实际上，这个技巧用得不是很多，因为在同等条件下，更偏向于利用 <code>fastbin/tcachebin</code>。</p>
+<h3 id="利用效果-3"><a href="#利用效果-3" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+<li>任意地址读写</li>
+</ul>
+<h2 id="2-5-house-of-orange"><a href="#2-5-house-of-orange" class="headerlink" title="2.5-house of orange"></a>2.5-house of orange</h2><h3 id="漏洞成因-4"><a href="#漏洞成因-4" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出写</p>
+<h3 id="适用范围-4"><a href="#适用范围-4" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.26</code></li>
+<li>没有 <code>free</code></li>
+<li>可以 <code>unsortedbin attack</code></li>
+</ul>
+<h3 id="利用原理-4"><a href="#利用原理-4" class="headerlink" title="利用原理"></a>利用原理</h3><p><code>house of orange</code> 可以说是开启了堆与 <code>IO</code> 组合利用的先河，是非常经典、漂亮、精彩的利用组合技。利用过程还要结合 <code>top_chunk</code> 的性质，利用过程如下：</p>
+<p><strong>stage1</strong></p>
+<ul>
+<li>申请 <code>chunk A</code>，假设此时的 <code>top_chunk</code> 的 <code>size</code> 为 <code>0xWXYZ</code></li>
+<li>写 <code>A</code>，溢出修改 <code>top_chunk</code> 的 <code>size</code> 为 <code>0xXYZ</code>（需要满足页对齐的检测条件）</li>
+<li>申请一个大于 <code>0xXYZ</code> 大小的 <code>chunk</code>，此时 <code>top_chunk</code> 会进行 <code>grow</code>，并将原来的 <code>old top_chunk</code> 释放进入 <code>unsortedbin</code></li>
+</ul>
+<p><strong>stage2</strong></p>
+<ul>
+<li>溢出写 <code>A</code>，修改处于 <code>unsortedbin</code> 中的 <code>old top_chunk</code>，修改其 <code>size</code> 为 <code>0x61</code>，其 <code>bk</code> 为 <code>&amp;_IO_list_all-0x10</code>，同时伪造好 <code>IO_FILE</code> 结构</li>
+<li>申请非 <code>0x60</code> 大小的 <code>chunk</code> 的时候，首先触发 <code>unsortedbin attack</code>，将<code>_IO_list_all</code> 修改为 <code>main_arena+88</code>，然后 <code>unsortedbin chunk</code> 会进入到 <code>smallbin</code>，大小为 <code>0x60</code>；接着遍历 <code>unsortedbin</code> 的时候触发了 <code>malloc_printerr</code>，然后调用链为：<code> malloc_printerr -&gt; libc_message -&gt; abort -&gt; _IO_flush_all_lockp</code>，调用到伪造的 <code>vtable</code> 里面的函数指针</li>
+</ul>
+<h3 id="相关技巧-4"><a href="#相关技巧-4" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>在 <code>glibc-2.24</code> 后加入了 <code>vtable</code> 的 <code>check</code>，不能任意地址伪造 <code>vatble</code> 了，但是可以利用 <code>IO_str_jumps</code> 结构进行利用。</li>
+<li>在 <code>glibc-2.26</code> 后，<code>malloc_printerr</code> 不再刷新 <code>IO</code> 流了，所以该方法失效</li>
+<li>由于<code>_mode</code> 的正负性是随机的，影响判断条件，大概有 <code>1/2</code> 的概率会利用失败，多试几次就好</li>
+</ul>
+<h3 id="利用效果-4"><a href="#利用效果-4" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+<li>任意命令执行</li>
+</ul>
+<h2 id="2-6-house-of-rabbit"><a href="#2-6-house-of-rabbit" class="headerlink" title="2.6-house of rabbit"></a>2.6-house of rabbit</h2><h3 id="漏洞成因-5"><a href="#漏洞成因-5" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出写、<code>use after free</code>、<code>edit after free</code></p>
+<h3 id="适用范围-5"><a href="#适用范围-5" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.26</code></li>
+<li>超过 <code>0x400</code> 大小的堆分配</li>
+<li>可以写 <code>fastbin</code> 的 <code>fd</code> 或者 <code>size</code> 域</li>
+</ul>
+<h3 id="利用原理-5"><a href="#利用原理-5" class="headerlink" title="利用原理"></a>利用原理</h3><p>该利用技巧的核心是 <code>malloc_consolidate</code> 函数，当检测到有 <code>fastbin</code> 的时候，会取出每一个 <code>fastbin chunk</code>，将其放置到 <code>unsortedbin</code> 中，并进行合并。以修改 <code>fd</code> 为例，利用过程如下：</p>
+<ul>
+<li>申请 <code>chunk A</code>、<code>chunk B</code>，其中 <code>chunk A</code> 的大小位于 <code>fastbin</code> 范围</li>
+<li>释放 <code>chunk A</code>，使其进入到 <code>fastbin</code></li>
+<li>利用 <code>use after free</code>，修改 <code>A-&gt;fd</code> 指向地址 <code>X</code>，需要伪造好 <code>fake chunk</code>，使其不执行 <code>unlink</code> 或者绕过 <code>unlink</code></li>
+<li>分配足够大的 <code>chunk</code>，或者释放 <code>0x10000</code> 以上的 <code>chunk</code>，只要能触发 <code>malloc_consolidate</code> 即可</li>
+<li>此时 <code>fake chunk</code> 被放到了 <code>unsortedbin</code>，或者进入到对应的 <code>smallbin/largebin</code></li>
+<li>取出 <code>fake chunk</code> 进行读写即可</li>
+</ul>
+<h3 id="相关技巧-5"><a href="#相关技巧-5" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li><code>2.26</code> 加入了 <code>unlink</code> 对 <code>presize</code> 的检查</li>
+<li><code>2.27</code> 加入了 <code>fastbin</code> 的检查</li>
+</ul>
+<p>抓住重点：<code>house of rabbit</code> 是对 <code>malloc_consolidate</code> 的利用。因此，不一定要按照原作者的思路来，他的思路需要满足的条件太多了。</p>
+<h3 id="利用效果-5"><a href="#利用效果-5" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+<li>任意地址读写</li>
+</ul>
+<h2 id="2-7-house-of-roman"><a href="#2-7-house-of-roman" class="headerlink" title="2.7-house of roman"></a>2.7-house of roman</h2><h3 id="漏洞成因-6"><a href="#漏洞成因-6" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p><code>use after free</code>、堆溢出</p>
+<h3 id="适用范围-6"><a href="#适用范围-6" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.29</code></li>
+<li>可以 <code>use after edit</code></li>
+<li>不需要泄露地址</li>
+<li>需要爆破 <code>12 bit</code>，成功的概率 <code>1/4096</code></li>
+</ul>
+<h3 id="利用原理-6"><a href="#利用原理-6" class="headerlink" title="利用原理"></a>利用原理</h3><p>可以说这个技巧是 <code>fastbin attack + unsortedbin attack</code> 的组合技，利用思路如下：</p>
+<ul>
+<li>申请 <code>chunk A</code>、<code>chunk B</code>、<code>chunk C</code> 和 <code>chunk D</code>，<code>chunk B</code> 的大小为 <code>0x70</code></li>
+<li>释放 <code>chunk B</code>，使其进入到 <code>fastbin[0x70]</code></li>
+<li>溢出写 <code>A</code>，修改 <code>chunk B</code> 的 <code>size</code>，使其大小在 <code>unsortedbin</code> 范围</li>
+<li>再次释放 <code>B</code>，<code>B</code> 进入 <code>unsortedbin</code> 中</li>
+<li>部分写 <code>B</code> 的 <code>fd</code>，使得 <code>fd</code> 指向 <code>malloc_hook-0x23</code></li>
+<li>利用 <code>A</code> 的溢出写修正 <code>B</code> 的 <code>size</code>，连续分配两次 <code>0x70</code>，即可分配到 <code>malloc_hook</code> 上方</li>
+<li>触发 <code>unsortedbin attack</code>，将<code>__malloc_hook</code> 写为 <code>main_arena+88</code></li>
+<li>部分写<code>__malloc_hook</code> 的低三个字节，修改为 <code>one_gadget</code></li>
+<li>再次 <code>malloc</code> 即可拿到 <code>shell</code></li>
+</ul>
+<h3 id="相关技巧-6"><a href="#相关技巧-6" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>使用 <code>house of roman</code> 的时候，需要采用多线程爆破</li>
+<li>可以使用其他方法代替，比如先攻击 <code>stdout</code> 泄露地址，使得爆破的成本降低</li>
+</ul>
+<h3 id="利用效果-6"><a href="#利用效果-6" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>执行 <code>one_gadget</code></li>
+<li>绕过 <code>ASLR</code></li>
+</ul>
+<h2 id="2-8-house-of-storm"><a href="#2-8-house-of-storm" class="headerlink" title="2.8-house of storm"></a>2.8-house of storm</h2><h3 id="漏洞成因-7"><a href="#漏洞成因-7" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出、<code>use after free</code>、<code>edit after free</code></p>
+<h3 id="适用范围-7"><a href="#适用范围-7" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.29</code></li>
+<li>可以进行 <code>unsortedbin attack</code></li>
+<li>可以进行 <code>largebin attack</code>，修改 <code>bk</code> 和 <code>bk_nextsize</code></li>
+<li>可以分配 <code>0x50</code> 大小的 <code>chunk</code></li>
+</ul>
+<h3 id="利用原理-7"><a href="#利用原理-7" class="headerlink" title="利用原理"></a>利用原理</h3><p><code>house of storm</code> 也是一款组合技，利用开启了 <code>PIE</code> 的 <code>x64</code> 程序的堆地址总是 <code>0x55xxxx...</code> 或者 <code>0x56xxxx...</code> 开头这一特性，使用一次 <code>largebin attack</code> 写两个堆地址，使用一次 <code>unsortedbin attack</code> 写一次 <code>libc</code> 地址，可以实现任意地址分配。虽然 <code>house of storm</code> 最后能达到任意地址分配，但是由于其所需的条件比较多，一般可以用其他更简便的堆利用技术代替。利用思路如下：</p>
+<ul>
+<li>进行一次 <code>unsortedbin attack</code>，其 <code>bk</code> 修改为 <code>addr</code></li>
+<li>进行一次 <code>largebin attack</code>，其 <code>bk</code> 修改为 <code>addr+0x10</code>，<code>bk_nextsize</code> 修改为 <code>addr-0x20+3</code></li>
+<li>申请 <code>0x50</code> 大小的 <code>chunk</code> 即可申请到 <code>addr</code> 处</li>
+</ul>
+<h3 id="相关技巧-7"><a href="#相关技巧-7" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>需要注意的有：</p>
+<ul>
+<li>该方法成功的几率是 <code>50%</code>，因为 <code>0x55</code> 会触发 <code>assert</code> 断言，<code>0x56</code> 才能成功</li>
+<li>申请 <code>addr</code> 处的 <code>chunk</code> 的时候需要从 <code>unsortedbin</code> 里面取</li>
+</ul>
+<h3 id="利用效果-7"><a href="#利用效果-7" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+</ul>
+<h2 id="2-9-house-of-corrosion"><a href="#2-9-house-of-corrosion" class="headerlink" title="2.9-house of corrosion"></a>2.9-house of corrosion</h2><h3 id="漏洞成因-8"><a href="#漏洞成因-8" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出、<code>use after free</code></p>
+<h3 id="适用范围-8"><a href="#适用范围-8" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>任意大小分配</li>
+<li>可以修改 <code>global_max_fast</code></li>
+<li>不需要泄露地址</li>
+</ul>
+<h3 id="利用原理-8"><a href="#利用原理-8" class="headerlink" title="利用原理"></a>利用原理</h3><p>一个非常 <code>tricky</code> 的方法，可以绕过 <code>aslr</code>，不需要泄露地址都能达成 <code>rce</code>，可以很很多方法结合起来应用。先说利用原理：</p>
+<ul>
+<li>使用 <code>unsortedbin attack/largebin attack</code> 等方法，成功修改 <code>global_max_fast</code> 的值为很大的值。如果使用 <code>unsortedbin attack</code>，不需要泄露地址，爆破 <code>1/16</code> 即可</li>
+<li>申请任意大小的 <code>chunk</code>，这些 <code>chunk</code> 都会被视为 <code>fastbin chunk</code>，然后利用这些 <code>chunk</code> 来进行读和写</li>
+</ul>
+<p>此时的计算公式为：</p>
+<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">chunk</span> size = (chunk addr - &amp;main_arena.fastbinsY) x <span class="hljs-number">2</span> + <span class="hljs-number">0</span>x20<br></code></pre></td></tr></tbody></table></figure>
+
+<p>读原语：</p>
+<ul>
+<li>假设对应的地址 <code>X</code> 上存储着 <code>Y</code>，现在的目的是泄露出 <code>Y</code></li>
+<li>根据偏移计算出来 <code>chunk size</code>，修改 <code>chunk A</code> 的 <code>size</code> 为计算出来的值，释放 <code>chunk A</code> 到地址 <code>X</code> 处</li>
+<li>此时，<code>A-&gt;fd</code> 就被写入了 <code>Y</code></li>
+<li>通过打印即可泄露出 <code>Y</code> 的信息</li>
+</ul>
+<p>写原语 <code>1</code>：</p>
+<ul>
+<li>假设对应的地址 <code>X</code> 上存储着 <code>Y</code>，现在的目的是修改地址 <code>X</code> 存储的 <code>Y</code> 为其他值</li>
+<li>根据偏移计算出来 <code>chunk size</code>，修改 <code>chunk A</code> 的 <code>size</code> 为计算出来的值，释放 <code>chunk A</code> 到地址 <code>X</code> 处</li>
+<li>此时，<code>A-&gt;fd</code> 就被写入了 <code>Y</code></li>
+<li>修改 <code>A-&gt;fd</code> 为目标值</li>
+<li>分配一次 <code>chunk A</code> 就可以把地址 <code>X</code> 存储的值为任意值</li>
+</ul>
+<p>写原语 <code>2</code>：</p>
+<ul>
+<li>假设地址 <code>X</code> 上存储着 <code>Y</code>、地址 <code>M</code> 上存储着 <code>N</code>，现在的目的是把 <code>N</code> 写到地址 <code>X</code> 处</li>
+<li>根据偏移计算 <code>chunk size1</code>，先释放 <code>chunk A</code> 到地址 <code>X</code> 处，此时有地址 <code>X</code> 处存储 <code>chunk A</code> 地址，<code>chunk A-&gt;fd</code> 为 <code>Y</code></li>
+<li>根据偏移计算 <code>chunk size2</code>，再次释放 <code>chunk A</code> 到地址 <code>M</code> 处，此时有地址 <code>M</code> 处存储 <code>chunk A</code> 地址，<code>chunk A-&gt;fd</code> 为 <code>N</code></li>
+<li>修正 <code>chunk A</code> 的大小为 <code>chunk size1</code>，分配 <code>1</code> 次 <code>chunk</code> 即可使得 <code>N</code> 转移到地址 <code>X</code> 处，当然在转移的过程中可以适当的修改 <code>N</code></li>
+</ul>
+<p>显然，借助写原语 <code>2</code>，即可在不需要泄露地址的前提下将<code>__malloc_hook</code> 等写为 <code>one_gadget</code>，爆破的概率是 <code>1/4096</code>。</p>
+<h3 id="相关技巧-8"><a href="#相关技巧-8" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>虽然至今都能使用 <code>house of corrosion</code>，但是在 <code>glibc-2.37</code> 版本中，<code>global_max_fast</code> 的数据类型被修改为了 <code>int8_u</code>，进而导致可控的空间范围大幅度缩小。</li>
+<li><code>house of corrosion</code> 也可以拓展到 <code>tcachebin</code> 上</li>
+<li>适当控制 <code>global_max_fast</code> 的大小，把握控制的空间范围</li>
+<li>可以和 <code>IO_FILE</code> 结合起来泄露信息</li>
+</ul>
+<h3 id="利用效果-8"><a href="#利用效果-8" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li><code>glibc</code> 上的地址泄露</li>
+<li>执行 <code>one_gadget</code></li>
+</ul>
+<h2 id="2-10-house-of-husk"><a href="#2-10-house-of-husk" class="headerlink" title="2.10-house of husk"></a>2.10-house of husk</h2><h3 id="漏洞成因-9"><a href="#漏洞成因-9" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-9"><a href="#适用范围-9" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以修改<code>__printf_arginfo_table</code> 和<code>__printf_function_table</code></li>
+<li>可触发格式化字符串解析</li>
+</ul>
+<h3 id="利用原理-9"><a href="#利用原理-9" class="headerlink" title="利用原理"></a>利用原理</h3><p>严格来说，这个漏洞是与堆的关系并不是很大，主要是根据 <code>printf</code> 的机制进行利用。但是，该技术可以和很多堆利用手法结合起来。</p>
+<p>调用处 <code>1</code>：</p>
+<p>利用方式为：</p>
+<ul>
+<li><code>__printf_function_table</code> 和<code>__printf_arginfo_table</code> 分别写为 <code>chunk A</code> 和 <code>chunk B</code> 的地址</li>
+<li>设占位符为 <code>α</code>，此时 <code>chunk B</code> 的内容应该为 <code>p64(0) x ord(α-2) + p64(one_gadget)</code></li>
+</ul>
+<p>调用处 <code>2</code>：</p>
+<p>利用方式为：</p>
+<ul>
+<li><code>__printf_function_table</code> 和<code>__printf_arginfo_table</code> 分别写为 <code>chunk A</code> 和 <code>chunk B</code> 的地址</li>
+<li>设占位符为 <code>α</code>，此时 <code>chunk A</code> 的内容应该为 <code>p64(0) x ord(α-2) + p64(one_gadget)</code></li>
+</ul>
+<p>该处调用在高版本被删除。</p>
+<h3 id="相关技巧-9"><a href="#相关技巧-9" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>该技巧一般和 <code>largebin attack</code> 结合起来</li>
+<li>在低于 <code>2.36</code> 版本中，<code>__malloc_assert</code> 中有格式化字符串的解析</li>
+<li>还有一个<code>__printf_va_arg_table</code> 也是可以利用的，但是条件比较苛刻</li>
+</ul>
+<h3 id="利用效果-9"><a href="#利用效果-9" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>执行 <code>one_gadget</code></li>
+<li>执行 <code>rop</code> 控制程序执行流</li>
+</ul>
+<h2 id="2-11-house-of-atum"><a href="#2-11-house-of-atum" class="headerlink" title="2.11-house of atum"></a>2.11-house of atum</h2><h3 id="漏洞成因-10"><a href="#漏洞成因-10" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><figure class="highlight routeros"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs routeros"><span class="hljs-built_in">edit</span> after free<br></code></pre></td></tr></tbody></table></figure>
+
+<h3 id="适用范围-10"><a href="#适用范围-10" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>——<code>2.30</code></li>
+<li>可以修改 <code>tcachebin</code> 的 <code>next</code> 和 <code>key</code></li>
+</ul>
+<h3 id="利用原理-10"><a href="#利用原理-10" class="headerlink" title="利用原理"></a>利用原理</h3><p>这是一个关于 <code>tcachebin</code> 的技巧，用于修改 <code>chunk presize/size</code>，利用过程如下：</p>
+<ul>
+<li>申请 <code>chunk A</code>，大小在 <code>fastbin</code> 范围内</li>
+<li>释放 <code>A</code>，连续释放 <code>8</code> 次，此时，<code>A</code> 的 <code>fd</code> 被清 <code>0</code>，<code>A</code> 也被放置到了 <code>fastbin</code> 里面</li>
+<li>申请一个 <code>chunk</code>，将其 <code>fd</code> 修改为 <code>A - 0x10</code>，此时 <code>tcache</code> 中的 <code>counts</code> 为 <code>6</code></li>
+<li>再申请一个 <code>chunk</code>，从 <code>fastbin</code> 里面取，但是会把 <code>fastbin</code> 里面剩余的一个 <code>chunk</code> 链入到 <code>tcachebin</code></li>
+<li>再次分配就会分配到地址 <code>A-0x10</code> 处，就可以修改原来 <code>A</code> 的 <code>presize/size</code> 等</li>
+</ul>
+<h3 id="相关技巧-10"><a href="#相关技巧-10" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li><code>2.30</code> 之后逻辑变了，原来是判断 <code>entry[idx]!=NULL</code>，<code>2.31</code> 之后判断 <code>count[idx] &gt; 0</code></li>
+<li>有时候需要绕过 <code>tcache-&gt;key</code> 的检测</li>
+</ul>
+<h3 id="利用效果-10"><a href="#利用效果-10" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>修改 <code>chunk size</code> 以及 <code>chunk presize</code></li>
+</ul>
+<h2 id="2-12-house-of-kauri"><a href="#2-12-house-of-kauri" class="headerlink" title="2.12-house of kauri"></a>2.12-house of kauri</h2><h3 id="漏洞成因-11"><a href="#漏洞成因-11" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-11"><a href="#适用范围-11" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>——<code>2.32</code></li>
+</ul>
+<h3 id="利用原理-11"><a href="#利用原理-11" class="headerlink" title="利用原理"></a>利用原理</h3><p>利用原理很简单，修改 <code>tcachebin</code> 的 <code>size</code>，然后使其被放到不同大小的 <code>tcachebin</code> 链表里面去。我感觉这个技巧是很基础的 <code>tcachebin</code> 技巧，甚至不应该被称之为 <code>house of</code>。</p>
+<h3 id="相关技巧-11"><a href="#相关技巧-11" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>无</li>
+</ul>
+<h3 id="利用效果-11"><a href="#利用效果-11" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>多个 <code>tcachebin</code> 链表中存放同一个 <code>chunk</code></li>
+</ul>
+<h2 id="2-13-house-of-fun"><a href="#2-13-house-of-fun" class="headerlink" title="2.13-house of fun"></a>2.13-house of fun</h2><h3 id="漏洞成因-12"><a href="#漏洞成因-12" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出、<code>use after free</code></p>
+<h3 id="适用范围-12"><a href="#适用范围-12" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.30</code></li>
+<li>可以申请 <code>largebin</code> 范围的 <code>chunk</code></li>
+</ul>
+<h3 id="利用原理-12"><a href="#利用原理-12" class="headerlink" title="利用原理"></a>利用原理</h3><p>或许这个技巧应该叫做 <code>largebin attack</code>。</p>
+<p>在这个 <a target="_blank" rel="noopener" href="https://sourceware.org/git/?p=glibc.git;a=blobdiff;f=malloc/malloc.c;h=801ba1f499b566e677b763fc84f8ba86f4f7ccd0;hp=6e766d11bc85b6480fa5c9f2a76559f8acf9deb5;hb=5b06f538c5aee0389ed034f60d90a8884d6d54de;hpb=a0a0dc83173ce11ff45105fd32e5d14356cdfb9c">sourceware.org Git - glibc.git/blobdiff - malloc/malloc.c</a><code>commit</code> 被检测了：</p>
+<p class='item-img' data-src='https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20230306115614058.png'><img src="https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20230306115614058.png" alt="image-20230306115614058"></p>
+<h3 id="相关技巧-12"><a href="#相关技巧-12" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>无</li>
+</ul>
+<h3 id="利用效果-12"><a href="#利用效果-12" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址写堆地址</li>
+</ul>
+<h2 id="2-14-house-of-mind"><a href="#2-14-house-of-mind" class="headerlink" title="2.14-house of mind"></a>2.14-house of mind</h2><h3 id="漏洞成因-13"><a href="#漏洞成因-13" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-13"><a href="#适用范围-13" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以分配任意大小的 <code>chunk</code></li>
+</ul>
+<h3 id="利用原理-13"><a href="#利用原理-13" class="headerlink" title="利用原理"></a>利用原理</h3><p>主要利用的是：</p>
+<table>
+<thead>
+<tr>
+<th><code>1 2 3 4 </code></th>
+<th><code>#define heap_for_ptr(ptr) \  ((heap_info *) ((unsigned long) (ptr) &amp; ~(HEAP_MAX_SIZE - 1))) #define arena_for_chunk(ptr) \  (chunk_non_main_arena (ptr) ? heap_for_ptr (ptr)-&gt;ar_ptr : &amp;main_arena)</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>如果是 <code>non-mainarean</code> 的 <code>chunk</code>，会根据其地址找到 <code>heapinfo</code>，然后找到 <code>malloc_state</code> 结构体。</p>
+<p>因此，利用技巧是：</p>
+<ul>
+<li>根据要释放的 <code>fastbin chunk A</code> 的堆地址，找到对应的 <code>heap_for_ptr</code> 地址</li>
+<li>在 <code>heapinfo</code> 地址处伪造好相关变量，重点是 <code>mstate</code> 指针</li>
+<li>修改 <code>chunk A</code> 的 <code>non-main</code> 标志位，释放到伪造的 <code>arena</code> 里面，控制好偏移即可</li>
+</ul>
+<h3 id="相关技巧-13"><a href="#相关技巧-13" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>一般来说，可以分配任意大小的 <code>chunk</code>，还能堆溢出，很多技巧都能用</li>
+<li>这个技巧是希望大家关注对于 <code>arena</code> 的攻击</li>
+<li>甚至可以直接修改 <code>thread_arena</code> 这个变量</li>
+</ul>
+<h3 id="利用效果-13"><a href="#利用效果-13" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址写堆地址</li>
+</ul>
+<h2 id="2-15-house-of-muney"><a href="#2-15-house-of-muney" class="headerlink" title="2.15-house of muney"></a>2.15-house of muney</h2><h3 id="漏洞成因-14"><a href="#漏洞成因-14" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-14"><a href="#适用范围-14" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>能分配 <code>mmap</code> 的 <code>chunk</code></li>
+<li>能修改 <code>mmap</code> 的 <code>chunk</code> 的大小</li>
+</ul>
+<h3 id="利用原理-14"><a href="#利用原理-14" class="headerlink" title="利用原理"></a>利用原理</h3><p>这个技巧被称之为 <code>steal heap from glibc</code>。主要的点有以下几个：</p>
+<ul>
+<li><code>libc.so.6</code> 映射的地址空间，前面都是与符号表、哈希表、字符串表等重定位或者解析函数地址有关，前面一段的权限是 <code>r--</code></li>
+<li><code>mmap(NULL, ...)</code> 是会分配到 <code>libc.so.6</code> 的上方的</li>
+</ul>
+<p>基于这两个知识点，利用过程如下：</p>
+<ul>
+<li>申请 <code>chunk A</code>，假设为 <code>0x40000</code> 大小，则会走 <code>mmap</code> 申请，并且申请到 <code>libc.so.6</code> 的上方</li>
+<li>修改 <code>chunk A</code> 的大小为 <code>0x45000</code>，设置 <code>MMAP</code> 标志位</li>
+<li>释放 <code>chunk A</code>，则会把 <code>libc.so.6</code> 的 <code>0x5000</code> 的内存也释放掉</li>
+<li>再次申请 <code>0x45000</code>，就可以控制 <code>libc.so.6</code> 原来的符号表、哈希表等等</li>
+<li>触发一次 <code>dl_runtime_resolve</code> 等就能控制程序执行任意代码</li>
+</ul>
+<h3 id="相关技巧-14"><a href="#相关技巧-14" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>需要伪造的符号表、哈希表等需要逐步调试</li>
+<li>可以扩展为 <code>steal heap from everywhere</code></li>
+</ul>
+<h3 id="利用效果-14"><a href="#利用效果-14" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意代码执行</li>
+</ul>
+<h2 id="2-16-house-of-botcake"><a href="#2-16-house-of-botcake" class="headerlink" title="2.16-house of botcake"></a>2.16-house of botcake</h2><h3 id="漏洞成因-15"><a href="#漏洞成因-15" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><figure class="highlight irpf90"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs irpf90"><span class="hljs-keyword">double</span> <span class="hljs-keyword">free</span><br></code></pre></td></tr></tbody></table></figure>
+
+<h3 id="适用范围-15"><a href="#适用范围-15" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>—— 至今</li>
+<li>多次释放 <code>chunk</code> 的能力</li>
+</ul>
+<h3 id="利用原理-15"><a href="#利用原理-15" class="headerlink" title="利用原理"></a>利用原理</h3><p>该技巧可以用于绕过 <code>tcache-&gt;key</code> 的检查，利用过程如下：</p>
+<ul>
+<li>申请 <code>7</code> 个大小相同，大小大于 <code>0x80</code> 的 <code>chunk</code>，再申请三个，分别为 <code>chunk A</code> 和 <code>chunkB</code> 和 <code>chunk C</code></li>
+<li>释放前 <code>7</code> 个和 <code>chunk A</code>，前面 <code>7</code> 个都会进入到 <code>tcachebin</code> 里面，<code>chunk A</code> 进入到 <code>unsortedbin</code></li>
+<li>释放 <code>chunk B</code>，则 <code>chunk B</code> 会和 <code>chunk A</code> 合并</li>
+<li>从 <code>tcachebin</code> 分配走一个</li>
+<li>再次释放 <code>chunk B</code>，此时 <code>B</code> 同时存在与 <code>unsortedbin</code> 和 <code>tcachebin</code></li>
+</ul>
+<h3 id="相关技巧-15"><a href="#相关技巧-15" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>在高版本需要绕过指针保护的检查</li>
+</ul>
+<h3 id="利用效果-15"><a href="#利用效果-15" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>构造出堆重叠，为后续利用做准备</li>
+</ul>
+<h2 id="2-17-house-of-rust"><a href="#2-17-house-of-rust" class="headerlink" title="2.17-house of rust"></a>2.17-house of rust</h2><h3 id="漏洞成因-16"><a href="#漏洞成因-16" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-16"><a href="#适用范围-16" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>—— 至今</li>
+<li>可以进行 <code>tcache stash unlinking</code> 攻击</li>
+<li>可以进行 <code>largebin attack</code></li>
+<li>不需要泄露地址</li>
+</ul>
+<h3 id="利用原理-16"><a href="#利用原理-16" class="headerlink" title="利用原理"></a>利用原理</h3><p>原作者的博客写得很复杂，我这里提炼出关键信息。该技巧就是 <code>tcachebin stash unlinking</code>+<code>largebin attack</code> 的组合技巧。</p>
+<p>首先需要知道 <code>tcachebin stash unlinking</code>，下面称之为 <code>TSU</code> 技巧：</p>
+<ul>
+<li><code>tcachebin[A]</code> 为空</li>
+<li><code>smallbin[A]</code> 有 <code>8</code> 个</li>
+<li>修改第 <code>8</code> 个 <code>smallbin chunk</code> 的 <code>bk</code> 为 <code>addr</code></li>
+<li>分配 <code>malloc(A)</code> 的时候，<code>addr+0x10</code> 会被写一个 <code>libc</code> 地址</li>
+</ul>
+<p>还要知道 <code>tcachebin stash unlinking+</code>，下面称之为 <code>TSU+</code> 技巧：</p>
+<ul>
+<li><code>tcachebin[A]</code> 为空</li>
+<li><code>smallbin[A]</code> 有 <code>8</code> 个</li>
+<li>修改第 <code>7</code> 个 <code>smallbin chunk</code> 的 <code>bk</code> 为 <code>addr</code>，还要保证 <code>addr+0x18</code> 是一个合法可写的地址</li>
+<li>分配 <code>malloc(A)</code> 的时候，<code>addr</code> 会被链入到 <code>tcachebin</code>，也就是可以分配到 <code>addr</code> 处</li>
+</ul>
+<p>以 <code>0x90</code> 大小的 <code>chunk</code> 为例，此时的 <code>tcache_key</code> 还是指向 <code>tcache_perthread_struct + 0x10</code> 的：</p>
+<ul>
+<li>第一步，把 <code>tcachebin[0x90]</code> 填满，把 <code>smallbin[0x90]</code> 也填满</li>
+<li>第二步，把最后一个 <code>smallbin 0x90</code> 的 <code>chunk</code> 的 <code>size</code> 改成 <code>0xb0</code>，将其释放到 <code>tcachebin[0xb0]</code>，这一步主要是为了改变其 <code>bk</code> 指向 <code>tcache_perthread_struct + 0x10</code>，可以部分修改低位的字节，以便下一步分配到目标区域</li>
+<li>第三步，使用 <code>largebin attack</code> 往上一步的 <code>bk-&gt;bk</code> 写一个合法地址，然后耗尽 <code>tcachebin[0x90]</code>，再分配的时候就会触发 <code>TSU+</code>，之后就能分配到 <code>tcache_perthread_struct </code>结构体</li>
+<li>第四步，还是堆风水，但是用 <code>TSU</code> 技术，在 <code>tcache_perthread_struct</code> 上写一个 <code>libc</code> 地址（比前面一步要简单很多）</li>
+<li>第五步，通过控制 <code>tcache_perthread_struct</code> 结构体，部分写上面的 <code>libc</code> 地址，分配到 <code>stdout</code> 结构体，泄露信息</li>
+<li>第六步，通过控制 <code>tcache_perthread_struct</code> 结构体分配到任意地址</li>
+</ul>
+<p>上面的过程最好的情况下需要爆破 <code>1/16</code>，最差 <code>1/256</code>。</p>
+<p>但是，<code>2.34</code> 之后，<code>tcache_key</code> 是一个随机数，不是 <code>tcache_perthread_struct + 0x10</code> 了。</p>
+<p>所以，此时可以加上 <code>largebin attack</code>，把以上的第二步变为：继续用 <code>largebin attack</code> 向其 <code>bk</code> 写一个堆地址，然后还要部分写 <code>bk</code> 使其落在 <code>tcache_perthread_struct</code> 区域。其他步骤一样。</p>
+<p>或者，在 <code>smallbin</code> 里面放 <code>9</code> 个，这样第 <code>8</code> 个的 <code>bk</code> 肯定就是一个堆地址。此时就需要爆破 <code>1/16</code> 的堆，<code>1/16</code> 的 <code>glibc</code> 地址，成功的概率是 <code>1/256</code>。</p>
+<h3 id="相关技巧-16"><a href="#相关技巧-16" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>总的来说，就是利用 <code>tcachebin stash unlinking</code> 打 <code>tcache_perthread_struct</code></li>
+<li>利用 <code>largebin attack</code> 构造合法地址</li>
+</ul>
+<h3 id="利用效果-16"><a href="#利用效果-16" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+<li>任意函数执行</li>
+</ul>
+<h2 id="2-18-house-of-crust"><a href="#2-18-house-of-crust" class="headerlink" title="2.18-house of crust"></a>2.18-house of crust</h2><h3 id="漏洞成因-17"><a href="#漏洞成因-17" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-17"><a href="#适用范围-17" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>——<code>2.37</code></li>
+<li>可以进行 <code>tcache stash unlinking</code> 攻击</li>
+<li>可以进行 <code>largebin attack</code></li>
+<li>不需要泄露地址</li>
+</ul>
+<h3 id="利用原理-17"><a href="#利用原理-17" class="headerlink" title="利用原理"></a>利用原理</h3><p>其他步骤和上面的 <code>house of rust</code> 一样，但是到第五步的时候，去修改 <code>global_max_fast</code></p>
+<p>后面的步骤和 <code>house of corrosion</code> 是一样的，通过写原语打 <code>stderr</code> 修改 <code>one_gadget</code> 拿到 <code>shell</code>。</p>
+<h3 id="相关技巧-17"><a href="#相关技巧-17" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li><code>house of crust = house of corrosion + house of rust</code></li>
+<li><code>2.37</code> 之后，<code>house of corrosion</code> 使用受限</li>
+</ul>
+<h2 id="2-19-house-of-io"><a href="#2-19-house-of-io" class="headerlink" title="2.19-house of io"></a>2.19-house of io</h2><h3 id="漏洞成因-18"><a href="#漏洞成因-18" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-18"><a href="#适用范围-18" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.26</code>—— 至今</li>
+</ul>
+<h3 id="利用原理-18"><a href="#利用原理-18" class="headerlink" title="利用原理"></a>利用原理</h3><p>其他博客上对该方法的介绍如下：</p>
+<table>
+<thead>
+<tr>
+<th><code>1 </code></th>
+<th><code>The tcache_perthread_object is allocated when the heap is created. Furthermore, it is stored right at the heap's beginning (at a relatively low memory address). The safe-linking mitigation aims to protect the fd/next pointer within the free lists. However, the head of each free-list is not protected. Additionally, freeing a chunk and placing it into the tcachebin also places a non-protected pointer to the appropriate tcache entry in the 2nd qword of a chunks' user data. The House of IO assumes one of three scenarios for the bypass to work. First, any attacker with a controlled linear buffer underflow over a heap buffer, or a relative arbitrary write will be able to corrupt the tcache. Secondly, a UAF bug allowing to read from a freed tcache eligible chunk leaks the tcache and with that, the heap base. Thirdly, a badly ordered set of calls to free(), ultimately passing the address of the tcache itself to free, would link the tcache into the 0x290 sized tcachebin. Allocating it as a new chunk would mean complete control over the tcache's values.</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>可以看出来，其实就是对 <code>tcache_perthread_struct</code> 结构体的攻击，想办法将其释放掉，然后再申请回来，申请回来的时候就能控制整个 <code>tcache</code> 的分配。</p>
+<h3 id="相关技巧-18"><a href="#相关技巧-18" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>围绕 <code>tcache_perthread_struct</code> 进行攻击</li>
+</ul>
+<h3 id="利用效果-17"><a href="#利用效果-17" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址分配</li>
+</ul>
+<h2 id="2-20-house-of-banana"><a href="#2-20-house-of-banana" class="headerlink" title="2.20-house of banana"></a>2.20-house of banana</h2><h3 id="漏洞成因-19"><a href="#漏洞成因-19" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-19"><a href="#适用范围-19" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以进行 <code>largebin attack</code></li>
+<li>能执行 <code>exit</code> 函数</li>
+</ul>
+<h3 id="利用原理-19"><a href="#利用原理-19" class="headerlink" title="利用原理"></a>利用原理</h3><p>首先是 <code>largebin attack</code> 在高版本只能从下面这个分支利用：</p>
+<p>也就是，双链表里面至少存在一个 <code>largebin chunk</code>，且目前要入链的 <code>chunk</code> 比最小的还小，修改了 <code>bk_nextsize</code> 之后就会触发。可以造成任意地址写堆地址。</p>
+<p>然后是 <code>exit</code> 调用的时候，会调用到<code>_dl_fini</code> 函数，执行每个 <code>so</code> 中注册的 <code>fini</code> 函数：</p>
+<p>可以触发 <code>call</code> 的有两个点，第一个点可以 <code>call</code> 到很多指针，是一个数组；另一个点就只有一个函数。</p>
+<p>剩下的工作就是根据代码绕过检测，调用到调用点。</p>
+<p>所以，利用的思路有：</p>
+<ul>
+<li>直接伪造<code>_rtld_global</code> 的<code>_ns_loaded</code>，布局好其他内容，使其调用到 <code>fini_array</code></li>
+<li>伪造 <code>link_map</code> 的 <code>next</code> 指针，布局好其他内容，使其调用到 <code>fini_array</code></li>
+<li>修改 <code>link_map-&gt;l_addr</code>，根据偏移使其调用到指定区域的函数</li>
+</ul>
+<h3 id="相关技巧-19"><a href="#相关技巧-19" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>伪造 <code>fini_array</code> 数组的时候，是从后往前遍历的</li>
+<li>有时候远程的 <code>rtld_global</code> 的偏移与本地不一样，需要爆破</li>
+<li>如果不想逐个伪造，可以直接用 <code>gdb</code> 从内存里面 <code>dump</code> 出来，然后基于偏移修改内存即可</li>
+</ul>
+<h3 id="利用效果-18"><a href="#利用效果-18" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意代码执行</li>
+</ul>
+<h2 id="2-21-house-of-kiwi"><a href="#2-21-house-of-kiwi" class="headerlink" title="2.21-house of kiwi"></a>2.21-house of kiwi</h2><h3 id="漏洞成因-20"><a href="#漏洞成因-20" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-20"><a href="#适用范围-20" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.36</code></li>
+<li>在 <code>malloc</code> 流程中触发 <code>assert</code></li>
+</ul>
+<h3 id="利用原理-20"><a href="#利用原理-20" class="headerlink" title="利用原理"></a>利用原理</h3><p>主要是提供了一种在程序中调用 <code>IO</code> 流函数的思路：</p>
+<p>可以看到，调用到了 <code>fxprintf</code> 和 <code>fflush</code>。</p>
+<p>至于原 <code>house of kiwi</code> 所提到的控制 <code>rdx</code> 的思路，在很多版本中无法使用，因为 <code>IO_jumps_table</code> 都是不可写的，故此处不再详述。</p>
+<h3 id="相关技巧-20"><a href="#相关技巧-20" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>在 <code>2.36</code> 之后，<code>__malloc_assert</code> 被修改为：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><code>1 2 3 4 5 6 7 8 9 </code></th>
+<th><code>_Noreturn static void __malloc_assert (const char *assertion, const char *file, unsigned int line, 	 const char *function) {  __libc_message (do_abort, "\ Fatal glibc error: malloc assertion failure in %s: %s\n", 	  function, assertion);  __builtin_unreachable (); }</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>而在 <code>2.37</code> 该函数直接被删掉了。</p>
+<ul>
+<li><p>如果 <code>stderr</code> 在 <code>libc</code> 上，需要修改调 <code>stderr</code> 处的指针，也有可能在程序的地址空间上</p>
+</li>
+<li><p>伪造的技巧如下，触发 <code>fxprintf(stderr，......)</code>：</p>
+<p>| <code>1 2 3 4 5 </code> | <code>flags &amp; 0x8000的话，不用伪造_lock flags &amp; ~(0x2 | 0x8) 必须成立，避免走到unbuffered的流程 mode 设置为0 vtable默认调用的是偏移0x38的函数，如果想劫持为_IO_xxx_overflow，需要设置为_IO_xxx_jumps-0x20 flags 可以设置为"  sh||"，前面有两个空格，此时还需要设置_lock，不想设置_lock的时候，flags可以为"\x20\x80;sh||"</code> |<br>| ———— | ———————————————————— |<br>|              |                                                              |</p>
+</li>
+</ul>
+<h3 id="利用效果-19"><a href="#利用效果-19" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>触发 <code>IO</code> 处理流程，为后续利用做准备</li>
+</ul>
+<h2 id="2-22-house-of-emma"><a href="#2-22-house-of-emma" class="headerlink" title="2.22-house of emma"></a>2.22-house of emma</h2><h3 id="漏洞成因-21"><a href="#漏洞成因-21" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-21"><a href="#适用范围-21" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以进行两次 <code>largebin attack</code></li>
+<li>或者可以进行两次任意地址写堆地址</li>
+<li>可以触发 <code>IO</code> 流操作</li>
+</ul>
+<h3 id="利用原理-21"><a href="#利用原理-21" class="headerlink" title="利用原理"></a>利用原理</h3><p>在<code>_IO_cookie_jumps</code> 中存在一些<code>_IO_cookie_read</code> 等函数，如下：</p>
+<p>可以看到有函数指针的调用。但是对函数指针使用 <code>pointer_guard</code> 进行了加密：</p>
+<p>循环右移后，再异或。</p>
+<p>因此，利用思路如下：</p>
+<ul>
+<li>截至某个 <code>IO_FILE</code> 的指针（<code>IO_list_all/stdxxx-&gt;chain</code> 等都可以）为堆地址</li>
+<li>堆上伪造 <code>IO_FILE</code> 结构，其 <code>vtable</code> 替换为<code>_IO_cookie_jumps+XX</code>，<code>XX</code> 为一个偏移量</li>
+<li>伪造好函数指针和调用参数，指针需要循环异或和加密</li>
+<li>调用到<code>_IO_cookie_read</code> 等函数，进而执行任意函数</li>
+</ul>
+<h3 id="相关技巧-21"><a href="#相关技巧-21" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>常用的 <code>gadget</code> 有：</li>
+<li><code>pointer_guard</code> 就在 <code>canary</code> 下面，偏移可能需要爆破</li>
+</ul>
+<h3 id="利用效果-20"><a href="#利用效果-20" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+</ul>
+<h2 id="2-23-house-of-pig"><a href="#2-23-house-of-pig" class="headerlink" title="2.23-house of pig"></a>2.23-house of pig</h2><h3 id="漏洞成因-22"><a href="#漏洞成因-22" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-22"><a href="#适用范围-22" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以进行 <code>largebin attack</code></li>
+<li>可以触发 <code>IO</code> 流操作</li>
+</ul>
+<h3 id="利用原理-22"><a href="#利用原理-22" class="headerlink" title="利用原理"></a>利用原理</h3><p>在<code>_IO_str_jumps</code> 中，存在着<code>_IO_str_overflow</code> 函数：</p>
+<p>从函数中就能看到，利用流程如下：</p>
+<ul>
+<li>伪造 <code>IO_FILE</code> 的<code>_IO_buf_base</code></li>
+<li>合理控制<code>_IO_buf_end-_IO_buf_base</code> 的值，进而控制分配的 <code>chunk</code> 的大小，分配到布局好的地址</li>
+<li>在 <code>memcpy</code> 中覆盖地址，如可以覆盖<code>__malloc_hook/__free_hook</code> 等</li>
+</ul>
+<p>该方法需要结合其他堆利用技术，需要保证 <code>malloc</code> 分配出来的 <code>chunk</code> 的地址是可控的。该方法主要提供了对 <code>IO</code> 系列函数中间接调用 <code>mallc/free/memcpy</code> 的组合利用。</p>
+<h3 id="相关技巧-22"><a href="#相关技巧-22" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>可以 <code>largebin attack</code> 打掉 <code>mp_.tcachebins</code>，进而能把很大的 <code>chunk</code> 也放进入 <code>tcache</code> 进行管理</li>
+<li>高版本没有 <code>hook</code> 的话，可以利用 <code>memcpy@got</code>，通过覆写 <code>got</code> 来进行 <code>rce</code></li>
+<li>可以多次 <code>house of pig</code> 组合调用</li>
+</ul>
+<h3 id="利用效果-21"><a href="#利用效果-21" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+<li><code>ROP</code> 控制程序执行流</li>
+</ul>
+<h2 id="2-24-house-of-obstack"><a href="#2-24-house-of-obstack" class="headerlink" title="2.24-house of obstack"></a>2.24-house of obstack</h2><h3 id="漏洞成因-23"><a href="#漏洞成因-23" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-23"><a href="#适用范围-23" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>可以执行一次 <code>largebin attack</code></li>
+<li>可以触发 <code>IO</code> 流操作</li>
+</ul>
+<h3 id="利用原理-23"><a href="#利用原理-23" class="headerlink" title="利用原理"></a>利用原理</h3><p>一条新的利用链，伪造 <code>vtable</code> 为<code>_IO_obstack_jumps</code>，然后调用到<code>_IO_obstack_xsputn</code>，紧接着调用 <code>obstack_grow</code>，其代码为：</p>
+<table>
+<thead>
+<tr>
+<th><code>1 2 3 4 5 6 7 8 9 </code></th>
+<th><code>#define obstack_grow(OBSTACK, where, length)                      \  __extension__                                   \    ({ struct obstack *__o = (OBSTACK);                       \       int __len = (length);                              \       if (_o-&gt;next_free + __len &gt; __o-&gt;chunk_limit)                  \     _obstack_newchunk (__o, __len);                      \       memcpy (__o-&gt;next_free, where, __len);                     \       __o-&gt;next_free += __len;                           \       (void) 0; })</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>然后在<code>_obstack_newchunk</code> 调用了 <code>CALL_CHUNKFUN</code> 这个宏</p>
+<p>这个宏会调用到函数指针：</p>
+<table>
+<thead>
+<tr>
+<th><code>1 2 3 4 </code></th>
+<th><code># define CALL_CHUNKFUN(h, size) \  (((h)-&gt;use_extra_arg)                               \   ? (*(h)-&gt;chunkfun)((h)-&gt;extra_arg, (size))                     \   : (*(struct _obstack_chunk *(*)(long))(h)-&gt;chunkfun)((size)))</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>因此，其就是利用该函数指针进行控制程序的执行流。</p>
+<h3 id="相关技巧-23"><a href="#相关技巧-23" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>伪造的 <code>IO_FILE</code> 布局如下：</p>
+<ul>
+<li>利用 <code>largebin attack</code> 伪造<code>_IO_FILE</code>，记完成伪造的 <code>chunk</code> 为 <code>A</code>（或者别的手法）</li>
+<li><code>chunk A</code> 内偏移为 <code>0xd8</code> 处设为<code>_IO_obstack_jumps+0x20</code></li>
+<li><code>chunk A</code> 内偏移为 <code>0xe0</code> 处设置 <code>chunk A</code> 的地址作为 <code>obstack</code> 结构体</li>
+<li><code>chunk A</code> 内偏移为 <code>0x18</code> 处设为 <code>1</code>（<code>next_free</code>)</li>
+<li><code>chunk A</code> 内偏移为 <code>0x20</code> 处设为 <code>0</code>（<code>chunk_limit</code>）</li>
+<li><code>chunk A</code> 内偏移为 <code>0x48</code> 处设为 <code>&amp;/bin/sh</code></li>
+<li><code>chunk A</code> 内偏移为 <code>0x38</code> 处设为 <code>system</code> 函数的地址</li>
+<li><code>chunk A</code> 内偏移为 <code>0x28</code> 处设为 <code>1</code>（<code>_IO_write_ptr</code>)</li>
+<li><code>chunk A</code> 内偏移为 <code>0x30</code> 处设为 <code>0</code> (<code>_IO_write_end</code>)</li>
+<li><code>chunk A</code> 内偏移为 <code>0x50</code> 处设为 <code>1</code> (<code>use_extra_arg</code>)</li>
+</ul>
+<p><code>glibc-2.37</code> 开始这个方法的调用链为：<code>__printf_buffer_as_file_overflow -&gt; __printf_buffer_flush -&gt; __printf_buffer_flush_obstack-&gt;__obstack_newchunk</code>。</p>
+<h3 id="利用效果-22"><a href="#利用效果-22" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+</ul>
+<h2 id="2-25-house-of-apple1"><a href="#2-25-house-of-apple1" class="headerlink" title="2.25-house of apple1"></a>2.25-house of apple1</h2><h3 id="漏洞成因-24"><a href="#漏洞成因-24" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-24"><a href="#适用范围-24" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>程序从 <code>main</code> 函数返回或能调用 <code>exit</code> 函数</li>
+<li>能泄露出 <code>heap</code> 地址和 <code>libc</code> 地址</li>
+<li>能使用一次 <code>largebin attack</code>（一次即可）</li>
+</ul>
+<h3 id="利用原理-24"><a href="#利用原理-24" class="headerlink" title="利用原理"></a>利用原理</h3><p>利用<code>_IO_wstr_overflow</code> 将任意地址存储的值修改已知值：</p>
+<p>比如修改 <code>tcache</code> 变量、<code>mp_</code>结构体、<code>pointer_guard</code> 变量等。</p>
+<p>修改成功后，再使用其他技术控制程序执行流。</p>
+<h3 id="相关技巧-24"><a href="#相关技巧-24" class="headerlink" title="相关技巧"></a>相关技巧</h3><p><code>house of apple1</code> 是对现有一些 <code>IO</code> 流攻击方法的补充，能在一次劫持 <code>IO</code> 流的过程中做到任意地址写已知值，进而构造出其他方法攻击成功的条件。</p>
+<h3 id="利用效果-23"><a href="#利用效果-23" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意地址写已知堆地址</li>
+</ul>
+<h2 id="2-26-house-of-apple2"><a href="#2-26-house-of-apple2" class="headerlink" title="2.26-house of apple2"></a>2.26-house of apple2</h2><h3 id="漏洞成因-25"><a href="#漏洞成因-25" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-25"><a href="#适用范围-25" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>已知 <code>heap</code> 地址和 <code>glibc</code> 地址</li>
+<li>能控制程序执行 <code>IO</code> 操作，包括但不限于：从 <code>main</code> 函数返回、调用 <code>exit</code> 函数、通过<code>__malloc_assert</code> 触发</li>
+<li>能控制<code>_IO_FILE</code> 的 <code>vtable</code> 和<code>_wide_data</code>，一般使用 <code>largebin attack</code> 去控制</li>
+</ul>
+<h3 id="利用原理-25"><a href="#利用原理-25" class="headerlink" title="利用原理"></a>利用原理</h3><p><code>_IO_WIDE_JUMPS</code> 没有检查<code>_wide_vtable</code> 的合法性：</p>
+<table>
+<thead>
+<tr>
+<th><code>1 2 3 4 5 6 7 8 </code></th>
+<th><code>#define _IO_WOVERFLOW(FP, CH) WJUMP1 (__overflow, FP, CH) #define WJUMP1(FUNC, THIS, X1) (_IO_WIDE_JUMPS_FUNC(THIS)-&gt;FUNC) (THIS, X1) #define _IO_WIDE_JUMPS_FUNC(THIS) _IO_WIDE_JUMPS(THIS) #define _IO_WIDE_JUMPS(THIS) \  _IO_CAST_FIELD_ACCESS ((THIS), struct _IO_FILE, _wide_data)-&gt;_wide_vtable</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+<p>所以利用<code>_IO_wfile_jumps</code> 等伪造<code>_wide_vtable</code> 即可。</p>
+<h3 id="相关技巧-25"><a href="#相关技巧-25" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>利用<code>_IO_wfile_overflow</code> 函数控制程序执行流时对 <code>fp</code> 的设置如下：</p>
+<ul>
+<li><code>_flags</code> 设置为 <code>~(2 | 0x8 | 0x800)</code>，如果不需要控制 <code>rdi</code>，设置为 <code>0</code> 即可；如果需要获得 <code>shell</code>，可设置为<code> sh;</code>，注意前面有两个空格</li>
+<li><code>vtable</code> 设置为<code>_IO_wfile_jumps/_IO_wfile_jumps_mmap/_IO_wfile_jumps_maybe_mmap</code> 地址（加减偏移），使其能成功调用<code>_IO_wfile_overflow</code> 即可</li>
+<li><code>_wide_data</code> 设置为可控堆地址 <code>A</code>，即满足 <code>*(fp + 0xa0) = A</code></li>
+<li><code>_wide_data-&gt;_IO_write_base</code> 设置为 <code>0</code>，即满足 <code>*(A + 0x18) = 0</code></li>
+<li><code>_wide_data-&gt;_IO_buf_base</code> 设置为 <code>0</code>，即满足 <code>*(A + 0x30) = 0</code></li>
+<li><code>_wide_data-&gt;_wide_vtable</code> 设置为可控堆地址 <code>B</code>，即满足 <code>*(A + 0xe0) = B</code></li>
+<li><code>_wide_data-&gt;_wide_vtable-&gt;doallocate</code> 设置为地址 <code>C</code> 用于劫持 <code>RIP</code>，即满足 <code>*(B + 0x68) = C</code></li>
+</ul>
+<h3 id="利用效果-24"><a href="#利用效果-24" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+</ul>
+<h2 id="2-27-house-of-apple3"><a href="#2-27-house-of-apple3" class="headerlink" title="2.27-house of apple3"></a>2.27-house of apple3</h2><h3 id="漏洞成因-26"><a href="#漏洞成因-26" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-26"><a href="#适用范围-26" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>—— 至今</li>
+<li>已知 <code>heap</code> 地址和 <code>glibc</code> 地址</li>
+<li>能控制程序执行 <code>IO</code> 操作，包括但不限于：从 <code>main</code> 函数返回、调用 <code>exit</code> 函数、通过<code>__malloc_assert</code> 触发</li>
+<li>能控制<code>_IO_FILE</code> 的 <code>vtable</code> 和<code>_wide_data</code>，一般使用 <code>largebin attack</code> 去控制</li>
+</ul>
+<h3 id="利用原理-26"><a href="#利用原理-26" class="headerlink" title="利用原理"></a>利用原理</h3><p><code>__libio_codecvt_in</code> 等函数，可以设置 <code>gs-&gt;__shlib_handle == NULL</code> 绕过 <code>PTR_DEMANGLE</code> 对指针的保护，然后通过<code>_IO_wfile_underflow </code>调用到<code>__libio_codecvt_in</code> 来控制函数指针，执行任意代码。</p>
+<h3 id="相关技巧-26"><a href="#相关技巧-26" class="headerlink" title="相关技巧"></a>相关技巧</h3><p>利用_IO_wfile_underflow 函数控制程序执行流时对 <code>fp</code> 的设置如下：</p>
+<ul>
+<li><code>_flags</code> 设置为 <code>~(4 | 0x10)</code></li>
+<li><code>vtable</code> 设置为<code>_IO_wfile_jumps</code> 地址（加减偏移），使其能成功调用<code>_IO_wfile_underflow</code> 即可</li>
+<li><code>fp-&gt;_IO_read_ptr &lt; fp-&gt;_IO_read_end</code>，即满足 <code>*(fp + 8) &lt; *(fp + 0x10)</code></li>
+<li><code>_wide_data</code> 保持默认，或者设置为堆地址，假设其地址为 <code>A</code>，即满足 <code>*(fp + 0xa0) = A</code></li>
+<li><code>_wide_data-&gt;_IO_read_ptr &gt;= _wide_data-&gt;_IO_read_end</code>，即满足 <code>*A &gt;= *(A + 8)</code></li>
+<li><code>_codecvt</code> 设置为可控堆地址 <code>B</code>，即满足 <code>*(fp + 0x98) = B</code></li>
+<li><code>codecvt-&gt;__cd_in.step</code> 设置为可控堆地址 <code>C</code>，即满足 <code>*B = C</code></li>
+<li><code>codecvt-&gt;__cd_in.step-&gt;__shlib_handle</code> 设置为 <code>0</code>，即满足 <code>*C = 0</code></li>
+<li><code>codecvt-&gt;__cd_in.step-&gt;__fct</code> 设置为地址 <code>D</code>, 地址 <code>D</code> 用于控制 <code>rip</code>，即满足 <code>*(C + 0x28) = D</code>。当调用到 <code>D</code> 的时候，此时的 <code>rdi</code> 为 <code>C</code>。如果<code>_wide_data</code> 也可控的话，<code>rsi</code> 也能控制。</li>
+</ul>
+<h3 id="利用效果-25"><a href="#利用效果-25" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>任意函数执行</li>
+</ul>
+<h2 id="2-28-house-of-gods"><a href="#2-28-house-of-gods" class="headerlink" title="2.28-house of gods"></a>2.28-house of gods</h2><h3 id="漏洞成因-27"><a href="#漏洞成因-27" class="headerlink" title="漏洞成因"></a>漏洞成因</h3><p>堆溢出</p>
+<h3 id="适用范围-27"><a href="#适用范围-27" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li><code>2.23</code>——<code>2.27</code></li>
+<li>泄露堆地址和 <code>libc</code> 地址</li>
+<li>任意大小分配</li>
+</ul>
+<h3 id="利用原理-27"><a href="#利用原理-27" class="headerlink" title="利用原理"></a>利用原理</h3><p>这个技巧比较有意思，非常建议把作者的原博客读一下。我会简述一下该技巧的利用过程。</p>
+<p>总的来说，该技巧最终的目的是伪造一个 <code>fake arena</code>，通过劫持 <code>main_arena.next</code> 字段完成。</p>
+<p>其主要过程为：</p>
+<ul>
+<li>通过 <code>binmap</code> 的赋值，将其当做 <code>chunk</code> 的 <code>size</code>，然后修改 <code>unsortedbin</code> 链的 <code>bk</code> 指向 <code>binmap</code>，作者选择的是 <code>0x90</code> 大小的 <code>chunk</code>，释放后恰好让 <code>binmap</code> 称为 <code>0x200</code>，然后 <code>binmap-&gt;bk</code> 是 <code>main_arena</code>(初始状态下 <code>main_arena.next = &amp;main_arena</code>)，然后 <code>main_arena-&gt;bk= fastbin[0x40]</code></li>
+<li>分配 <code>0x1f0</code> 大小的 <code>chunk</code> 就刚好能分配到 <code>binmap</code></li>
+<li>之后修改掉 <code>main_arena</code> 的 <code>system_mem</code> 为很大的值和 <code>next</code> 指向 <code>fake arena</code></li>
+<li>然后用 <code>unsortedbin attack</code> 打掉 <code>narenas</code>，将其改为一个很大的数</li>
+<li>然后分配两次 <code>malloc(0xffffffffffffffbf + 1)</code>，触发 <code>arena_get_retry</code>，进而触发两次 <code>reused_arena</code>，就能把 <code>fake arena</code> 给 <code>thread_arena</code> 变量</li>
+<li>最后直接伪造 <code>fastbin</code> 任意地址分配</li>
+</ul>
+<h3 id="相关技巧-27"><a href="#相关技巧-27" class="headerlink" title="相关技巧"></a>相关技巧</h3><ul>
+<li>仅仅借助 <code>unsortedbin</code> 链就能控制 <code>main_arena</code> 的 <code>next</code> 和 <code>system_mem</code></li>
+<li>利用 <code>binmap</code> 的值构造出合法的 <code>size</code></li>
+</ul>
+<h3 id="利用效果-26"><a href="#利用效果-26" class="headerlink" title="利用效果"></a>利用效果</h3><ul>
+<li>劫持 <code>thread_arena</code> 为 <code>fake_arena</code></li>
+</ul>
+<h1 id="3-总结"><a href="#3-总结" class="headerlink" title="3 - 总结"></a>3 - 总结</h1><ul>
+<li>总结了 <code>28</code> 种 <code>house of</code> 系列利用手法</li>
+<li>给出了每种利用手法的影响版本、适用范围、利用原理等</li>
+<li>所有的利用方法都可以在源码中找到答案，因此强烈建议将源码反复阅读</li>
+<li>可以根据目前已有的技术提出新的组合技</li>
+</ul>
+<h1 id="4-参考"><a href="#4-参考" class="headerlink" title="4 - 参考"></a>4 - 参考</h1><p>[1] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/244158">堆利用系列之 house of spirit - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://github.com/shellphish/how2heap">shellphish/how2heap: A repository for learning various heap exploitation techniques. (github.com)</a></p>
+<p>[3] <a target="_blank" rel="noopener" href="https://0x434b.dev/overview-of-glibc-heap-exploitation-techniques">Overview of GLIBC heap exploitation techniques (0x434b.dev)</a></p>
+<p>[4] [<a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-272098.htm#msg_header_h2_1">原创] CTF 中 glibc 堆利用 及 IO_FILE 总结 - Pwn - 看雪论坛 - 安全社区 | 安全招聘 | bbs.pediy.com (kanxue.com)</a></p>
+<p>[5] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/251596">PWN——House Of Einherjar CTF Wiki 例题详解 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[6] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/175630">Top chunk 劫持：House of force 攻击 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[7] <a target="_blank" rel="noopener" href="https://ctf-wiki.org/pwn/linux/user-mode/heap/ptmalloc2/house-of-lore/">House of Lore - CTF Wiki (ctf-wiki.org)</a></p>
+<p>[8] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/218887">House of orange - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[9] <a target="_blank" rel="noopener" href="http://p4nda.top/2018/04/18/house-of-rabbit/">house of rabbit</a></p>
+<p>[10] <a target="_blank" rel="noopener" href="https://ctf-wiki.org/pwn/linux/user-mode/heap/ptmalloc2/house-of-roman/">House of Roman - CTF Wiki (ctf-wiki.org)</a></p>
+<p>[11] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/203096">House of storm 原理及利用 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[12] <a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/6862#toc-5">House-of-Corrosion 一种新的堆利用技巧 - 先知社区 (aliyun.com)</a></p>
+<p>[13] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/202387">house-of-husk 学习笔记 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[14] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/254797">House of Muney 分析 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[15] <a target="_blank" rel="noopener" href="https://forum.butian.net/share/1709">奇安信攻防社区 - 深入理解 House of Botcake 堆利用手法 (butian.net)</a></p>
+<p>[16] <a target="_blank" rel="noopener" href="https://github.com/c4ebt/House-of-Rust">c4ebt/House-of-Rust: The House of Rust is a heap exploitation technique that drops a shell against full PIE binaries that don’t leak any addresses. (github.com)</a></p>
+<p>[17] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/222948">house of banana - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[18] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/235598">House OF Kiwi - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[19] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/260614">house of emma</a></p>
+<p>[20] <a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/242640">house of pig 一个新的堆利用详解 - 安全客 - 安全资讯平台 (anquanke.com)</a></p>
+<p>[21] <a target="_blank" rel="noopener" href="https://tttang.com/archive/1845/">一条新的 glibc IO_FILE 利用链：_IO_obstack_jumps 利用分析 - 跳跳糖 (tttang.com)</a></p>
+<p>[22] <a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-1/">House of Apple 一种新的 glibc 中 IO 攻击方法 (1) - roderick - record and learn! (roderickchan.cn)</a></p>
+<p>[23] <a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/">House of Apple 一种新的 glibc 中 IO 攻击方法 (2) - roderick - record and learn! (roderickchan.cn)</a></p>
+<p>[24] <a target="_blank" rel="noopener" href="https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-3/">House of Apple 一种新的 glibc 中 IO 攻击方法 (3) - roderick - record and learn! (roderickchan.cn)</a></p>
+<p>[25] <a target="_blank" rel="noopener" href="https://www.roderickchan.cn/2022-06-18-glibcheap-house-of-muney/">GlibcHeap-house of muney - roderick - record and learn! (roderickchan.cn)</a></p>
+<p>[26] <a target="_blank" rel="noopener" href="https://github.com/Milo-D/house-of-gods/blob/master/rev2/HOUSE_OF_GODS.TXT">house-of-gods/HOUSE_OF_GODS.TXT at master · Milo-D/house-of-gods (github.com)</a></p>
+<div id="paginator"></div></div><div id="post-footer"><div id="pages"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/11/26/shellcode%E7%9A%84%E8%89%BA%E6%9C%AF/">← 下一篇 </a></div><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/11/21/IO_File%E5%88%A9%E7%94%A8/">IO_File的利用 上一篇 →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="回到顶部" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="文章目录">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="切换主题"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">Kylinxin</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>目录</h1><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#1-%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">1 - 前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#2-house-of-%E7%B3%BB%E5%88%97"><span class="toc-number">2.</span> <span class="toc-text">2-house of 系列</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-house-of-spirit"><span class="toc-number">2.1.</span> <span class="toc-text">2.1-house of spirit</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0"><span class="toc-number">2.1.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="toc-number">2.1.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86"><span class="toc-number">2.1.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7"><span class="toc-number">2.1.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C"><span class="toc-number">2.1.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-house-of-einherjar"><span class="toc-number">2.2.</span> <span class="toc-text">2.2-house of einherjar</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-1"><span class="toc-number">2.2.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-1"><span class="toc-number">2.2.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-1"><span class="toc-number">2.2.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-1"><span class="toc-number">2.2.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-1"><span class="toc-number">2.2.5.</span> <span class="toc-text">利用效果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%8B%E9%A2%98"><span class="toc-number">2.2.6.</span> <span class="toc-text">例题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BE%8B%E9%A2%98%EF%BC%9A"><span class="toc-number">2.3.</span> <span class="toc-text">例题：</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2016-seccon-tinypad"><span class="toc-number">2.3.1.</span> <span class="toc-text">2016_seccon_tinypad</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-house-of-force"><span class="toc-number">2.4.</span> <span class="toc-text">2.3-house of force</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-2"><span class="toc-number">2.4.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-2"><span class="toc-number">2.4.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-2"><span class="toc-number">2.4.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-2"><span class="toc-number">2.4.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-2"><span class="toc-number">2.4.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-house-of-lore"><span class="toc-number">2.5.</span> <span class="toc-text">2.4-house of lore</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-3"><span class="toc-number">2.5.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-3"><span class="toc-number">2.5.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-3"><span class="toc-number">2.5.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-3"><span class="toc-number">2.5.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-3"><span class="toc-number">2.5.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-house-of-orange"><span class="toc-number">2.6.</span> <span class="toc-text">2.5-house of orange</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-4"><span class="toc-number">2.6.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-4"><span class="toc-number">2.6.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-4"><span class="toc-number">2.6.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-4"><span class="toc-number">2.6.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-4"><span class="toc-number">2.6.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-house-of-rabbit"><span class="toc-number">2.7.</span> <span class="toc-text">2.6-house of rabbit</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-5"><span class="toc-number">2.7.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-5"><span class="toc-number">2.7.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-5"><span class="toc-number">2.7.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-5"><span class="toc-number">2.7.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-5"><span class="toc-number">2.7.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-7-house-of-roman"><span class="toc-number">2.8.</span> <span class="toc-text">2.7-house of roman</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-6"><span class="toc-number">2.8.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-6"><span class="toc-number">2.8.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-6"><span class="toc-number">2.8.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-6"><span class="toc-number">2.8.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-6"><span class="toc-number">2.8.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-8-house-of-storm"><span class="toc-number">2.9.</span> <span class="toc-text">2.8-house of storm</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-7"><span class="toc-number">2.9.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-7"><span class="toc-number">2.9.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-7"><span class="toc-number">2.9.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-7"><span class="toc-number">2.9.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-7"><span class="toc-number">2.9.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-9-house-of-corrosion"><span class="toc-number">2.10.</span> <span class="toc-text">2.9-house of corrosion</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-8"><span class="toc-number">2.10.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-8"><span class="toc-number">2.10.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-8"><span class="toc-number">2.10.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-8"><span class="toc-number">2.10.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-8"><span class="toc-number">2.10.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-10-house-of-husk"><span class="toc-number">2.11.</span> <span class="toc-text">2.10-house of husk</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-9"><span class="toc-number">2.11.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-9"><span class="toc-number">2.11.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-9"><span class="toc-number">2.11.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-9"><span class="toc-number">2.11.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-9"><span class="toc-number">2.11.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-11-house-of-atum"><span class="toc-number">2.12.</span> <span class="toc-text">2.11-house of atum</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-10"><span class="toc-number">2.12.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-10"><span class="toc-number">2.12.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-10"><span class="toc-number">2.12.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-10"><span class="toc-number">2.12.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-10"><span class="toc-number">2.12.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-12-house-of-kauri"><span class="toc-number">2.13.</span> <span class="toc-text">2.12-house of kauri</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-11"><span class="toc-number">2.13.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-11"><span class="toc-number">2.13.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-11"><span class="toc-number">2.13.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-11"><span class="toc-number">2.13.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-11"><span class="toc-number">2.13.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-13-house-of-fun"><span class="toc-number">2.14.</span> <span class="toc-text">2.13-house of fun</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-12"><span class="toc-number">2.14.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-12"><span class="toc-number">2.14.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-12"><span class="toc-number">2.14.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-12"><span class="toc-number">2.14.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-12"><span class="toc-number">2.14.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-14-house-of-mind"><span class="toc-number">2.15.</span> <span class="toc-text">2.14-house of mind</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-13"><span class="toc-number">2.15.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-13"><span class="toc-number">2.15.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-13"><span class="toc-number">2.15.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-13"><span class="toc-number">2.15.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-13"><span class="toc-number">2.15.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-15-house-of-muney"><span class="toc-number">2.16.</span> <span class="toc-text">2.15-house of muney</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-14"><span class="toc-number">2.16.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-14"><span class="toc-number">2.16.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-14"><span class="toc-number">2.16.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-14"><span class="toc-number">2.16.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-14"><span class="toc-number">2.16.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-16-house-of-botcake"><span class="toc-number">2.17.</span> <span class="toc-text">2.16-house of botcake</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-15"><span class="toc-number">2.17.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-15"><span class="toc-number">2.17.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-15"><span class="toc-number">2.17.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-15"><span class="toc-number">2.17.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-15"><span class="toc-number">2.17.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-17-house-of-rust"><span class="toc-number">2.18.</span> <span class="toc-text">2.17-house of rust</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-16"><span class="toc-number">2.18.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-16"><span class="toc-number">2.18.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-16"><span class="toc-number">2.18.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-16"><span class="toc-number">2.18.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-16"><span class="toc-number">2.18.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-18-house-of-crust"><span class="toc-number">2.19.</span> <span class="toc-text">2.18-house of crust</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-17"><span class="toc-number">2.19.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-17"><span class="toc-number">2.19.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-17"><span class="toc-number">2.19.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-17"><span class="toc-number">2.19.4.</span> <span class="toc-text">相关技巧</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-19-house-of-io"><span class="toc-number">2.20.</span> <span class="toc-text">2.19-house of io</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-18"><span class="toc-number">2.20.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-18"><span class="toc-number">2.20.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-18"><span class="toc-number">2.20.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-18"><span class="toc-number">2.20.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-17"><span class="toc-number">2.20.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-20-house-of-banana"><span class="toc-number">2.21.</span> <span class="toc-text">2.20-house of banana</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-19"><span class="toc-number">2.21.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-19"><span class="toc-number">2.21.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-19"><span class="toc-number">2.21.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-19"><span class="toc-number">2.21.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-18"><span class="toc-number">2.21.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-21-house-of-kiwi"><span class="toc-number">2.22.</span> <span class="toc-text">2.21-house of kiwi</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-20"><span class="toc-number">2.22.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-20"><span class="toc-number">2.22.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-20"><span class="toc-number">2.22.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-20"><span class="toc-number">2.22.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-19"><span class="toc-number">2.22.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-22-house-of-emma"><span class="toc-number">2.23.</span> <span class="toc-text">2.22-house of emma</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-21"><span class="toc-number">2.23.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-21"><span class="toc-number">2.23.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-21"><span class="toc-number">2.23.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-21"><span class="toc-number">2.23.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-20"><span class="toc-number">2.23.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-23-house-of-pig"><span class="toc-number">2.24.</span> <span class="toc-text">2.23-house of pig</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-22"><span class="toc-number">2.24.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-22"><span class="toc-number">2.24.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-22"><span class="toc-number">2.24.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-22"><span class="toc-number">2.24.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-21"><span class="toc-number">2.24.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-24-house-of-obstack"><span class="toc-number">2.25.</span> <span class="toc-text">2.24-house of obstack</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-23"><span class="toc-number">2.25.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-23"><span class="toc-number">2.25.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-23"><span class="toc-number">2.25.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-23"><span class="toc-number">2.25.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-22"><span class="toc-number">2.25.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-25-house-of-apple1"><span class="toc-number">2.26.</span> <span class="toc-text">2.25-house of apple1</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-24"><span class="toc-number">2.26.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-24"><span class="toc-number">2.26.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-24"><span class="toc-number">2.26.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-24"><span class="toc-number">2.26.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-23"><span class="toc-number">2.26.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-26-house-of-apple2"><span class="toc-number">2.27.</span> <span class="toc-text">2.26-house of apple2</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-25"><span class="toc-number">2.27.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-25"><span class="toc-number">2.27.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-25"><span class="toc-number">2.27.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-25"><span class="toc-number">2.27.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-24"><span class="toc-number">2.27.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-27-house-of-apple3"><span class="toc-number">2.28.</span> <span class="toc-text">2.27-house of apple3</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-26"><span class="toc-number">2.28.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-26"><span class="toc-number">2.28.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-26"><span class="toc-number">2.28.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-26"><span class="toc-number">2.28.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-25"><span class="toc-number">2.28.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-28-house-of-gods"><span class="toc-number">2.29.</span> <span class="toc-text">2.28-house of gods</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E6%88%90%E5%9B%A0-27"><span class="toc-number">2.29.1.</span> <span class="toc-text">漏洞成因</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4-27"><span class="toc-number">2.29.2.</span> <span class="toc-text">适用范围</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E5%8E%9F%E7%90%86-27"><span class="toc-number">2.29.3.</span> <span class="toc-text">利用原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%8A%80%E5%B7%A7-27"><span class="toc-number">2.29.4.</span> <span class="toc-text">相关技巧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%95%88%E6%9E%9C-26"><span class="toc-number">2.29.5.</span> <span class="toc-text">利用效果</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#3-%E6%80%BB%E7%BB%93"><span class="toc-number">3.</span> <span class="toc-text">3 - 总结</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4-%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">4 - 参考</span></a></li></ol></div></div><footer><nobr>构建自 <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> 使用主题 <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> 主题作者 <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas><script src="/js/search.js"></script><script src="/js/arknights.js"></script><script src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
+lightGallery(document.getElementById('post-bg'), {
+  plugins: [lgZoom,lgThumbnail],
+  selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
+ cacheBust: false,
+ selectors: ['title','article','#aside-block','.pjax-js'],
+ switches: {'article': Pjax.switches.sideBySide},
+ switchesOptions: {
+   'article': {
+     classNames: {
+       remove: "pjax-out",
+       add: "pjax-in"
+     }
+   }
+ }
+});
+document.addEventListener("pjax:complete", reset);reset()})</script></body></html>
