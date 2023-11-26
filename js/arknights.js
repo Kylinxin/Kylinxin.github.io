@@ -174,6 +174,7 @@ class expands {
 let expand = new expands();
 class Code {
     constructor() {
+        this.mermaids = [];
         this.doAsMermaid = (item) => {
             let Amermaid = item.querySelector('.mermaid');
             item.outerHTML = '<div class="highlight mermaid">' + Amermaid.innerText + '</div>';
@@ -200,7 +201,7 @@ class Code {
         <span class="ex-title">${format(config.code.codeInfo, codeType, lineCount)}</span>
       </div>
       <div class="ex-content">${item.innerHTML}
-        <button class="code-copy"></button>
+        <button class="code-copy" title="${config.code.copy}"></button>
       </div>`;
             getElement('.code-copy', item).addEventListener('click', (click) => {
                 const button = click.target;
@@ -211,13 +212,17 @@ class Code {
                 }, 1200);
             });
         };
-        this.clearMermaid = () => {
-            document.querySelectorAll('.mermaid').forEach((item) => {
-                let style = item.querySelector('style');
-                if (style) {
-                    style.remove();
-                }
-            });
+        this.paintMermaid = () => {
+            if (typeof (mermaid) === 'undefined')
+                return;
+            mermaid.initialize(document.documentElement.getAttribute('theme-mode') === 'dark' ?
+                { theme: 'dark' } : { theme: 'default' });
+            if (typeof (mermaid.run) !== 'undefined') {
+                mermaid.run({ querySelector: '.mermaid' });
+            }
+            else {
+                mermaid.init();
+            }
         };
         this.findCode = () => {
             let codeBlocks = document.querySelectorAll('.highlight');
@@ -241,14 +246,24 @@ class Code {
                     }
                 });
             }
-            if (typeof (mermaid) !== 'undefined') {
-                mermaid.init();
-                this.clearMermaid();
-            }
+            document.querySelectorAll('.mermaid').forEach((item) => {
+                this.mermaids.push(item.outerHTML);
+            });
             expand.setHTML();
+        };
+        this.resetMermaid = () => {
+            if (typeof (mermaid) === 'undefined')
+                return;
+            let id = 0;
+            document.querySelectorAll('.mermaid').forEach((item) => {
+                item.outerHTML = this.mermaids[id];
+                ++id;
+            });
+            this.paintMermaid();
         };
         this.findCode();
         document.addEventListener('pjax:success', this.findCode);
+        window.addEventListener('hexo-blog-decrypt', this.findCode);
     }
 }
 let code = new Code();
@@ -263,11 +278,12 @@ class Cursor {
         this.nowY = 0;
         this.attention = `a,input,button,textarea,
     .navBtnIcon,
-    #post-bg img,
+    #post-content img,
     .ex-header,
     .gt-user-inner,
-    .lg-container img,
-    .wl-sort>li,.vicon,.clickable`;
+    .wl-sort>li,
+    #valine .vicon,#valine .vat,
+    .lg-container img,.clickable`;
         this.set = (X = this.nowX, Y = this.nowY) => {
             this.outer.transform =
                 `translate(calc(${X.toFixed(2)}px - 50%),
@@ -356,7 +372,7 @@ class Cursor {
         observer.observe(document, { childList: true, subtree: true });
     }
 }
-window.onload = () => new Cursor();
+new Cursor();
 class Index {
     constructor() {
         this.lastIndex = -1;
@@ -428,8 +444,9 @@ class Index {
             }
             catch { }
         };
-        document.addEventListener('pjax:success', this.setHTML);
         this.setHTML();
+        document.addEventListener('pjax:success', this.setHTML);
+        window.addEventListener('hexo-blog-decrypt', this.setHTML);
         getElement('main').addEventListener('scroll', () => {
             if (this.tocLink.length) {
                 this.modifyIndex();
@@ -657,6 +674,7 @@ class Scroll {
                 this.height = 0;
                 this.visible = false;
                 this.totop = getElement('#to-top');
+                this.setListener();
             }
             catch (e) { }
         };
@@ -695,6 +713,31 @@ class Scroll {
         this.endTouch = (event) => {
             if (event.changedTouches[0].identifier === this.lastID) {
                 this.lastID = -1;
+            }
+        };
+        /**
+         * used for `supScroll` and `footNoteScroll` functions
+         */
+        this.setListener = () => {
+            getElement('#post-content').addEventListener('click', this.supScroll);
+            getElement('#footnotes').addEventListener('click', this.footNoteScroll);
+        };
+        this.supScroll = (event) => {
+            const target = event.target;
+            const targetParent = getParent(target);
+            if (targetParent?.tagName === 'SUP') {
+                event.preventDefault();
+                const hash = target.href.split('/').pop()?.slice(1) || '';
+                document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+        };
+        this.footNoteScroll = (event) => {
+            const target = event.target;
+            if (target.tagName === 'A') {
+                event.preventDefault();
+                const hash = target.href.split('/').pop()?.slice(1) || '';
+                document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
             }
         };
         document.addEventListener('pjax:success', this.setHTML);
@@ -817,6 +860,7 @@ class ColorMode {
                     window.localStorage['theme-mode'] = 'dark';
                 }
                 background.style.opacity = '0';
+                code.resetMermaid();
             });
             setTimeout(() => {
                 document.body.removeChild(background);
