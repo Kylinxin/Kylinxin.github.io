@@ -1,0 +1,61 @@
+scheme: Gemini
+
+darkmode: true
+
+menu:
+  home: / || fa fa-home
+  archives: /archives/ || fa fa-archive
+  categories: /categories/ || fa fa-th
+  tags: /tags/ || fa fa-tags
+  about: /about/ || fa fa-user
+
+avatar:
+  url: /images/faction/1.png
+  rounded: true
+  rotated: false
+
+social:
+  GitHub: https://github.com/Kylinxin || fab fa-github
+
+footer:
+  since: 2023
+  icon:
+    name: fa fa-heart
+    animated: false
+    color: "#808080"
+  copyright: true
+  powered: true
+
+post_meta:
+  item_text: true
+  created_at: true
+  updated_at:
+    enable: true
+  categories: true
+
+symbols_count_time:
+  separated_meta: true
+  item_text_total: true
+
+back2top:
+  enable: true
+  sidebar: false
+  scrollpercent: true
+
+local_search:
+  enable: true
+  trigger: auto
+  top_n_per_article: 3
+  unescape: false
+  preload: false
+
+motion:
+  enable: true
+
+codeblock:
+  copy_button:
+    enable: true
+    show_result: true
+
+vendors:
+  plugins: unpkg

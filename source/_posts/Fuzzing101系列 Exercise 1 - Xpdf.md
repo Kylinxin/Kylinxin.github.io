@@ -1,0 +1,102 @@
+---
+title: "Fuzzing101系列 Exercise 1"
+date: 2023-10-08 15:14:29
+updated: 2023-10-08 15:14:29
+categories:
+  - "Fuzzing101系列"
+tags:
+  - "Fuzzing101系列 Exercise 1"
+abbrlink: "Fuzzing101系列 Exercise 1 - Xpdf"
+---
+
+<h1 id="转载-Fuzzing101系列-Exercise-1-Xpdf"><a href="#转载-Fuzzing101系列-Exercise-1-Xpdf" class="headerlink" title="转载 Fuzzing101系列 Exercise 1 - Xpdf "></a>转载 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/hetianlab/p/16263090.html">Fuzzing101系列 Exercise 1 - Xpdf </a></h1><h2 id="序言"><a href="#序言" class="headerlink" title="序言"></a>序言</h2><p>　Fuzzing101系列包含针对10 个真实目标的10个练习，在练习中一步一步学习Fuzzing技术的知识。</p>
+<p>　模糊测试（Fuzzing/Fuzz）是一种自动化软件测试技术，它基于为程序提供随机或变异的输入值并监视它的异常和崩溃。</p>
+<p>　AFL、libFuzzer 和 HonggFuzz 是现实世界应用中最多的三个模糊器，这三个都是覆盖引导的进化模糊器（Coverage-guided evolutionary fuzzer）。其中</p>
+<ul>
+<li>进化（evolutionary）是一种受进化算法启发的元启发式方法，它基本上包括通过使用选择标准（例如覆盖率）随时间推移初始子集（种子）的进化和变异。</li>
+<li>覆盖引导（Coverage-guided）是指为了增加发现新崩溃的机会，覆盖引导的模糊器收集和比较不同输入之间的代码覆盖率数据，并选择那些导致新执行路径的输入。</li>
+</ul>
+<p>　在这个练习中，我们将fuzz Xpdf PDF 查看器。目的是在 XPDF 3.02 中找到 CVE-2019-13288 的崩溃/PoC。</p>
+<p>　CVE-2019-13288 是一个漏洞，它可能会通过精心制作的文件导致无限递归。由于程序中每个被调用的函数都会在栈上分配一个栈帧，如果一个函数被递归调用这么多次，就会导致栈内存耗尽和程序崩溃。因此，远程攻击者可以利用它进行 DoS 攻击。可以在以下链接中找到有关不受控制的递归漏洞的更多信息：<a target="_blank" rel="noopener" href="https://cwe.mitre.org/data/definitions/674.html">https://cwe.mitre.org/data/definitions/674.html</a></p>
+<h2 id="你会学到什么"><a href="#你会学到什么" class="headerlink" title="你会学到什么"></a>你会学到什么</h2><p>　完成本练习后，你将了解使用 AFL 进行 fuzz 的基础，例如：</p>
+<ul>
+<li>使用检测编译目标应用程序</li>
+<li>运行模糊器（afl-fuzz）</li>
+<li>使用调试器 (GDB) 对崩溃进行分类</li>
+</ul>
+<h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><p>　所有练习都在 Ubuntu 20.04.2 LTS 上进行了测试。 我强烈建议您使用相同的操作系统版本以避免不同的模糊测试结果，并在裸机硬件而不是虚拟机上运行 AFL，以获得最佳性能。</p>
+<p>　否则，您可以在此处找到 <a target="_blank" rel="noopener" href="https://drive.google.com/file/d/1_m1x-SHcm7Muov2mlmbbt8nkrMYp0Q3K/view?usp=sharing">Ubuntu 20.04.2 LTS</a> 镜像。用户名为 <code>fuzz</code> / <code>fuzz</code>。</p>
+<p>　AFL 使用非确定性测试算法，因此两个模糊测试会话永远不会相同。我强烈建议设置一个固定的种子（<code>-s 123</code>），这样你的模糊测试结果将与本文的结果相似。</p>
+<h2 id="下载并构建目标"><a href="#下载并构建目标" class="headerlink" title="下载并构建目标"></a>下载并构建目标</h2><p>　首先为要进行模糊测试的项目创建一个新目录：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">cd</span> <span class="hljs-variable">$HOME</span><br><span class="hljs-built_in">mkdir</span> fuzzing_xpdf &amp;&amp; <span class="hljs-built_in">cd</span> fuzzing_xpdf/<br></code></pre></td></tr></tbody></table></figure>
+
+<p>​	为了完全准备好环境，需要安装一些额外的工具（make 和 gcc）</p>
+<figure class="highlight cmake"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs cmake">sudo apt <span class="hljs-keyword">install</span> build-essential<br></code></pre></td></tr></tbody></table></figure>
+
+<p>​	下载 Xpdf 3.02：</p>
+<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">wget</span> https://dl.xpdfreader.com/old/xpdf-<span class="hljs-number">3</span>.<span class="hljs-number">02</span>.tar.gz<br><span class="hljs-attribute">tar</span> -xvzf xpdf-<span class="hljs-number">3</span>.<span class="hljs-number">02</span>.tar.gz<br></code></pre></td></tr></tbody></table></figure>
+
+<p>​	构建 Xpdf：</p>
+<figure class="highlight vim"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs vim"><span class="hljs-keyword">cd</span> xpdf-<span class="hljs-number">3.02</span><br>sudo apt <span class="hljs-keyword">update</span> &amp;&amp; sudo apt install -<span class="hljs-keyword">y</span> build-essential gcc<br>./configure --prefix=<span class="hljs-string">"$HOME/fuzzing_xpdf/install/"</span><br><span class="hljs-keyword">make</span><br><span class="hljs-keyword">make</span> install<br></code></pre></td></tr></tbody></table></figure>
+
+<p>​	下面对 Xpdf 进行测试，首先下载一些 PDF 示例：</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs awk">cd <span class="hljs-variable">$HOME</span>/fuzzing_xpdf<br>mkdir pdf_examples &amp;&amp; cd pdf_examples<br>wget https:<span class="hljs-regexp">//gi</span>thub.com<span class="hljs-regexp">/mozilla/</span>pdf.js-sample-files<span class="hljs-regexp">/raw/m</span>aster/helloworld.pdf<br>wget http:<span class="hljs-regexp">//</span>www.africau.edu<span class="hljs-regexp">/images/</span>default/sample.pdf<br>wget https:<span class="hljs-regexp">//</span>www.melbpc.org.au<span class="hljs-regexp">/wp-content/u</span>ploads<span class="hljs-regexp">/2017/</span><span class="hljs-number">10</span>/small-example-pdf-file.pdf<br></code></pre></td></tr></tbody></table></figure>
+
+<p>使用以下命令测试 pdfinfo 二进制文件：</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk"><span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/i</span>nstall<span class="hljs-regexp">/bin/</span>pdfinfo -box -meta <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>pdf_examples/helloworld.pdf<br></code></pre></td></tr></tbody></table></figure>
+
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/rilUt1cnAmHjsRE.png'><img src="https://s2.loli.net/2023/11/08/rilUt1cnAmHjsRE.png" alt="image.png"></p>
+<h2 id="安装-AFL"><a href="#安装-AFL" class="headerlink" title="安装 AFL++"></a>安装 AFL++</h2><p>​	我们将使用最新版本的 AFL++ fuzzer(<a target="_blank" rel="noopener" href="https://github.com/AFLplusplus/AFLplusplus">https://github.com/AFLplusplus/AFLplusplus</a>)</p>
+<p>安装依赖项</p>
+<figure class="highlight reasonml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs reasonml">sudo apt-get update<br>sudo apt-get install -y build-essential python3-dev automake git flex bison libglib2.<span class="hljs-number">0</span>-dev libpixman-<span class="hljs-number">1</span>-dev python3-setuptools<br>sudo apt-get install -y lld-<span class="hljs-number">11</span> llvm-<span class="hljs-number">11</span> llvm-<span class="hljs-number">11</span>-dev clang-<span class="hljs-number">11</span><span class="hljs-operator"> || </span>sudo apt-get install -y lld llvm llvm-dev clang <br>sudo apt-get install -y gcc-<span class="hljs-constructor">$(<span class="hljs-params">gcc</span> --<span class="hljs-params">version</span>|<span class="hljs-params">head</span> -<span class="hljs-params">n1</span>|<span class="hljs-params">sed</span> '<span class="hljs-params">s</span><span class="hljs-operator">/</span>.<span class="hljs-operator">*</span> <span class="hljs-operator">/</span><span class="hljs-operator">/</span>'|<span class="hljs-params">sed</span> '<span class="hljs-params">s</span><span class="hljs-operator">/</span>\..<span class="hljs-operator">*</span><span class="hljs-operator">/</span><span class="hljs-operator">/</span>')</span>-plugin-dev libstdc++-<span class="hljs-constructor">$(<span class="hljs-params">gcc</span> --<span class="hljs-params">version</span>|<span class="hljs-params">head</span> -<span class="hljs-params">n1</span>|<span class="hljs-params">sed</span> '<span class="hljs-params">s</span><span class="hljs-operator">/</span>.<span class="hljs-operator">*</span> <span class="hljs-operator">/</span><span class="hljs-operator">/</span>'|<span class="hljs-params">sed</span> '<span class="hljs-params">s</span><span class="hljs-operator">/</span>\..<span class="hljs-operator">*</span><span class="hljs-operator">/</span><span class="hljs-operator">/</span>')</span>-dev<br></code></pre></td></tr></tbody></table></figure>
+
+<p>构建 AFL++</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">cd</span> <span class="hljs-variable">$HOME</span><br>git <span class="hljs-built_in">clone</span> https://github.com/AFLplusplus/AFLplusplus &amp;&amp; <span class="hljs-built_in">cd</span> AFLplusplus<br><span class="hljs-built_in">export</span> LLVM_CONFIG=<span class="hljs-string">"llvm-config-11"</span><br>make distrib<br>sudo make install<br></code></pre></td></tr></tbody></table></figure>
+
+<p>执行<code>afl-fuzz</code>，查看是否安装成功</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/AHygWpMEkSNC8on.png'><img src="https://s2.loli.net/2023/11/08/AHygWpMEkSNC8on.png" alt="image.png"></p>
+<h2 id="认识-AFL"><a href="#认识-AFL" class="headerlink" title="认识 AFL++"></a>认识 AFL++</h2><p>　AFL 是一个覆盖引导的模糊器（<strong>coverage-guided fuzzer</strong>），这意味着它收集每个变异输入的覆盖信息，来发现新的执行路径和潜在的错误。当源代码可用时，AFL 可以使用插桩（instrumentation），在每个基本块（函数、循环等）的开头插入函数调用。</p>
+<p>　要为我们的目标程序启用检测，我们需要使用 AFL 的编译器编译源代码。</p>
+<p>　首先，我们要清理所有之前编译的目标文件和可执行文件：</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs awk">rm -r <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/i</span>nstall<br>cd <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>xpdf-<span class="hljs-number">3.02</span>/<br>make clean<br></code></pre></td></tr></tbody></table></figure>
+
+<p>　现在我们将使用 <code>afl-clang-fast</code> 编译器构建 xpdf：</p>
+<figure class="highlight routeros"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs routeros"><span class="hljs-built_in">export</span> <span class="hljs-attribute">LLVM_CONFIG</span>=<span class="hljs-string">"llvm-config-11"</span><br><span class="hljs-attribute">CC</span>=<span class="hljs-variable">$HOME</span>/AFLplusplus/afl-clang-fast <span class="hljs-attribute">CXX</span>=<span class="hljs-variable">$HOME</span>/AFLplusplus/afl-clang-fast++ ./configure <span class="hljs-attribute">--prefix</span>=<span class="hljs-string">"<span class="hljs-variable">$HOME</span>/fuzzing_xpdf/install/"</span><br>make<br>make install<br></code></pre></td></tr></tbody></table></figure>
+
+<p>　现在可以使用以下命令运行 fuzzer：</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk">afl-fuzz -i <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>pdf_examples<span class="hljs-regexp">/ -o $HOME/</span>fuzzing_xpdf<span class="hljs-regexp">/out/</span> -s <span class="hljs-number">123</span> -- <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/i</span>nstall<span class="hljs-regexp">/bin/</span>pdftotext @@ <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>output<br></code></pre></td></tr></tbody></table></figure>
+
+<p>　每个选项的简要说明</p>
+<ul>
+<li><code>-i</code> 表示输入示例的目录</li>
+<li><code>-o</code> 表示 AFL + + 将存储的变异文件的目录</li>
+<li><code>-s</code> 表示要使用的静态随机种子</li>
+<li><code>@@</code> 是占位符目标的命令行，AFL 将用每个输入文件名替换</li>
+</ul>
+<p>　fuzzer将会对每个不同的输入文件运行 <code>$HOME/fuzzing_xpdf/install/bin/pdftotext &lt;input-file-name&gt; $HOME/fuzzing_xpdf/output</code> 命令</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/rckOi8JKFVDY1NM.png'><img src="https://s2.loli.net/2023/11/08/rckOi8JKFVDY1NM.png" alt="image.png"></p>
+<p>出现错误，根据提示，执行以下操作：</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs awk">sudo su<br>echo core &gt;<span class="hljs-regexp">/proc/</span>sys<span class="hljs-regexp">/kernel/</span>core_pattern<br><span class="hljs-keyword">exit</span><br></code></pre></td></tr></tbody></table></figure>
+
+<p>　成功运行，等待一段时间后，发现已经有了一个crash</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/ctrJ2zbRDNTVnky.png'><img src="https://s2.loli.net/2023/11/08/ctrJ2zbRDNTVnky.png" alt="image.png"></p>
+<p>可以在<code>$HOME/fuzzing_xpdf/out/</code> 目录中找到这些崩溃文件。一旦发现第一次崩溃，就可以停止fuzzer，上图中已经出现了一个独特的崩溃。根据您的机器性能，最多可能需要一到两个小时才能发生崩溃。</p>
+<p>　为了完成这个练习，下面尝试使用指定的文件重现崩溃，调试崩溃发现问题，并且修复问题。</p>
+<h2 id="重现崩溃"><a href="#重现崩溃" class="headerlink" title="重现崩溃"></a>重现崩溃</h2><p>　在<code>$HOME/fuzzing_xpdf/out/</code>目录下找到 crash 对应的文件。文件名类似于<code>id:000000,sig:11,src:000390,time:103613,execs:71732,op:havoc,rep:16</code></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/fPOHaDRhst7Wm8p.png'><img src="https://s2.loli.net/2023/11/08/fPOHaDRhst7Wm8p.png" alt="image.png"></p>
+<p>将此文件作为输入传递给 pdftotext</p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk"><span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/i</span>nstall<span class="hljs-regexp">/bin/</span>pdftotext <span class="hljs-string">'/home/fuzz/fuzzing_xpdf/out/default/crashes/&lt;your_filename&gt;'</span> <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>output<br></code></pre></td></tr></tbody></table></figure>
+
+<p>　它将导致段错误segmentation fault并导致程序崩溃。</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/bhmkIvOftwLgJCT.png'><img src="https://s2.loli.net/2023/11/08/bhmkIvOftwLgJCT.png" alt="image.png"></p>
+<h2 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h2><p>　使用 gdb 找出程序因该输入而崩溃的原因。</p>
+<p>　首先使用调试信息重建 Xpdf 来获得符号堆栈跟踪：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">rm</span> -r <span class="hljs-variable">$HOME</span>/fuzzing_xpdf/install<br><span class="hljs-built_in">cd</span> <span class="hljs-variable">$HOME</span>/fuzzing_xpdf/xpdf-3.02/<br>make clean<br>CFLAGS=<span class="hljs-string">"-g -O0"</span> CXXFLAGS=<span class="hljs-string">"-g -O0"</span> ./configure --prefix=<span class="hljs-string">"<span class="hljs-variable">$HOME</span>/fuzzing_xpdf/install/"</span><br>make<br>make install<br></code></pre></td></tr></tbody></table></figure>
+
+<p>　然后使用GDB，输入<code>run</code></p>
+<figure class="highlight awk"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk">gdb --args <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/i</span>nstall<span class="hljs-regexp">/bin/</span>pdftotext <span class="hljs-variable">$HOME</span><span class="hljs-regexp">/fuzzing_xpdf/</span>out<span class="hljs-regexp">/default/</span>crashes<span class="hljs-regexp">/&lt;your_filename&gt; $HOME/</span>fuzzing_xpdf/output<br></code></pre></td></tr></tbody></table></figure>
+
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/toU9EwMYZKaNy8A.png'><img src="https://s2.loli.net/2023/11/08/toU9EwMYZKaNy8A.png" alt="image.png"></p>
+<p>然后输入<code>bt</code>回溯查看栈帧</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/08/pugnP3af1XSeZli.png'><img src="https://s2.loli.net/2023/11/08/pugnP3af1XSeZli.png" alt="image.png"></p>
+<p>发现有许多次<code>Parser::getObj</code>的调用，它们似乎表示一个无限递归。如果你去 <a target="_blank" rel="noopener" href="https://www.cvedetails.com/cve/cve-2019-13288/">https://www.cvedetails.com/cve/cve-2019-13288/</a> ，你可以看到描述符合我们从 GDB 得到的回溯</p>

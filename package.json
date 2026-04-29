@@ -1,0 +1,30 @@
+{
+  "name": "kylinxin-github-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kylinxin GitHub Pages blog powered by Hexo and NexT.",
+  "scripts": {
+    "clean": "node tools/hexo-run.mjs clean",
+    "generate": "node tools/hexo-run.mjs generate",
+    "build": "npm run clean && npm run generate && node tools/sync-public-to-root.mjs",
+    "server": "node tools/hexo-run.mjs server",
+    "new:post": "node tools/blog-note.mjs new",
+    "edit:post": "node tools/blog-note.mjs edit",
+    "check": "node tools/check-site.mjs"
+  },
+  "dependencies": {
+    "css": "^3.0.0",
+    "hexo": "^7.3.0",
+    "hexo-cli": "^4.3.2",
+    "hexo-generator-archive": "^2.0.0",
+    "hexo-generator-category": "^2.0.0",
+    "hexo-generator-feed": "^3.0.0",
+    "hexo-generator-index": "^4.0.0",
+    "hexo-generator-searchdb": "^1.4.1",
+    "hexo-generator-sitemap": "^3.0.1",
+    "hexo-generator-tag": "^2.0.0",
+    "hexo-renderer-marked": "^7.0.1",
+    "hexo-renderer-stylus": "^3.0.1",
+    "hexo-word-counter": "^0.1.0"
+  }
+}

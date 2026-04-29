@@ -1,63 +1,303 @@
-<!DOCTYPE html><html lang="zh-CN" theme-mode="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tcache Attack中的Tcache dup（基础） | Ky不是枕木</title><link rel="icon" type="image/x-icon" href="/favicon.ico"><link rel="preload" as="font" crossorigin="anonymous" href="/font/Bender.ttf"><link rel="preload" as="font" crossorigin="anonymous" href="/font/BenderLight.ttf"><link rel="preload" as="font" crossorigin="anonymous" href="/font/JetBrainsMono-Regular.woff2"><link rel="stylesheet" href="/css/arknights.css"><style>@font-face {
-  font-family: Bender;
-  src: local('Bender'), url("/font/Bender.ttf"), url("/font/Bender.otf");
-}
-@font-face {
-  font-family: BenderLight;
-  src: local('BenderLight'), url("/font/BenderLight.ttf");
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: local('JetBrains Mono'), url('/font/JetBrainsMono-Regular.woff2') format('woff2');
-}
-</style><script>var config = {"root":"/","search":{"preload":false,"activeHolder":"Enter here","blurHolder":"Search","noResult":"Data \"$0\" not found"},"code":{"codeInfo":"$0 - $1 lines","copy":"copy"}}</script><link type="text/css" rel="stylesheet" href="/lib/encrypt/hbe.style.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lightgallery.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-zoom.css"><link type="text/css" rel="stylesheet" href="//unpkg.com/lightgallery@2.7.1/css/lg-thumbnail.css"><link type="text/css" rel="stylesheet" href="/lib/fontawesome/css/all.min.css"><script>if (window.localStorage.getItem('theme-mode') === 'light')
- document.documentElement.setAttribute('theme-mode', 'light')
-if (window.localStorage.getItem('theme-mode') === 'dark')
- document.documentElement.setAttribute('theme-mode', 'dark')</script><style>:root {
- --dark-background: url('https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg');
- --light-background: url('/img/bk.jpg');
- --theme-encrypt-confirm: 'confirm'
-}</style><script defer src="/js/arknights.js"></script><script defer src="/js/search.js"></script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer type="module">import mermaid from '//unpkg.com/mermaid@10.5.0/dist/mermaid.esm.mjs';
-window.mermaid = mermaid;
-code.paintMermaid();
-</script><script async src="//unpkg.com/lightgallery@2.7.1/lightgallery.min.js"></script><script async src="//unpkg.com/lightgallery@2.7.1/plugins/zoom/lg-zoom.min.js"></script><script async src="//unpkg.com/lightgallery@2.7.1/plugins/thumbnail/lg-thumbnail.min.js"></script><script async src="/lib/encrypt/hbe.js"></script><script async src="/js/pjax.js"></script><script class="pjax-js">reset= () => {document.querySelector('.lg-container')?.remove()
-lightGallery(document.getElementById('post-bg'), {
-  plugins: [lgZoom,lgThumbnail],
-  selector: '.item-img'})}</script><script>window.addEventListener("load",() => {pjax = new Pjax({
- cacheBust: false,
- selectors: ['title','article','#aside-block','.pjax-js','data-pjax','.busuanzi'],
- switches: {'article': Pjax.switches.sideBySide},
- switchesOptions: {
-   'article': {
-     classNames: {
-       remove: "pjax-out",
-       add: "pjax-in"
-     }
-   }
- }
-});
-document.addEventListener("pjax:complete", reset);document.addEventListener('pjax:success', _ => bszCaller.fetch(
- "//busuanzi.ibruce.info/busuanzi?jsonpCallback=BusuanziCallback", a => {
-  bszTag.texts(a),
-  bszTag.shows()
-}));reset()})</script><meta name="generator" content="Hexo 6.3.0">
-<style>.github-emoji { position: relative; display: inline-block; width: 1.2em; min-height: 1.2em; overflow: hidden; vertical-align: top; color: transparent; }  .github-emoji > span { position: relative; z-index: 10; }  .github-emoji img, .github-emoji .fancybox { margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; text-decoration: none !important; user-select: none !important; cursor: auto !important; }  .github-emoji img { height: 1.2em !important; width: 1.2em !important; position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; user-select: none !important; cursor: auto !important; } .github-emoji-fallback { color: inherit; } .github-emoji-fallback img { opacity: 0 !important; }</style>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="Tcache Attack中的Tcache dup（基础） 参考资料：CTF-wiki：https:&#x2F;&#x2F;ctf-wiki.github.io&#x2F;ctf-wiki&#x2F;pwn&#x2F;linux&#x2F;glibc-heap&#x2F;tcache_attack-zh&#x2F;#tcache-dup代码汉化：@yichen：https:&#x2F;&#x2F;www.yuque.com&#x2F;hxfqg9&#x2F;bin&#x2F;qlry85#g5z3g附件：链接: https:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tcache Attack中的Tcache dup（基础）">
+<meta property="og:url" content="https://kylinxin.github.io/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/index.html">
+<meta property="og:site_name" content="Ky不是枕木">
+<meta property="og:description" content="Tcache Attack中的Tcache dup（基础） 参考资料：CTF-wiki：https:&#x2F;&#x2F;ctf-wiki.github.io&#x2F;ctf-wiki&#x2F;pwn&#x2F;linux&#x2F;glibc-heap&#x2F;tcache_attack-zh&#x2F;#tcache-dup代码汉化：@yichen：https:&#x2F;&#x2F;www.yuque.com&#x2F;hxfqg9&#x2F;bin&#x2F;qlry85#g5z3g附件：链接: https:">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-07-16T05:58:29.000Z">
+<meta property="article:modified_time" content="2023-07-16T05:58:29.000Z">
+<meta property="article:author" content="Kylinxin">
+<meta property="article:tag" content="Tcache bin Attack">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://kylinxin.github.io/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/","path":"2023/07/16/Tcache Attack的Tcache dup/","title":"Tcache Attack中的Tcache dup（基础）"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Tcache Attack中的Tcache dup（基础） | Ky不是枕木</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
 <link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
-</head><body><div class="loading" style="opacity: 0;"><div class="loadingBar left"></div><div class="loadingBar right"></div></div><main><header class="closed"><div class="navBtn"><i class="navBtnIcon"><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span><span class="navBtnIconBar"></span></i></div><nav><div class="navItem" id="search-header"><span class="navItemTitle"><input autocomplete="off" autocorrect="off" autocapitalize="none" placeholder="Search" spellcheck="false" maxlength="50" type="text" id="search-input"></span></div><div class="navItem" id="search-holder"></div><div class="search-popup" tabindex="0"><div id="search-result"></div></div><ol class="navContent"><li class="navItem"><a class="navBlock" href="/"><span class="navItemTitle">Home</span></a></li><li class="navItem" matchdata="categories,tags"><a class="navBlock" href="/archives/"><span class="navItemTitle">Archives</span></a></li></ol></nav></header><article><div id="post-bg"><div id="post-title"><h1>Tcache Attack中的Tcache dup（基础）</h1><div id="post-info"><span>First Post: <div class="control"><time datetime="2023-07-16T13:58:29.000Z" id="date"> 2023-07-16</time></div></span><br><span>Last Update: <div class="control"><time datetime="2023-07-16T13:58:29.000Z" id="updated"> 2023-07-16</time></div></span><br><span>Word Count: <div class="control">1.2k</div></span><br><span>Read Time: <div class="control">5 min</div></span><br><span id="busuanzi_container_page_pv">Page View: <span class="control" id="busuanzi_value_page_pv">loading...</span></span></div></div><hr><div id="post-content"><h1 id="Tcache-Attack中的Tcache-dup（基础）"><a href="#Tcache-Attack中的Tcache-dup（基础）" class="headerlink" title="Tcache Attack中的Tcache dup（基础）"></a><strong>Tcache Attack中的Tcache dup（基础）</strong></h1><blockquote>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Ky不是枕木</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">分享学习经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Tcache-Attack%E4%B8%AD%E7%9A%84Tcache-dup%EF%BC%88%E5%9F%BA%E7%A1%80%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">Tcache Attack中的Tcache dup（基础）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">漏洞原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demo"><span class="nav-number">1.2.</span> <span class="nav-text">Demo</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Kylinxin"
+      src="/images/faction/1.png">
+  <p class="site-author-name" itemprop="name">Kylinxin</p>
+  <div class="site-description" itemprop="description">当你觉得生活都不顺心如意的时候，来学习pwn吧！</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/faction/1.png">
+      <meta itemprop="name" content="Kylinxin">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Ky不是枕木">
+      <meta itemprop="description" content="当你觉得生活都不顺心如意的时候，来学习pwn吧！">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Tcache Attack中的Tcache dup（基础） | Ky不是枕木">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Tcache Attack中的Tcache dup（基础）
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-07-16 13:58:29" itemprop="dateCreated datePublished" datetime="2023-07-16T13:58:29+08:00">2023-07-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/heap/" itemprop="url" rel="index"><span itemprop="name">heap</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>16 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Tcache-Attack中的Tcache-dup（基础）"><a href="#Tcache-Attack中的Tcache-dup（基础）" class="headerlink" title="Tcache Attack中的Tcache dup（基础）"></a><strong>Tcache Attack中的Tcache dup（基础）</strong></h1><blockquote>
 <p>参考资料：CTF-wiki：<a target="_blank" rel="noopener" href="https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/tcache_attack-zh/#tcache-dup">https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/tcache_attack-zh/#tcache-dup</a><br>代码汉化：@yichen：<a target="_blank" rel="noopener" href="https://www.yuque.com/hxfqg9/bin/qlry85#g5z3g">https://www.yuque.com/hxfqg9/bin/qlry85#g5z3g</a><br>附件：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1X6PqMvKMTbeIlrv00FelAA">https://pan.baidu.com/s/1X6PqMvKMTbeIlrv00FelAA</a>  密码: u7pc<br>–来自百度网盘超级会员V3的分享</p>
 </blockquote>
 <h2 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h2><blockquote>
 <p>这里使用libc-2.27.so的源码进行分析</p>
 </blockquote>
 <p>Tcache dup利用的是tcache_put()函数的不严谨：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs c">#代码第<span class="hljs-number">2923</span><span class="hljs-number">-2933</span>行：<br><span class="hljs-comment">/* Caller must ensure that we know tc_idx is valid and there's room</span><br><span class="hljs-comment">   for more chunks.  */</span><br><span class="hljs-type">static</span> __always_inline <span class="hljs-type">void</span><br><span class="hljs-title function_">tcache_put</span> <span class="hljs-params">(mchunkptr chunk, <span class="hljs-type">size_t</span> tc_idx)</span><br>{<br>  tcache_entry *e = (tcache_entry *) chunk2mem (chunk);<br>  assert (tc_idx &lt; TCACHE_MAX_BINS);<br>  e-&gt;next = tcache-&gt;entries[tc_idx];<br>  tcache-&gt;entries[tc_idx] = e;<br>  ++(tcache-&gt;counts[tc_idx]);<br>}<br></code></pre></td></tr></tbody></table></figure>
+<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs c">#代码第<span class="hljs-number">2923</span><span class="hljs-number">-2933</span>行：<br><span class="hljs-comment">/* Caller must ensure that we know tc_idx is valid and there's room</span><br><span class="hljs-comment">   for more chunks.  */</span><br><span class="hljs-type">static</span> __always_inline <span class="hljs-type">void</span><br><span class="hljs-title function_">tcache_put</span> <span class="hljs-params">(mchunkptr chunk, <span class="hljs-type">size_t</span> tc_idx)</span><br>&#123;<br>  tcache_entry *e = (tcache_entry *) chunk2mem (chunk);<br>  assert (tc_idx &lt; TCACHE_MAX_BINS);<br>  e-&gt;next = tcache-&gt;entries[tc_idx];<br>  tcache-&gt;entries[tc_idx] = e;<br>  ++(tcache-&gt;counts[tc_idx]);<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
 
 <p>从上面的代码可以看出，在libc-2.27版本中没有对tcache_put函数进行检查，甚至没有对tcache-&gt;counts[tc_idx] 的检查，在大幅度提高性能的同时安全性也下降来许多。<br>因为在这个函数中没有任何的检查，<strong>所以我们可以直接对同一个chunk进行多次free，造成cyclical list。</strong></p>
 <blockquote>
 <p>Tcache dup类似于之前fastbin_attack中的double free，但是后者的检查要更多。</p>
 </blockquote>
 <h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>接下来我们使用一个demo来进行说明。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-comment">//gcc -g -fno-stack-protector -z execstack -no-pie -z norelro test.c -o test</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span><br>{<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"先申请一块内存\n"</span>);<br>    <span class="hljs-type">int</span> *a = <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>);<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"申请的内存地址是: %p\n"</span>, a);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"对这块内存地址 free两次\n"</span>);<br>    <span class="hljs-built_in">free</span>(a);<br>    <span class="hljs-built_in">free</span>(a);<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"这时候链表是这样的 [ %p, %p ].\n"</span>, a, a);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"接下来再去 malloc 两次: [ %p, %p ].\n"</span>, <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>), <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>));<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"Finish!!!\n"</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>}<br></code></pre></td></tr></tbody></table></figure>
+<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-comment">//gcc -g -fno-stack-protector -z execstack -no-pie -z norelro test.c -o test</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span><br>&#123;<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"先申请一块内存\n"</span>);<br>    <span class="hljs-type">int</span> *a = <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>);<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"申请的内存地址是: %p\n"</span>, a);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"对这块内存地址 free两次\n"</span>);<br>    <span class="hljs-built_in">free</span>(a);<br>    <span class="hljs-built_in">free</span>(a);<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"这时候链表是这样的 [ %p, %p ].\n"</span>, a, a);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"接下来再去 malloc 两次: [ %p, %p ].\n"</span>, <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>), <span class="hljs-built_in">malloc</span>(<span class="hljs-number">8</span>));<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"Finish!!!\n"</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
 
 <p>编译完成之后，使用pwndbg调试程序，首先对代码的第12行下断点，然后开始调试程序，此时的内存状况如下：</p>
 <figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk | PREV_INUSE<br>Addr: <span class="hljs-number">0x601000</span><br>Size: <span class="hljs-number">0x251</span><br><br>Allocated chunk | PREV_INUSE<br>Addr: <span class="hljs-number">0x601250</span><br>Size: <span class="hljs-number">0x21</span><br><br>Top chunk | PREV_INUSE<br>Addr: <span class="hljs-number">0x601270</span><br>Size: <span class="hljs-number">0x20d91</span><br><br>pwndbg&gt; x/<span class="hljs-number">100</span>gx <span class="hljs-number">0x601000</span><br><span class="hljs-number">0x601000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000251</span> #tcache_perthread_struct<br>......(省略内容均为空)<br><span class="hljs-number">0x601250</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000021</span> #chunk1<br><span class="hljs-number">0x601260</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x601270</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000020d91</span> #top_chunk<br>......(省略内容均为空)<br><span class="hljs-number">0x601310</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; bin<br>tcachebins<br>empty<br>fastbins<br><span class="hljs-number">0x20</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x30</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x40</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x50</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x60</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x70</span>: <span class="hljs-number">0x0</span><br><span class="hljs-number">0x80</span>: <span class="hljs-number">0x0</span><br>unsortedbin<br>all: <span class="hljs-number">0x0</span><br>smallbins<br>empty<br>largebins<br>empty<br>pwndbg&gt; x/<span class="hljs-number">16</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dcfc40</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfc50</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfc60</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfc70</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfc80</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfc90</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dcfca0</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000601270</span>	<span class="hljs-number">0x0000000000000000</span><br>    							#指向top_chunk<br><span class="hljs-number">0x7ffff7dcfcb0</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007ffff7dcfca0</span>	<span class="hljs-number">0x00007ffff7dcfca0</span><br>pwndbg&gt; <br><br></code></pre></td></tr></tbody></table></figure>
@@ -72,4 +312,92 @@ document.addEventListener("pjax:complete", reset);document.addEventListener('pja
 <figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk | PREV_INUSE<br>Addr: <span class="hljs-number">0x601000</span><br>Size: <span class="hljs-number">0x251</span><br><br>Free <span class="hljs-title function_">chunk</span> <span class="hljs-params">(tcache)</span> | PREV_INUSE<br>Addr: 0x601250<br>Size: 0x21<br>fd: 0x601260<br><br>Top chunk | PREV_INUSE<br>Addr: 0x601270<br>Size: 0x20d91<br><br>pwndbg&gt; bin<br>tcachebins<br>0x20 [  0]: 0x601260 ◂— ...<br>fastbins<br>0x20: 0x0<br>0x30: 0x0<br>0x40: 0x0<br>0x50: 0x0<br>0x60: 0x0<br>0x70: 0x0<br>0x80: 0x0<br>unsortedbin<br>all: 0x0<br>smallbins<br>empty<br>largebins<br>empty<br>pwndbg&gt; x/16gx &amp;main_arena<br>0x7ffff7dcfc40 &lt;main_arena&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfc50 &lt;main_arena+16&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfc60 &lt;main_arena+32&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfc70 &lt;main_arena+48&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfc80 &lt;main_arena+64&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfc90 &lt;main_arena+80&gt;:	0x0000000000000000	0x0000000000000000<br>0x7ffff7dcfca0 &lt;main_arena+96&gt;:	0x0000000000601270	0x0000000000000000<br>0x7ffff7dcfcb0 &lt;main_arena+112&gt;:	0x00007ffff7dcfca0	0x00007ffff7dcfca0<br>pwndbg&gt; x/100gx 0x601000<br>0x601000:	0x0000000000000000	0x0000000000000251 #tcache_perthread_struct <br>0x601010:	0x0000000000000000	0x0000000000000000<br>0x601020:	0x0000000000000000	0x0000000000000000<br>0x601030:	0x0000000000000000	0x0000000000000000<br>0x601040:	0x0000000000000000	0x0000000000000000<br>0x601050:	0x0000000000601260	0x0000000000000000<br>    		#执行chunk1_data<br>......<span class="hljs-params">(省略内容均为空)</span><br>0x601250:	0x0000000000000000	0x0000000000000021 #chunk1<br>0x601260:	0x0000000000601260	0x0000000000000000<br>0x601270:	0x0000000000000000	0x0000000000020d91 #top_chunk<br>......<span class="hljs-params">(省略内容均为空)</span> <br>0x601310:	0x0000000000000000	0x0000000000000000<br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
 
 <p>上面就是tcache_dup的攻击方式，看起来好像没有什么用，下篇文章中的例子会体现。</p>
-<div id="paginator"></div></div><div id="post-footer"><div id="pages"><div class="footer-link" style="width: 50%;text-align:right;border-right:1px #fe2 solid"><a href="/2023/07/23/prctl-seccomp/">← Next prctl-seccomp-orw</a></div><div class="footer-link" style="width: 50%;right:1px;border-left:1px #fe2 solid"><a href="/2023/07/09/HITCON%20Training%20lab14%20magic%20heap/">HITCON Training lab14 magic heap Prev →</a></div></div></div></div><div class="bottom-btn"><div><a class="i-top" id="to-top" onClick="scrolls.scrolltop();" title="To Top" style="opacity: 0; display: none;">∧ </a><a class="i-index" id="to-index" href="#toc-div" title="To Catalog">≡</a><a class="i-color" id="color-mode" onClick="colorMode.change()" title="Change Theme"></a></div></div></article><aside><div id="about"><a href="/" id="logo"><img src="https://ak.hypergryph.com/assets/index/images/ak/pc/faction/1.png" alt="Logo"></a><h1 id="Dr"><a href="/">Kylinxin</a></h1><div id="description"><p>当你觉得生活都不顺心如意的时候，来学习pwn吧！</p></div></div><div id="aside-block"><div id="toc-div"><h1>Catalog</h1><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Tcache-Attack%E4%B8%AD%E7%9A%84Tcache-dup%EF%BC%88%E5%9F%BA%E7%A1%80%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">Tcache Attack中的Tcache dup（基础）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.</span> <span class="toc-text">漏洞原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Demo"><span class="toc-number">1.2.</span> <span class="toc-text">Demo</span></a></li></ol></li></ol></div></div><footer><nobr>Published with <a target="_blank" rel="noopener" href="http://hexo.io">Hexo</a></nobr><wbr><nobr> Theme <a target="_blank" rel="noopener" href="https://github.com/Yue-plus/hexo-theme-arknights">Arknights</a></nobr><wbr><nobr> by <a target="_blank" rel="noopener" href="https://github.com/Yue-plus">Yue_plus</a></nobr></footer></aside></main><canvas id="canvas-dust"></canvas></body></html>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Tcache-bin-Attack/" rel="tag"># Tcache bin Attack</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/07/09/HITCON%20Training%20lab14%20magic%20heap/" rel="prev" title="HITCON Training lab14 magic heap">
+                  <i class="fa fa-angle-left"></i> HITCON Training lab14 magic heap
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/07/23/prctl-seccomp/" rel="next" title="prctl-seccomp-orw">
+                  prctl-seccomp-orw <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2023 – 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">true</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">312k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">18:56</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
