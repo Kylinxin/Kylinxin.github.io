@@ -6,7 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDir = path.join(root, 'public');
 
 const generatedPaths = [
-  '2023', 'archives', 'categories', 'tags', 'page', 'about', 'friends',
+  '2023', '2026', 'archives', 'categories', 'tags', 'page', 'about', 'friends',
   'css', 'js', 'lib', 'font', 'img', 'images',
   '404.html', 'index.html', 'atom.xml', 'sitemap.xml', 'sitemap.txt',
   'search.xml', 'search.json', 'content.json'
