@@ -122,4 +122,4 @@ println!("{name}");
 解释：`unwrap_or_else` 只在 `None` 时执行闭包，适合延迟构造默认值。
 ## 相关笔记
 - [Rust学习笔记 14：生命周期](https://kylinxin.github.io/2026/04/14/Rust学习笔记-14-生命周期/)
-- [Rust学习笔记 16：异步编程 async-await](https://kylinxin.github.io/2026/04/16/Rust学习笔记-16-异步编程 async-await/)
+- [Rust学习笔记 16：异步编程 async-await](https://kylinxin.github.io/2026/04/16/Rust学习笔记-16-异步编程%20async-await/)

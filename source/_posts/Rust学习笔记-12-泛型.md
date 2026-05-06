@@ -126,4 +126,4 @@ fn smallest<T: PartialOrd + Copy>(items: &[T]) -> T {
 解释：逻辑和 `largest` 类似，只是比较方向变成 `<`。
 ## 相关笔记
 - [Rust学习笔记 11：错误处理](https://kylinxin.github.io/2026/04/11/Rust学习笔记-11-错误处理/)
-- [Rust学习笔记 13：Trait 与 Trait Bound](https://kylinxin.github.io/2026/04/13/Rust学习笔记-13-Trait 与 Trait Bound/)
+- [Rust学习笔记 13：Trait 与 Trait Bound](https://kylinxin.github.io/2026/04/13/Rust学习笔记-13-Trait%20与%20Trait%20Bound/)

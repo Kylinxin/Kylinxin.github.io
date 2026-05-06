@@ -122,5 +122,5 @@ println!("{}", book.title);
 
 解释：`book` 保存了对 `name` 的引用，所以 `name` 必须比 `book` 使用时间更长。
 ## 相关笔记
-- [Rust学习笔记 13：Trait 与 Trait Bound](https://kylinxin.github.io/2026/04/13/Rust学习笔记-13-Trait 与 Trait Bound/)
+- [Rust学习笔记 13：Trait 与 Trait Bound](https://kylinxin.github.io/2026/04/13/Rust学习笔记-13-Trait%20与%20Trait%20Bound/)
 - [Rust学习笔记 15：常用标准库函数与实用宏](https://kylinxin.github.io/2026/04/15/Rust学习笔记-15-常用标准库函数与实用宏/)
