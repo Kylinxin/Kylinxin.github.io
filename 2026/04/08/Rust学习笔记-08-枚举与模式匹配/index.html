@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;08_enums_pattern_matching.rs运行命令： 1cargo run --bin lesson08_enums_pattern_matching 学习目标本篇整理枚举、不同形态的枚举变体、match、if let、多模式匹配和通配分支。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141516">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;08_enums_pattern_matching.rs 运行命令： 1cargo run --bin lesson08_enums_pattern_matching  学习目标枚举用于表达一个值可能属于有限几种情况。模式匹配用于根据具体情况分支处理。 Rust 的 Option 和 Result 都是枚举。掌握枚举后，错误处理和空值处理会更自然。  掌握 enum">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 08：枚举与模式匹配">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;08_enums_pattern_matching.rs运行命令： 1cargo run --bin lesson08_enums_pattern_matching 学习目标本篇整理枚举、不同形态的枚举变体、match、if let、多模式匹配和通配分支。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141516">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;08_enums_pattern_matching.rs 运行命令： 1cargo run --bin lesson08_enums_pattern_matching  学习目标枚举用于表达一个值可能属于有限几种情况。模式匹配用于根据具体情况分支处理。 Rust 的 Option 和 Result 都是枚举。掌握枚举后，错误处理和空值处理会更自然。  掌握 enum">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-08T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-08T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%9A%E4%B8%BE%E5%AE%9A%E4%B9%89"><span class="nav-number">3.1.</span> <span class="nav-text">枚举定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#match-%E8%A6%86%E7%9B%96"><span class="nav-number">3.2.</span> <span class="nav-text">match 覆盖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E6%9E%84%E6%9E%9A%E4%B8%BE"><span class="nav-number">3.3.</span> <span class="nav-text">解构枚举</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#if-let"><span class="nav-number">3.4.</span> <span class="nav-text">if let</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%9A%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.5.</span> <span class="nav-text">多模式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E5%A2%9E%E5%8A%A0%E7%99%BB%E5%BD%95%E6%B6%88%E6%81%AF"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：增加登录消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E7%94%A8-match-%E5%A4%84%E7%90%86-Option"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：用 match 处理 Option</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E6%9E%9A%E4%B8%BE"><span class="nav-number">5.1.</span> <span class="nav-text">定义枚举</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%90%BA%E5%B8%A6%E6%95%B0%E6%8D%AE"><span class="nav-number">5.2.</span> <span class="nav-text">携带数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#match-%E5%88%86%E6%94%AF"><span class="nav-number">5.3.</span> <span class="nav-text">match 分支</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#if-let"><span class="nav-number">5.4.</span> <span class="nav-text">if let</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%9A%E4%B8%BE-enum"><span class="nav-number">6.1.</span> <span class="nav-text">枚举 enum</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E4%BD%93-variant"><span class="nav-number">6.2.</span> <span class="nav-text">变体 variant</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%BC%8F-pattern"><span class="nav-number">6.3.</span> <span class="nav-text">模式 pattern</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#match"><span class="nav-number">6.4.</span> <span class="nav-text">match</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Option"><span class="nav-number">6.5.</span> <span class="nav-text">Option</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E5%AE%9A%E4%B9%89%E4%BA%A4%E9%80%9A%E7%81%AF"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：定义交通灯</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E5%A4%84%E7%90%86-Option"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：处理 Option</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E4%BD%BF%E7%94%A8-if-let"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：使用 if let</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>679</span>
+      <span>1.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/08_enums_pattern_matching.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/08_enums_pattern_matching.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson08_enums_pattern_matching</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理枚举、不同形态的枚举变体、<code>match</code>、<code>if let</code>、多模式匹配和通配分支。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">Message</span> &#123;</span><br><span class="line">    Quit,</span><br><span class="line">    Move &#123; x: <span class="type">i32</span>, y: <span class="type">i32</span> &#125;,</span><br><span class="line">    <span class="title function_ invoke__">Write</span>(<span class="type">String</span>),</span><br><span class="line">    <span class="title function_ invoke__">ChangeColor</span>(<span class="type">u8</span>, <span class="type">u8</span>, <span class="type">u8</span>),</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">handle_message</span>(message: Message) &#123;</span><br><span class="line">    <span class="comment">// match 必须覆盖所有可能情况，因此很适合处理枚举。</span></span><br><span class="line">    <span class="keyword">match</span> message &#123;</span><br><span class="line">        Message::Quit =&gt; <span class="built_in">println!</span>(<span class="string">&quot;退出&quot;</span>),</span><br><span class="line">        Message::Move &#123; x, y &#125; =&gt; <span class="built_in">println!</span>(<span class="string">&quot;移动到 (&#123;x&#125;, &#123;y&#125;)&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">Write</span>(text) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;写入: &#123;text&#125;&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">ChangeColor</span>(r, g, b) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;颜色: rgb(&#123;r&#125;, &#123;g&#125;, &#123;b&#125;)&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Move &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">Write</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;hello&quot;</span>)));</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Quit);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">ChangeColor</span>(<span class="number">255</span>, <span class="number">128</span>, <span class="number">0</span>));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_score</span> = <span class="title function_ invoke__">Some</span>(<span class="number">95</span>);</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(score) = maybe_score &#123;</span><br><span class="line">        <span class="comment">// if let 适合只关心一种匹配情况。</span></span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;成绩存在: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">match</span> value &#123;</span><br><span class="line">        <span class="number">1</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;one&quot;</span>),</span><br><span class="line">        <span class="number">2</span> | <span class="number">3</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;two or three&quot;</span>),</span><br><span class="line">        _ =&gt; <span class="built_in">println!</span>(<span class="string">&quot;other&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="枚举定义"><a href="#枚举定义" class="headerlink" title="枚举定义"></a>枚举定义</h3><p><code>enum Message</code> 定义一组可能消息。每个变体可以没有数据、具名字段、元组字段或 String。</p>
-<h3 id="match-覆盖"><a href="#match-覆盖" class="headerlink" title="match 覆盖"></a>match 覆盖</h3><p><code>match message</code> 必须覆盖所有变体。这样新增情况时，编译器会提醒你处理。</p>
-<h3 id="解构枚举"><a href="#解构枚举" class="headerlink" title="解构枚举"></a>解构枚举</h3><p><code>Message::Move &#123; x, y &#125;</code> 在匹配时直接取出字段。</p>
-<h3 id="if-let"><a href="#if-let" class="headerlink" title="if let"></a>if let</h3><p><code>if let Some(score) = maybe_score</code> 适合只关心一种匹配情况。</p>
-<h3 id="多模式"><a href="#多模式" class="headerlink" title="多模式"></a>多模式</h3><p><code>2 | 3</code> 表示匹配 2 或 3。<code>_</code> 是兜底分支。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>枚举适合表达“一个值只能是几种情况之一”。例如消息、状态、结果都适合用枚举。</p>
-<p><code>Option&lt;T&gt;</code> 和 <code>Result&lt;T, E&gt;</code> 都是标准库枚举。后续错误处理会大量使用它们。</p>
-<p><code>match</code> 的穷尽性检查是 Rust 安全性的一个重要来源。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li><code>match</code> 必须覆盖所有情况。缺少分支会编译失败。</li>
-<li><code>if let</code> 简洁，但如果需要处理多个分支，<code>match</code> 更清楚。</li>
-<li>枚举中包含 <code>String</code> 时，匹配取值可能发生所有权移动。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>枚举用于表达一个值可能属于有限几种情况。模式匹配用于根据具体情况分支处理。</p>
+<p>Rust 的 <code>Option</code> 和 <code>Result</code> 都是枚举。掌握枚举后，错误处理和空值处理会更自然。</p>
+<ul>
+<li>掌握 <code>enum</code> 的基本定义。</li>
+<li>理解枚举变体可以携带数据。</li>
+<li>会使用 <code>match</code> 穷尽处理所有情况。</li>
+<li>会使用 <code>if let</code> 简化只关心一种情况的代码。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：增加登录消息"><a href="#练习-1：增加登录消息" class="headerlink" title="练习 1：增加登录消息"></a>练习 1：增加登录消息</h3><p>要求：给 <code>Message</code> 增加 <code>Login &#123; user: String &#125;</code>，并在 <code>handle_message</code> 中打印用户名。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="title class_">Message</span> &#123;</span><br><span class="line">    Login &#123; user: <span class="type">String</span> &#125;,</span><br><span class="line">    <span class="comment">// 其他变体省略</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">match</span> message &#123;</span><br><span class="line">    Message::Login &#123; user &#125; =&gt; <span class="built_in">println!</span>(<span class="string">&quot;用户登录: &#123;user&#125;&quot;</span>),</span><br><span class="line">    _ =&gt; <span class="built_in">println!</span>(<span class="string">&quot;其他消息&quot;</span>),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>枚举 enum</td>
+<td>定义一组互斥的可能情况。</td>
+<td><code>Direction</code> 可以是 Up、Down、Left、Right。</td>
+</tr>
+<tr>
+<td>变体 variant</td>
+<td>枚举中的某一个具体情况。</td>
+<td><code>Message::Text(String)</code> 是一个变体。</td>
+</tr>
+<tr>
+<td>模式 pattern</td>
+<td>用于匹配数据结构形状的写法。</td>
+<td><code>Some(value)</code> 匹配有值的 Option。</td>
+</tr>
+<tr>
+<td>match</td>
+<td>穷尽式分支表达式。</td>
+<td>所有可能情况都必须处理。</td>
+</tr>
+<tr>
+<td>Option</td>
+<td>表示有值或没有值。</td>
+<td><code>Some(T)</code> 有值，<code>None</code> 无值。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">Message</span> &#123;</span><br><span class="line">    Quit,</span><br><span class="line">    Move &#123; x: <span class="type">i32</span>, y: <span class="type">i32</span> &#125;,</span><br><span class="line">    <span class="title function_ invoke__">Write</span>(<span class="type">String</span>),</span><br><span class="line">    <span class="title function_ invoke__">ChangeColor</span>(<span class="type">u8</span>, <span class="type">u8</span>, <span class="type">u8</span>),</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">handle_message</span>(message: Message) &#123;</span><br><span class="line">    <span class="comment">// match 必须覆盖所有可能情况，因此很适合处理枚举。</span></span><br><span class="line">    <span class="keyword">match</span> message &#123;</span><br><span class="line">        Message::Quit =&gt; <span class="built_in">println!</span>(<span class="string">&quot;退出&quot;</span>),</span><br><span class="line">        Message::Move &#123; x, y &#125; =&gt; <span class="built_in">println!</span>(<span class="string">&quot;移动到 (&#123;x&#125;, &#123;y&#125;)&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">Write</span>(text) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;写入: &#123;text&#125;&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">ChangeColor</span>(r, g, b) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;颜色: rgb(&#123;r&#125;, &#123;g&#125;, &#123;b&#125;)&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Move &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">Write</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;hello&quot;</span>)));</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Quit);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">ChangeColor</span>(<span class="number">255</span>, <span class="number">128</span>, <span class="number">0</span>));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_score</span> = <span class="title function_ invoke__">Some</span>(<span class="number">95</span>);</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(score) = maybe_score &#123;</span><br><span class="line">        <span class="comment">// if let 适合只关心一种匹配情况。</span></span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;成绩存在: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">match</span> value &#123;</span><br><span class="line">        <span class="number">1</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;one&quot;</span>),</span><br><span class="line">        <span class="number">2</span> | <span class="number">3</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;two or three&quot;</span>),</span><br><span class="line">        _ =&gt; <span class="built_in">println!</span>(<span class="string">&quot;other&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：新增枚举变体后，<code>match</code> 需要同步处理。编译器会帮你发现遗漏。</p>
-<h3 id="练习-2：用-match-处理-Option"><a href="#练习-2：用-match-处理-Option" class="headerlink" title="练习 2：用 match 处理 Option"></a>练习 2：用 match 处理 Option</h3><p>要求：把 <code>Some(95)</code> 和 <code>None</code> 都处理掉，分别打印成绩或缺考。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson08_enums_pattern_matching</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义枚举"><a href="#定义枚举" class="headerlink" title="定义枚举"></a>定义枚举</h3><p><code>enum Direction</code> 把方向限制在几个合法值中。</p>
+<h3 id="携带数据"><a href="#携带数据" class="headerlink" title="携带数据"></a>携带数据</h3><p>枚举变体可以保存不同类型的数据，例如文本消息或移动坐标。</p>
+<h3 id="match-分支"><a href="#match-分支" class="headerlink" title="match 分支"></a>match 分支</h3><p><code>match direction</code> 对每个方向分别处理。</p>
+<h3 id="if-let"><a href="#if-let" class="headerlink" title="if let"></a>if let</h3><p>只关心 <code>Some</code> 或某个变体时，<code>if let</code> 更简洁。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="枚举-enum"><a href="#枚举-enum" class="headerlink" title="枚举 enum"></a>枚举 enum</h3><p>定义一组互斥的可能情况。</p>
+<p><code>Direction</code> 可以是 Up、Down、Left、Right。</p>
+<h3 id="变体-variant"><a href="#变体-variant" class="headerlink" title="变体 variant"></a>变体 variant</h3><p>枚举中的某一个具体情况。</p>
+<p><code>Message::Text(String)</code> 是一个变体。</p>
+<h3 id="模式-pattern"><a href="#模式-pattern" class="headerlink" title="模式 pattern"></a>模式 pattern</h3><p>用于匹配数据结构形状的写法。</p>
+<p><code>Some(value)</code> 匹配有值的 Option。</p>
+<h3 id="match"><a href="#match" class="headerlink" title="match"></a>match</h3><p>穷尽式分支表达式。</p>
+<p>所有可能情况都必须处理。</p>
+<h3 id="Option"><a href="#Option" class="headerlink" title="Option"></a>Option</h3><p>表示有值或没有值。</p>
+<p><code>Some(T)</code> 有值，<code>None</code> 无值。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>match</code> 是表达式，每个分支可以返回值，但返回类型需要一致。</p>
+<p>枚举比字符串状态更安全。字符串可能拼错，枚举变体会被编译器检查。</p>
+<p><code>Option&lt;T&gt;</code> 避免空指针。你必须明确处理 <code>Some</code> 和 <code>None</code>。</p>
+<p><code>_</code> 是通配模式，表示其他所有情况。它方便，但不要用它隐藏应该明确处理的分支。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要用普通字符串表示有限状态，优先考虑枚举。</li>
+<li><code>match</code> 必须穷尽，否则无法编译。</li>
+<li>匹配含有 <code>String</code> 的枚举时要注意所有权移动。</li>
+<li>滥用 <code>_</code> 会降低代码可维护性。新增变体时编译器可能无法提醒你。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义交通灯"><a href="#练习-1：定义交通灯" class="headerlink" title="练习 1：定义交通灯"></a>练习 1：定义交通灯</h3><p>要求：定义 <code>TrafficLight</code>，用 <code>match</code> 返回等待秒数。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">score</span> = <span class="title function_ invoke__">Some</span>(<span class="number">95</span>);</span><br><span class="line"><span class="keyword">match</span> score &#123;</span><br><span class="line">    <span class="title function_ invoke__">Some</span>(value) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;成绩: &#123;value&#125;&quot;</span>),</span><br><span class="line">    <span class="literal">None</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;缺考&quot;</span>),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="title class_">TrafficLight</span> &#123;</span><br><span class="line">    Red,</span><br><span class="line">    Yellow,</span><br><span class="line">    Green,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">wait_seconds</span>(light: TrafficLight) <span class="punctuation">-&gt;</span> <span class="type">u8</span> &#123;</span><br><span class="line">    <span class="keyword">match</span> light &#123;</span><br><span class="line">        TrafficLight::Red =&gt; <span class="number">60</span>,</span><br><span class="line">        TrafficLight::Yellow =&gt; <span class="number">3</span>,</span><br><span class="line">        TrafficLight::Green =&gt; <span class="number">0</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">wait_seconds</span>(TrafficLight::Red));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>Option</code> 强制你处理“没有值”的情况，避免空值错误。</p>
+<p>解释：枚举让交通灯状态只能取合法变体。</p>
+<h3 id="练习-2：处理-Option"><a href="#练习-2：处理-Option" class="headerlink" title="练习 2：处理 Option"></a>练习 2：处理 Option</h3><p>要求：写函数把 <code>Option&lt;i32&gt;</code> 中的数字加一。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">plus_one</span>(value: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt;) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">i32</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">match</span> value &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(number) =&gt; <span class="title function_ invoke__">Some</span>(number + <span class="number">1</span>),</span><br><span class="line">        <span class="literal">None</span> =&gt; <span class="literal">None</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">plus_one</span>(<span class="title function_ invoke__">Some</span>(<span class="number">5</span>)));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>Option</code> 必须同时处理有值和无值。</p>
+<h3 id="练习-3：使用-if-let"><a href="#练习-3：使用-if-let" class="headerlink" title="练习 3：使用 if let"></a>练习 3：使用 if let</h3><p>要求：只在 <code>Some</code> 时打印用户名。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">user</span> = <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Kylin&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(name) = user &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;用户: &#123;name&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>if let</code> 适合只关心一个模式的场景。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">Rust学习笔记 07：结构体和方法</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">Rust学习笔记 09：常见集合类型</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

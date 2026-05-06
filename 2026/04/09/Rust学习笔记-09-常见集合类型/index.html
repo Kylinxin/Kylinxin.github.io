@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;09_collections.rs运行命令： 1cargo run --bin lesson09_collections 学习目标本篇整理常用集合：Vec&lt;T&gt;、String、HashMap&lt;K, V&gt;、遍历、插入和 entry API。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;09_collections.rs 运行命令： 1cargo run --bin lesson09_collections  学习目标集合用于保存运行时数量可变的数据。本节重点是 Vec、String 和 HashMap。 集合通常把数据放在堆上，因此遍历、插入、借用时都会涉及所有权规则。  掌握 Vec&lt;T&gt; 的创建、追加和遍历。 理解 String 是">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 09：常见集合类型">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;09_collections.rs运行命令： 1cargo run --bin lesson09_collections 学习目标本篇整理常用集合：Vec&lt;T&gt;、String、HashMap&lt;K, V&gt;、遍历、插入和 entry API。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;09_collections.rs 运行命令： 1cargo run --bin lesson09_collections  学习目标集合用于保存运行时数量可变的数据。本节重点是 Vec、String 和 HashMap。 集合通常把数据放在堆上，因此遍历、插入、借用时都会涉及所有权规则。  掌握 Vec&lt;T&gt; 的创建、追加和遍历。 理解 String 是">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-09T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-09T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Vec"><span class="nav-number">3.1.</span> <span class="nav-text">Vec</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%80%9F%E7%94%A8%E9%81%8D%E5%8E%86"><span class="nav-number">3.2.</span> <span class="nav-text">借用遍历</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#String"><span class="nav-number">3.3.</span> <span class="nav-text">String</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HashMap"><span class="nav-number">3.4.</span> <span class="nav-text">HashMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#entry"><span class="nav-number">3.5.</span> <span class="nav-text">entry</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E7%BB%9F%E8%AE%A1%E5%8D%95%E8%AF%8D%E5%87%BA%E7%8E%B0%E6%AC%A1%E6%95%B0"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：统计单词出现次数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E8%BF%87%E6%BB%A4-Vec-%E4%B8%AD%E7%9A%84%E5%81%B6%E6%95%B0"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：过滤 Vec 中的偶数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Vec-%E6%93%8D%E4%BD%9C"><span class="nav-number">5.1.</span> <span class="nav-text">Vec 操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%80%9F%E7%94%A8%E9%81%8D%E5%8E%86"><span class="nav-number">5.2.</span> <span class="nav-text">借用遍历</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#String-%E6%8B%BC%E6%8E%A5"><span class="nav-number">5.3.</span> <span class="nav-text">String 拼接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HashMap"><span class="nav-number">5.4.</span> <span class="nav-text">HashMap</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Vec"><span class="nav-number">6.1.</span> <span class="nav-text">Vec</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#String"><span class="nav-number">6.2.</span> <span class="nav-text">String</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HashMap-1"><span class="nav-number">6.3.</span> <span class="nav-text">HashMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%AD%E4%BB%A3%E5%99%A8-iterator"><span class="nav-number">6.4.</span> <span class="nav-text">迭代器 iterator</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#entry-API"><span class="nav-number">6.5.</span> <span class="nav-text">entry API</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9AVec-%E8%BF%87%E6%BB%A4"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：Vec 过滤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E8%AF%8D%E9%A2%91%E7%BB%9F%E8%AE%A1"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：词频统计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E4%BF%AE%E6%94%B9-Vec-%E5%85%83%E7%B4%A0"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：修改 Vec 元素</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>643</span>
+      <span>1.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/09_collections.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/09_collections.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson09_collections</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理常用集合：<code>Vec&lt;T&gt;</code>、<code>String</code>、<code>HashMap&lt;K, V&gt;</code>、遍历、插入和 <code>entry</code> API。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Vec&lt;T&gt; 是可变长度数组，适合保存同类型列表。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">4</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Vec: &#123;numbers:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">number</span> <span class="keyword">in</span> &amp;numbers &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;遍历 Vec: &#123;number&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// String 是 UTF-8 字符串，适合动态拼接文本。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push</span>(<span class="string">&#x27; &#x27;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;collections&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;String: &#123;text&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// HashMap&lt;K, V&gt; 保存键值对。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">scores</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>), <span class="number">90</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Bob&quot;</span>), <span class="number">85</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// entry 常用于“有则使用，无则插入”的逻辑。</span></span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">100</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Carol&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">88</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (name, score) <span class="keyword">in</span> &amp;scores &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;name&#125;: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="Vec"><a href="#Vec" class="headerlink" title="Vec"></a>Vec</h3><p><code>vec![1, 2, 3]</code> 创建可增长列表。<code>push</code> 可以追加元素。</p>
-<h3 id="借用遍历"><a href="#借用遍历" class="headerlink" title="借用遍历"></a>借用遍历</h3><p><code>for number in &amp;numbers</code> 借用遍历，不移动 <code>Vec</code> 的所有权。</p>
-<h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p><code>String::from(&quot;Rust&quot;)</code> 创建可增长 UTF-8 字符串，<code>push</code> 加字符，<code>push_str</code> 加字符串切片。</p>
-<h3 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h3><p><code>HashMap::new()</code> 创建键值表。<code>insert</code> 添加或覆盖键值。</p>
-<h3 id="entry"><a href="#entry" class="headerlink" title="entry"></a>entry</h3><p><code>entry(...).or_insert(...)</code> 表示键存在就取原值，不存在就插入默认值。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>Vec&lt;T&gt;</code> 适合保存同类型、多数量、长度可变的数据。</p>
-<p><code>String</code> 是拥有所有权的字符串，适合运行时拼接和修改。</p>
-<p><code>HashMap</code> 查询快，适合按键查值，例如用户名到分数。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>遍历 <code>Vec</code> 时如果写 <code>for x in numbers</code>，会移动集合。想保留集合应使用 <code>&amp;numbers</code>。</li>
-<li><code>String</code> 按字节存储 UTF-8，不要随意按索引切中文字符。</li>
-<li><code>HashMap</code> 遍历顺序不稳定，不要依赖输出顺序。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>集合用于保存运行时数量可变的数据。本节重点是 <code>Vec</code>、<code>String</code> 和 <code>HashMap</code>。</p>
+<p>集合通常把数据放在堆上，因此遍历、插入、借用时都会涉及所有权规则。</p>
+<ul>
+<li>掌握 <code>Vec&lt;T&gt;</code> 的创建、追加和遍历。</li>
+<li>理解 <code>String</code> 是可增长、拥有所有权的 UTF-8 字符串。</li>
+<li>掌握 <code>HashMap&lt;K, V&gt;</code> 的插入、读取和更新。</li>
+<li>知道集合遍历时 move、borrow、mutable borrow 的区别。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：统计单词出现次数"><a href="#练习-1：统计单词出现次数" class="headerlink" title="练习 1：统计单词出现次数"></a>练习 1：统计单词出现次数</h3><p>要求：给定 <code>&quot;rust rust book&quot;</code>，用 <code>HashMap</code> 统计每个单词出现次数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">text</span> = <span class="string">&quot;rust rust book&quot;</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">counts</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line"><span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> text.<span class="title function_ invoke__">split_whitespace</span>() &#123;</span><br><span class="line">    *counts.<span class="title function_ invoke__">entry</span>(word).<span class="title function_ invoke__">or_insert</span>(<span class="number">0</span>) += <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;counts:?&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Vec</td>
+<td>可增长数组，元素类型相同。</td>
+<td>适合保存运行时长度变化的数据。</td>
+</tr>
+<tr>
+<td>String</td>
+<td>拥有所有权、可增长的 UTF-8 字符串。</td>
+<td>适合拼接、修改和保存输入文本。</td>
+</tr>
+<tr>
+<td>HashMap</td>
+<td>键值对集合。</td>
+<td>适合通过键快速查找值。</td>
+</tr>
+<tr>
+<td>迭代器 iterator</td>
+<td>逐个产生元素的对象。</td>
+<td><code>for</code> 循环背后就是迭代器。</td>
+</tr>
+<tr>
+<td>entry API</td>
+<td>HashMap 的按键插入或更新接口。</td>
+<td><code>entry(key).or_insert(value)</code> 常用于计数。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Vec&lt;T&gt; 是可变长度数组，适合保存同类型列表。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">4</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Vec: &#123;numbers:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">number</span> <span class="keyword">in</span> &amp;numbers &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;遍历 Vec: &#123;number&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// String 是 UTF-8 字符串，适合动态拼接文本。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push</span>(<span class="string">&#x27; &#x27;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;collections&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;String: &#123;text&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// HashMap&lt;K, V&gt; 保存键值对。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">scores</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>), <span class="number">90</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Bob&quot;</span>), <span class="number">85</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// entry 常用于“有则使用，无则插入”的逻辑。</span></span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">100</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Carol&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">88</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (name, score) <span class="keyword">in</span> &amp;scores &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;name&#125;: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>entry</code> 返回可变引用，前面的 <code>*</code> 用于修改引用指向的计数值。</p>
-<h3 id="练习-2：过滤-Vec-中的偶数"><a href="#练习-2：过滤-Vec-中的偶数" class="headerlink" title="练习 2：过滤 Vec 中的偶数"></a>练习 2：过滤 Vec 中的偶数</h3><p>要求：给定 <code>vec![1, 2, 3, 4, 5, 6]</code>，生成只包含偶数的新 <code>Vec</code>。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson09_collections</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="Vec-操作"><a href="#Vec-操作" class="headerlink" title="Vec 操作"></a>Vec 操作</h3><p>示例创建 <code>Vec</code>，用 <code>push</code> 追加数字，再遍历打印。</p>
+<h3 id="借用遍历"><a href="#借用遍历" class="headerlink" title="借用遍历"></a>借用遍历</h3><p><code>for number in &amp;numbers</code> 不移动 Vec，循环后仍能继续使用。</p>
+<h3 id="String-拼接"><a href="#String-拼接" class="headerlink" title="String 拼接"></a>String 拼接</h3><p><code>push_str</code> 追加字符串切片，修改原 <code>String</code>。</p>
+<h3 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h3><p><code>scores.insert(name, score)</code> 插入键值对，<code>get</code> 返回 <code>Option&lt;&amp;V&gt;</code>。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Vec"><a href="#Vec" class="headerlink" title="Vec"></a>Vec</h3><p>可增长数组，元素类型相同。</p>
+<p>适合保存运行时长度变化的数据。</p>
+<h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p>拥有所有权、可增长的 UTF-8 字符串。</p>
+<p>适合拼接、修改和保存输入文本。</p>
+<h3 id="HashMap-1"><a href="#HashMap-1" class="headerlink" title="HashMap"></a>HashMap</h3><p>键值对集合。</p>
+<p>适合通过键快速查找值。</p>
+<h3 id="迭代器-iterator"><a href="#迭代器-iterator" class="headerlink" title="迭代器 iterator"></a>迭代器 iterator</h3><p>逐个产生元素的对象。</p>
+<p><code>for</code> 循环背后就是迭代器。</p>
+<h3 id="entry-API"><a href="#entry-API" class="headerlink" title="entry API"></a>entry API</h3><p>HashMap 的按键插入或更新接口。</p>
+<p><code>entry(key).or_insert(value)</code> 常用于计数。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>Vec&lt;T&gt;</code> 中所有元素必须是同一种类型。如果需要多种情况，可考虑枚举。</p>
+<p><code>String</code> 和 <code>&amp;str</code> 不同。<code>String</code> 拥有数据，<code>&amp;str</code> 借用数据。</p>
+<p><code>HashMap</code> 的键需要能哈希和比较相等。常见键如 <code>String</code>、整数都可以。</p>
+<p><code>iter()</code> 借用元素，<code>iter_mut()</code> 可变借用元素，<code>into_iter()</code> 通常会消费集合。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要在持有集合元素引用时随意修改集合结构，可能触发借用冲突。</li>
+<li><code>HashMap::get</code> 返回 <code>Option</code>，因为键可能不存在。</li>
+<li>字符串按字节存储，处理中文字符时不要随意用数字索引。</li>
+<li>遍历 <code>Vec&lt;String&gt;</code> 时，如果写 <code>for item in values</code>，通常会移动每个元素。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：Vec-过滤"><a href="#练习-1：Vec-过滤" class="headerlink" title="练习 1：Vec 过滤"></a>练习 1：Vec 过滤</h3><p>要求：从数字列表中收集所有偶数。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line"><span class="keyword">let</span> <span class="variable">evens</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers</span><br><span class="line">    .<span class="title function_ invoke__">iter</span>()</span><br><span class="line">    .<span class="title function_ invoke__">copied</span>()</span><br><span class="line">    .<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">    .<span class="title function_ invoke__">collect</span>();</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;evens:?&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">evens</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">copied</span>().<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>).<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, evens);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>iter()</code> 借用元素，<code>copied()</code> 把 <code>&amp;i32</code> 转成 <code>i32</code>，最后 <code>collect()</code> 收集成新集合。</p>
+<p>解释：<code>iter()</code> 借用元素，<code>copied()</code> 把 <code>&amp;i32</code> 转成 <code>i32</code>。</p>
+<h3 id="练习-2：词频统计"><a href="#练习-2：词频统计" class="headerlink" title="练习 2：词频统计"></a>练习 2：词频统计</h3><p>要求：统计字符串中每个单词出现次数。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="string">&quot;rust rust book&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">counts</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> text.<span class="title function_ invoke__">split_whitespace</span>() &#123;</span><br><span class="line">        *counts.<span class="title function_ invoke__">entry</span>(word).<span class="title function_ invoke__">or_insert</span>(<span class="number">0</span>) += <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, counts);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>entry</code> 返回对应键的位置，不存在时先插入 0。</p>
+<h3 id="练习-3：修改-Vec-元素"><a href="#练习-3：修改-Vec-元素" class="headerlink" title="练习 3：修改 Vec 元素"></a>练习 3：修改 Vec 元素</h3><p>要求：把 Vec 中每个数字都乘以 10。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">number</span> <span class="keyword">in</span> &amp;<span class="keyword">mut</span> numbers &#123;</span><br><span class="line">        *number *= <span class="number">10</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, numbers);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>&amp;mut numbers</code> 产生可变引用，<code>*number</code> 解引用后修改元素。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">Rust学习笔记 08：枚举与模式匹配</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">Rust学习笔记 10：模块系统和包管理</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

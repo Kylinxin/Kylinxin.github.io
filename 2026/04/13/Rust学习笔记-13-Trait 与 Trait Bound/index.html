@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;13_traits_trait_bounds.rs运行命令： 1cargo run --bin lesson13_traits_trait_bounds 学习目标本篇整理 trait、默认方法、为类型实现 trait、trait bound 和 impl Trait 参数写法。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;13_traits_trait_bounds.rs 运行命令： 1cargo run --bin lesson13_traits_trait_bounds  学习目标Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。 如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。  理解 tr">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 13：Trait 与 Trait Bound">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;13_traits_trait_bounds.rs运行命令： 1cargo run --bin lesson13_traits_trait_bounds 学习目标本篇整理 trait、默认方法、为类型实现 trait、trait bound 和 impl Trait 参数写法。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;13_traits_trait_bounds.rs 运行命令： 1cargo run --bin lesson13_traits_trait_bounds  学习目标Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。 如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。  理解 tr">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-13T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-13T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait-%E5%AE%9A%E4%B9%89%E8%A1%8C%E4%B8%BA"><span class="nav-number">3.1.</span> <span class="nav-text">Trait 定义行为</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.2.</span> <span class="nav-text">默认实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0-trait"><span class="nav-number">3.3.</span> <span class="nav-text">实现 trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait-bound"><span class="nav-number">3.4.</span> <span class="nav-text">Trait bound</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#impl-Trait"><span class="nav-number">3.5.</span> <span class="nav-text">impl Trait</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E6%96%B0%E5%A2%9E-Video-%E7%B1%BB%E5%9E%8B%E5%AE%9E%E7%8E%B0-Summary"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：新增 Video 类型实现 Summary</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E8%A6%81%E6%B1%82%E4%B8%A4%E4%B8%AA%E5%8F%82%E6%95%B0%E9%83%BD%E8%83%BD%E6%91%98%E8%A6%81"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：要求两个参数都能摘要</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89-trait"><span class="nav-number">5.1.</span> <span class="nav-text">定义 trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0-trait"><span class="nav-number">5.2.</span> <span class="nav-text">实现 trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait-bound"><span class="nav-number">5.3.</span> <span class="nav-text">Trait bound</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4%E6%96%B9%E6%B3%95"><span class="nav-number">5.4.</span> <span class="nav-text">默认方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait"><span class="nav-number">6.1.</span> <span class="nav-text">Trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0-impl"><span class="nav-number">6.2.</span> <span class="nav-text">实现 impl</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait-Bound"><span class="nav-number">6.3.</span> <span class="nav-text">Trait Bound</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#impl-Trait"><span class="nav-number">6.4.</span> <span class="nav-text">impl Trait</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.5.</span> <span class="nav-text">默认实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E5%AE%9A%E4%B9%89-Summary"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：定义 Summary</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E4%BD%BF%E7%94%A8-trait-bound"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：使用 trait bound</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E5%A4%9A%E4%B8%AA%E7%BA%A6%E6%9D%9F"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：多个约束</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>638</span>
+      <span>1.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/13_traits_trait_bounds.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/13_traits_trait_bounds.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson13_traits_trait_bounds</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理 trait、默认方法、为类型实现 trait、trait bound 和 <code>impl Trait</code> 参数写法。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// trait 可以提供默认实现。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;unknown&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; by &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;blog&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="comment">// T: Summary 是 trait bound，表示 T 必须实现 Summary。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘要: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;来源: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">source</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">notify</span>(item: &amp;<span class="keyword">impl</span> <span class="title class_">Summary</span>) &#123;</span><br><span class="line">    <span class="comment">// impl Trait 是更简洁的参数写法。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123;</span><br><span class="line">        title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Learning Rust&quot;</span>),</span><br><span class="line">        author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Kylin&quot;</span>),</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print_summary</span>(&amp;article);</span><br><span class="line">    <span class="title function_ invoke__">notify</span>(&amp;article);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="Trait-定义行为"><a href="#Trait-定义行为" class="headerlink" title="Trait 定义行为"></a>Trait 定义行为</h3><p><code>trait Summary</code> 定义“能生成摘要”的能力。类型实现它后，就能被统一处理。</p>
-<h3 id="默认实现"><a href="#默认实现" class="headerlink" title="默认实现"></a>默认实现</h3><p><code>fn source(&amp;self) -&gt; String</code> 提供默认实现。实现类型可以使用默认值，也可以覆盖。</p>
-<h3 id="实现-trait"><a href="#实现-trait" class="headerlink" title="实现 trait"></a>实现 trait</h3><p><code>impl Summary for Article</code> 为 <code>Article</code> 提供具体的摘要行为。</p>
-<h3 id="Trait-bound"><a href="#Trait-bound" class="headerlink" title="Trait bound"></a>Trait bound</h3><p><code>fn print_summary&lt;T: Summary&gt;(item: &amp;T)</code> 表示参数类型必须实现 <code>Summary</code>。</p>
-<h3 id="impl-Trait"><a href="#impl-Trait" class="headerlink" title="impl Trait"></a>impl Trait</h3><p><code>fn notify(item: &amp;impl Summary)</code> 是更简洁的参数写法，适合简单场景。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>trait 类似“能力接口”。它描述类型能做什么，而不是类型内部长什么样。</p>
-<p>trait bound 让泛型代码能调用某些方法，同时保留类型灵活性。</p>
-<p>常见标准库 trait 包括 <code>Debug</code>、<code>Clone</code>、<code>Default</code>、<code>Iterator</code>。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>只有实现了 trait 的类型，才能传给带有对应 trait bound 的函数。</li>
-<li>默认方法可以被覆盖。不要误以为所有实现都必须使用默认行为。</li>
-<li><code>impl Trait</code> 简洁，但复杂泛型关系仍然需要显式泛型参数。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。</p>
+<p>如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。</p>
+<ul>
+<li>理解 trait 是行为接口。</li>
+<li>会为自定义类型实现 trait。</li>
+<li>会用 <code>impl Trait</code> 和 <code>&lt;T: Trait&gt;</code> 写参数。</li>
+<li>知道标准库常见 trait，如 <code>Debug</code>、<code>Display</code>、<code>Clone</code>、<code>Copy</code>。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：新增-Video-类型实现-Summary"><a href="#练习-1：新增-Video-类型实现-Summary" class="headerlink" title="练习 1：新增 Video 类型实现 Summary"></a>练习 1：新增 Video 类型实现 Summary</h3><p>要求：定义 <code>Video &#123; title, duration &#125;</code>，实现 <code>Summary</code>。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Video</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    duration: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Video</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; (&#123;&#125; 秒)&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.duration)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Trait</td>
+<td>一组方法签名或默认实现。</td>
+<td>类似“能力契约”，但不是类继承。</td>
+</tr>
+<tr>
+<td>实现 impl</td>
+<td>为某个类型提供 trait 要求的方法。</td>
+<td><code>impl Summary for Article</code>。</td>
+</tr>
+<tr>
+<td>Trait Bound</td>
+<td>泛型参数必须满足的 trait 约束。</td>
+<td><code>T: Summary</code> 表示 T 必须能摘要。</td>
+</tr>
+<tr>
+<td>impl Trait</td>
+<td>参数或返回值位置的简写形式。</td>
+<td><code>fn print(item: &amp;impl Summary)</code>。</td>
+</tr>
+<tr>
+<td>默认实现</td>
+<td>trait 中直接提供方法体。</td>
+<td>实现者可以使用默认逻辑，也可以覆盖。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// trait 可以提供默认实现。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;unknown&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; by &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;blog&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="comment">// T: Summary 是 trait bound，表示 T 必须实现 Summary。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘要: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;来源: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">source</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">notify</span>(item: &amp;<span class="keyword">impl</span> <span class="title class_">Summary</span>) &#123;</span><br><span class="line">    <span class="comment">// impl Trait 是更简洁的参数写法。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123;</span><br><span class="line">        title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Learning Rust&quot;</span>),</span><br><span class="line">        author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Kylin&quot;</span>),</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print_summary</span>(&amp;article);</span><br><span class="line">    <span class="title function_ invoke__">notify</span>(&amp;article);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：不同类型可以实现同一个 trait，从而被同一套函数处理。</p>
-<h3 id="练习-2：要求两个参数都能摘要"><a href="#练习-2：要求两个参数都能摘要" class="headerlink" title="练习 2：要求两个参数都能摘要"></a>练习 2：要求两个参数都能摘要</h3><p>要求：写函数接收两个实现 <code>Summary</code> 的参数，并分别打印摘要。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson13_traits_trait_bounds</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义-trait"><a href="#定义-trait" class="headerlink" title="定义 trait"></a>定义 trait</h3><p><code>trait Summary</code> 声明 <code>summarize</code> 行为。</p>
+<h3 id="实现-trait"><a href="#实现-trait" class="headerlink" title="实现 trait"></a>实现 trait</h3><p>不同结构体可以各自实现 <code>Summary</code>。</p>
+<h3 id="Trait-bound"><a href="#Trait-bound" class="headerlink" title="Trait bound"></a>Trait bound</h3><p><code>fn notify&lt;T: Summary&gt;(item: &amp;T)</code> 接收任何能摘要的类型。</p>
+<h3 id="默认方法"><a href="#默认方法" class="headerlink" title="默认方法"></a>默认方法</h3><p>trait 可以提供默认方法，减少重复实现。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Trait"><a href="#Trait" class="headerlink" title="Trait"></a>Trait</h3><p>一组方法签名或默认实现。</p>
+<p>类似“能力契约”，但不是类继承。</p>
+<h3 id="实现-impl"><a href="#实现-impl" class="headerlink" title="实现 impl"></a>实现 impl</h3><p>为某个类型提供 trait 要求的方法。</p>
+<p><code>impl Summary for Article</code>。</p>
+<h3 id="Trait-Bound"><a href="#Trait-Bound" class="headerlink" title="Trait Bound"></a>Trait Bound</h3><p>泛型参数必须满足的 trait 约束。</p>
+<p><code>T: Summary</code> 表示 T 必须能摘要。</p>
+<h3 id="impl-Trait"><a href="#impl-Trait" class="headerlink" title="impl Trait"></a>impl Trait</h3><p>参数或返回值位置的简写形式。</p>
+<p><code>fn print(item: &amp;impl Summary)</code>。</p>
+<h3 id="默认实现"><a href="#默认实现" class="headerlink" title="默认实现"></a>默认实现</h3><p>trait 中直接提供方法体。</p>
+<p>实现者可以使用默认逻辑，也可以覆盖。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>Trait 表达共享行为，不表达共享字段。不同类型可以用完全不同的数据实现同一个行为。</p>
+<p><code>impl Trait</code> 简洁，适合简单参数。显式泛型 <code>&lt;T: Trait&gt;</code> 适合多个参数需要表达同一类型或多个约束。</p>
+<p>一个类型可以实现多个 trait。一个函数也可以要求 <code>T: Summary + Clone</code>。</p>
+<p>Rust 的 trait 遵循孤儿规则：通常只能为本地类型实现外部 trait，或为外部类型实现本地 trait。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要把 trait 当作父类。Trait 不保存实例字段。</li>
+<li>泛型函数里调用 trait 方法前，必须写 trait bound。</li>
+<li><code>Debug</code> 用于开发调试，<code>Display</code> 用于用户友好输出，两者不同。</li>
+<li><code>Copy</code> 继承自 <code>Clone</code> 的语义，但只有轻量、按位复制安全的类型才应实现。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义-Summary"><a href="#练习-1：定义-Summary" class="headerlink" title="练习 1：定义 Summary"></a>练习 1：定义 Summary</h3><p>要求：给文章类型实现摘要能力。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">compare_summary</span>&lt;T: Summary, U: Summary&gt;(left: &amp;T, right: &amp;U) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;左侧: &#123;&#125;&quot;</span>, left.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;右侧: &#123;&#125;&quot;</span>, right.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;文章: &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>) &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, article.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：使用两个泛型参数能允许左右参数是不同类型，只要都实现 <code>Summary</code>。</p>
+<p>解释：trait 只规定行为，具体格式由实现者决定。</p>
+<h3 id="练习-2：使用-trait-bound"><a href="#练习-2：使用-trait-bound" class="headerlink" title="练习 2：使用 trait bound"></a>练习 2：使用 trait bound</h3><p>要求：写函数打印任何可摘要对象。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>T: Summary</code> 让函数内部可以安全调用 <code>summarize</code>。</p>
+<h3 id="练习-3：多个约束"><a href="#练习-3：多个约束" class="headerlink" title="练习 3：多个约束"></a>练习 3：多个约束</h3><p>要求：写函数要求参数既能摘要又能克隆。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">duplicate_summary</span>&lt;T&gt;(item: &amp;T) <span class="punctuation">-&gt;</span> <span class="type">String</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    T: Summary + <span class="built_in">Clone</span>,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">copied</span> = item.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    copied.<span class="title function_ invoke__">summarize</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>where</code> 子句适合约束较多时提高可读性。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">Rust学习笔记 12：泛型</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust学习笔记 14：生命周期</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

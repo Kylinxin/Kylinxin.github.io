@@ -1,7 +1,7 @@
 ---
 title: "Rust学习笔记 10：模块系统和包管理"
 date: 2026-04-10 09:00:00
-updated: 2026-04-10 09:00:00
+updated: 2026-05-06 19:50:00
 categories:
   - "Rust"
 tags:
@@ -11,14 +11,36 @@ tags:
 abbrlink: "rust-note-10-modules-packages"
 ---
 对应代码文件：`src/bin/10_modules_packages.rs`
+
 运行命令：
+
 ```bash
 cargo run --bin lesson10_modules_packages
 ```
+
 ## 学习目标
-本篇整理 `mod`、`pub`、嵌套模块、`use` 路径引入，以及 Cargo package 和 crate 的基本关系。
-学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。
+
+模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。
+
+本项目把每节课放在 `src/bin` 下，并在 `Cargo.toml` 中声明多个 bin target。
+
+- 理解 package、crate、module 的基本区别。
+- 掌握 `mod`、`pub`、`use` 的用途。
+- 知道如何通过 Cargo 运行指定二进制示例。
+- 理解路径中的 `crate`、`self`、`super` 含义。
+
+## 核心概念速查
+
+| 术语 | 基本意思 | 本节用途 |
+| --- | --- | --- |
+| package | 一个 Cargo 管理的项目。 | 通常由一个 `Cargo.toml` 描述。 |
+| crate | Rust 编译单元。 | 可以是库 crate，也可以是二进制 crate。 |
+| module | crate 内部的代码组织单元。 | `mod math` 定义一个模块。 |
+| pub | 公开可见性关键字。 | 没有 `pub` 的项默认只在当前模块及子模块内可见。 |
+| use | 把路径引入当前作用域。 | 让长路径写起来更短。 |
+
 ## 完整源码
+
 ```rust
 // 一个文件内也可以定义模块，便于把相关代码分组。
 mod math {
@@ -48,69 +70,139 @@ fn main() {
     println!("本文件用内联 mod 演示模块，保持示例自包含。");
 }
 ```
-## 逐段解读
-### mod
 
-`mod math { ... }` 定义模块，用来把相关代码分组。
+## 运行与观察
+
+使用 `cargo run --bin lesson10_modules_packages` 可以只运行本节示例。
+
+这里的 `--bin` 后面写的是 `Cargo.toml` 中声明的目标名，不是 `.rs` 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。
+
+建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。
+
+## 逐段解读
+
+### 内部模块
+
+示例用 `mod math` 在单文件中定义模块，保持本节自包含。
+
+### 公开函数
+
+`pub fn add` 允许模块外部调用。
+
+### 路径调用
+
+`math::add(2, 3)` 通过模块路径访问函数。
+
+### use 简化路径
+
+`use crate::math::add;` 后可以直接调用 `add()`。
+
+## 专有词语详解
+
+### package
+
+一个 Cargo 管理的项目。
+
+通常由一个 `Cargo.toml` 描述。
+
+### crate
+
+Rust 编译单元。
+
+可以是库 crate，也可以是二进制 crate。
+
+### module
+
+crate 内部的代码组织单元。
+
+`mod math` 定义一个模块。
 
 ### pub
 
-`pub fn add` 表示函数对模块外可见。没有 `pub` 的项默认私有。
+公开可见性关键字。
 
-### 嵌套模块
-
-`pub mod stats` 定义子模块。路径可以写成 `math::stats::average`。
+没有 `pub` 的项默认只在当前模块及子模块内可见。
 
 ### use
 
-`use math::stats::average;` 把长路径引入当前作用域，后续可以直接调用 `average`。
+把路径引入当前作用域。
 
-### Cargo 组织
+让长路径写起来更短。
 
-`Cargo.toml` 描述 package，`src/lib.rs`、`src/main.rs` 和 `src/bin/*.rs` 组织 crate。
 ## 初学者拓展
-模块解决命名空间和可见性问题。大项目不能把所有函数都放在一个文件里。
 
-`pub` 不是“导出一切”，而是有意识地公开稳定接口。
+一个 package 可以包含多个二进制 crate。本项目每个 `src/bin/*.rs` 都是一个独立二进制。
 
-学习阶段可以用单文件 `mod`，真实项目通常拆到多个文件。
+`mod` 是声明模块。模块代码可以写在同一文件，也可以拆到独立文件。
+
+`pub` 只公开当前项。结构体公开后，字段仍然默认私有，字段也要单独 `pub`。
+
+`use` 不会改变所有权，也不会复制代码。它只是让路径在当前作用域更方便。
+
 ## 常见误区
-- 函数放进模块后，如果没有 `pub`，外部无法调用。
-- `use` 只是简化路径，不会改变所有权或可见性。
-- package 和 crate 不是完全同义。一个 package 可以包含多个 crate。
-## 进阶练习与参考答案
-### 练习 1：新增字符串工具模块
 
-要求：新增 `text` 模块，提供 `pub fn shout(value: &str) -> String`，返回大写并加感叹号。
+- 不要把 package、crate、module 混为一谈。它们处在不同组织层级。
+- 函数写了 `pub`，所在模块如果不可见，外部仍然访问不到。
+- `use` 引入同名项时可能冲突，需要使用别名 `as`。
+- 多个 `src/bin` 文件彼此独立，不能直接共享私有函数。共享代码通常放到库模块。
+
+## 进阶练习与参考答案
+
+### 练习 1：定义工具模块
+
+要求：定义 `utils` 模块，公开 `double` 函数。
 
 参考答案：
 
 ```rust
-mod text {
-    pub fn shout(value: &str) -> String {
-        format!("{}!", value.to_uppercase())
+mod utils {
+    pub fn double(value: i32) -> i32 {
+        value * 2
     }
 }
 
-println!("{}", text::shout("rust"));
+fn main() {
+    println!("{}", utils::double(21));
+}
 ```
 
-解释：模块可以按功能分组。`pub` 让函数能被模块外调用。
+解释：`pub` 让模块外的 `main` 能调用 `double`。
 
-### 练习 2：使用 use 简化路径
+### 练习 2：使用 use
 
-要求：把 `math::stats::average` 引入作用域，并直接调用。
+要求：用 `use` 简化上题的调用路径。
 
 参考答案：
 
 ```rust
-use math::stats::average;
+mod utils {
+    pub fn double(value: i32) -> i32 {
+        value * 2
+    }
+}
 
-let data = [10.0, 20.0, 30.0];
-println!("{}", average(&data));
+use utils::double;
+
+fn main() {
+    println!("{}", double(21));
+}
 ```
 
-解释：`use` 能减少重复路径，尤其适合频繁调用的函数或类型。
+解释：`use utils::double` 后，当前作用域可以直接写函数名。
+
+### 练习 3：Cargo 运行指定目标
+
+要求：写出运行第 10 节的命令。
+
+参考答案：
+
+```bash
+cargo run --bin lesson10_modules_packages
+```
+
+解释：`--bin` 后面跟的是 `Cargo.toml` 中声明的 bin 名，不是文件名。
+
 ## 相关笔记
+
 - [Rust学习笔记 09：常见集合类型](https://kylinxin.github.io/2026/04/09/Rust学习笔记-09-常见集合类型/)
 - [Rust学习笔记 11：错误处理](https://kylinxin.github.io/2026/04/11/Rust学习笔记-11-错误处理/)

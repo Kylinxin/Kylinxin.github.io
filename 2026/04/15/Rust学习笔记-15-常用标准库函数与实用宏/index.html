@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;15_std_functions_macros.rs运行命令： 1cargo run --bin lesson15_std_functions_macros 学习目标本篇整理迭代器组合、闭包、Option 常用方法、dbg!、format!、vec! 和 assert_eq!。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;15_std_functions_macros.rs 运行命令： 1cargo run --bin lesson15_std_functions_macros  学习目标本节整理日常 Rust 编程中常见的标准库函数、方法和宏。它们能显著提高代码表达力。 宏看起来像函数，但以 ! 结尾，并在编译期展开。常见宏包括 println!、format!、vec!、dbg!。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 15：常用标准库函数与实用宏">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;15_std_functions_macros.rs运行命令： 1cargo run --bin lesson15_std_functions_macros 学习目标本篇整理迭代器组合、闭包、Option 常用方法、dbg!、format!、vec! 和 assert_eq!。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;15_std_functions_macros.rs 运行命令： 1cargo run --bin lesson15_std_functions_macros  学习目标本节整理日常 Rust 编程中常见的标准库函数、方法和宏。它们能显著提高代码表达力。 宏看起来像函数，但以 ! 结尾，并在编译期展开。常见宏包括 println!、format!、vec!、dbg!。">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-15T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-15T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#vec-%E5%AE%8F"><span class="nav-number">3.1.</span> <span class="nav-text">vec 宏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%AD%E4%BB%A3%E5%99%A8%E9%93%BE"><span class="nav-number">3.2.</span> <span class="nav-text">迭代器链</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AD%E5%8C%85"><span class="nav-number">3.3.</span> <span class="nav-text">闭包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Option-%E6%96%B9%E6%B3%95"><span class="nav-number">3.4.</span> <span class="nav-text">Option 方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dbg-%E5%AE%8F"><span class="nav-number">3.5.</span> <span class="nav-text">dbg 宏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%AD%E8%A8%80%E5%AE%8F"><span class="nav-number">3.6.</span> <span class="nav-text">断言宏</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E7%AD%9B%E9%80%89%E5%B9%B6%E6%B1%82%E5%92%8C"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：筛选并求和</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9AOption-%E9%BB%98%E8%AE%A4%E7%94%A8%E6%88%B7%E5%90%8D"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：Option 默认用户名</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#println"><span class="nav-number">5.1.</span> <span class="nav-text">println!</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#format"><span class="nav-number">5.2.</span> <span class="nav-text">format!</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#vec"><span class="nav-number">5.3.</span> <span class="nav-text">vec!</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Option-%E6%96%B9%E6%B3%95"><span class="nav-number">5.4.</span> <span class="nav-text">Option 方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E5%87%86%E5%BA%93-std"><span class="nav-number">6.1.</span> <span class="nav-text">标准库 std</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8F-macro"><span class="nav-number">6.2.</span> <span class="nav-text">宏 macro</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#format-1"><span class="nav-number">6.3.</span> <span class="nav-text">format!</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dbg"><span class="nav-number">6.4.</span> <span class="nav-text">dbg!</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#assert"><span class="nav-number">6.5.</span> <span class="nav-text">assert!</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E6%A0%BC%E5%BC%8F%E5%8C%96%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：格式化用户信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9AOption-%E9%BB%98%E8%AE%A4%E5%80%BC"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：Option 默认值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E6%96%AD%E8%A8%80%E6%A3%80%E6%9F%A5"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：断言检查</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>705</span>
+      <span>1.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>3 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,34 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/15_std_functions_macros.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/15_std_functions_macros.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson15_std_functions_macros</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理迭代器组合、闭包、<code>Option</code> 常用方法、<code>dbg!</code>、<code>format!</code>、<code>vec!</code> 和 <code>assert_eq!</code>。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// vec! 创建可增长的 Vec；后续 push 体现它和固定数组的区别。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// iter/map/filter/collect 是标准库中常用的迭代器组合。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">even_squares</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers</span><br><span class="line">        .<span class="title function_ invoke__">iter</span>()</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(|n| n * n)</span><br><span class="line">        .<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        .<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;偶数平方: &#123;even_squares:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Option 常用 map、unwrap_or 等方法处理可能不存在的值。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_name</span> = <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">display_name</span> = maybe_name</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(<span class="type">str</span>::to_uppercase)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap_or</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;UNKNOWN&quot;</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;名称: &#123;display_name&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dbg! 会打印表达式和结果，适合临时调试。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">total</span>: <span class="type">i32</span> = numbers.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">    dbg!(total);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// format! 生成 String，println! 输出到终端，vec! 创建 Vec。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = <span class="built_in">format!</span>(<span class="string">&quot;一共有 &#123;&#125; 个数字&quot;</span>, numbers.<span class="title function_ invoke__">len</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;message&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// assert_eq! 常用于测试或运行时检查。</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(numbers.<span class="title function_ invoke__">first</span>(), <span class="title function_ invoke__">Some</span>(&amp;<span class="number">1</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="vec-宏"><a href="#vec-宏" class="headerlink" title="vec 宏"></a>vec 宏</h3><p><code>vec![1, 2, 3]</code> 创建可增长向量，<code>push</code> 体现它和数组的区别。</p>
-<h3 id="迭代器链"><a href="#迭代器链" class="headerlink" title="迭代器链"></a>迭代器链</h3><p><code>iter().map(...).filter(...).collect()</code> 是标准库中常见的数据处理流水线。</p>
-<h3 id="闭包"><a href="#闭包" class="headerlink" title="闭包"></a>闭包</h3><p><code>|n| n * n</code> 是闭包，适合传给 <code>map</code>、<code>filter</code> 等高阶函数。</p>
-<h3 id="Option-方法"><a href="#Option-方法" class="headerlink" title="Option 方法"></a>Option 方法</h3><p><code>maybe_name.map(...).unwrap_or(...)</code> 用链式方式处理可能不存在的值。</p>
-<h3 id="dbg-宏"><a href="#dbg-宏" class="headerlink" title="dbg 宏"></a>dbg 宏</h3><p><code>dbg!(total)</code> 会把表达式和结果打印到标准错误，适合临时调试。</p>
-<h3 id="断言宏"><a href="#断言宏" class="headerlink" title="断言宏"></a>断言宏</h3><p><code>assert_eq!</code> 检查两个值是否相等，不相等时 panic。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>迭代器是 Rust 标准库的核心能力之一。它能让集合处理更声明式。</p>
-<p><code>map</code> 转换元素，<code>filter</code> 保留满足条件的元素，<code>collect</code> 收集成目标集合。</p>
-<p>宏通常带 <code>!</code>。常见宏包括 <code>println!</code>、<code>vec!</code>、<code>format!</code>、<code>dbg!</code>。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li><code>dbg!</code> 会取得表达式所有权，调试非 Copy 值时要注意移动问题。</li>
-<li><code>unwrap_or</code> 的默认值会立即求值。默认值构造昂贵时可用 <code>unwrap_or_else</code>。</li>
-<li>迭代器链中 <code>iter()</code> 得到引用，必要时需要 <code>copied()</code> 或 <code>cloned()</code>。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本节整理日常 Rust 编程中常见的标准库函数、方法和宏。它们能显著提高代码表达力。</p>
+<p>宏看起来像函数，但以 <code>!</code> 结尾，并在编译期展开。常见宏包括 <code>println!</code>、<code>format!</code>、<code>vec!</code>、<code>dbg!</code>。</p>
+<ul>
+<li>理解函数、方法和宏的基本区别。</li>
+<li>掌握格式化输出、调试输出和集合创建。</li>
+<li>会使用 <code>Option</code>、<code>Result</code> 的常用方法。</li>
+<li>知道 <code>dbg!</code>、<code>assert!</code>、<code>panic!</code> 的适用场景。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：筛选并求和"><a href="#练习-1：筛选并求和" class="headerlink" title="练习 1：筛选并求和"></a>练习 1：筛选并求和</h3><p>要求：给定 <code>vec![1, 2, 3, 4, 5, 6]</code>，筛选偶数，平方后求和。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line"><span class="keyword">let</span> <span class="variable">sum</span>: <span class="type">i32</span> = numbers</span><br><span class="line">    .<span class="title function_ invoke__">iter</span>()</span><br><span class="line">    .<span class="title function_ invoke__">map</span>(|n| n * n)</span><br><span class="line">    .<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">    .<span class="title function_ invoke__">sum</span>();</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;sum&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标准库 std</td>
+<td>Rust 自带的基础功能库。</td>
+<td>包括集合、字符串、IO、线程、时间等。</td>
+</tr>
+<tr>
+<td>宏 macro</td>
+<td>编译期展开的代码生成机制。</td>
+<td>以 <code>!</code> 结尾，如 <code>println!</code>。</td>
+</tr>
+<tr>
+<td>format!</td>
+<td>生成格式化字符串但不直接打印。</td>
+<td>常用于拼接可读文本。</td>
+</tr>
+<tr>
+<td>dbg!</td>
+<td>打印表达式和位置，返回表达式值。</td>
+<td>适合临时调试。</td>
+</tr>
+<tr>
+<td>assert!</td>
+<td>断言条件必须为真。</td>
+<td>常用于测试或检查程序假设。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// vec! 创建可增长的 Vec；后续 push 体现它和固定数组的区别。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// iter/map/filter/collect 是标准库中常用的迭代器组合。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">even_squares</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers</span><br><span class="line">        .<span class="title function_ invoke__">iter</span>()</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(|n| n * n)</span><br><span class="line">        .<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        .<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;偶数平方: &#123;even_squares:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Option 常用 map、unwrap_or 等方法处理可能不存在的值。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_name</span> = <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">display_name</span> = maybe_name</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(<span class="type">str</span>::to_uppercase)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap_or</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;UNKNOWN&quot;</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;名称: &#123;display_name&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dbg! 会打印表达式和结果，适合临时调试。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">total</span>: <span class="type">i32</span> = numbers.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">    dbg!(total);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// format! 生成 String，println! 输出到终端，vec! 创建 Vec。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = <span class="built_in">format!</span>(<span class="string">&quot;一共有 &#123;&#125; 个数字&quot;</span>, numbers.<span class="title function_ invoke__">len</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;message&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// assert_eq! 常用于测试或运行时检查。</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(numbers.<span class="title function_ invoke__">first</span>(), <span class="title function_ invoke__">Some</span>(&amp;<span class="number">1</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：这里先平方再筛选偶数平方。<code>sum()</code> 可以直接消费迭代器得到总和。</p>
-<h3 id="练习-2：Option-默认用户名"><a href="#练习-2：Option-默认用户名" class="headerlink" title="练习 2：Option 默认用户名"></a>练习 2：Option 默认用户名</h3><p>要求：如果 <code>Option&lt;&amp;str&gt;</code> 是 <code>None</code>，输出 <code>&quot;GUEST&quot;</code>，否则输出大写用户名。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson15_std_functions_macros</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="println"><a href="#println" class="headerlink" title="println!"></a>println!</h3><p>用于向终端打印文本，支持 <code>&#123;&#125;</code>、<code>&#123;:?&#125;</code> 等格式占位。</p>
+<h3 id="format"><a href="#format" class="headerlink" title="format!"></a>format!</h3><p>返回 <code>String</code>，适合构造后续要保存或返回的文本。</p>
+<h3 id="vec"><a href="#vec" class="headerlink" title="vec!"></a>vec!</h3><p>快速创建 <code>Vec</code>，如 <code>vec![1, 2, 3]</code>。</p>
+<h3 id="Option-方法"><a href="#Option-方法" class="headerlink" title="Option 方法"></a>Option 方法</h3><p><code>unwrap_or</code> 可以在 <code>None</code> 时提供默认值。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="标准库-std"><a href="#标准库-std" class="headerlink" title="标准库 std"></a>标准库 std</h3><p>Rust 自带的基础功能库。</p>
+<p>包括集合、字符串、IO、线程、时间等。</p>
+<h3 id="宏-macro"><a href="#宏-macro" class="headerlink" title="宏 macro"></a>宏 macro</h3><p>编译期展开的代码生成机制。</p>
+<p>以 <code>!</code> 结尾，如 <code>println!</code>。</p>
+<h3 id="format-1"><a href="#format-1" class="headerlink" title="format!"></a>format!</h3><p>生成格式化字符串但不直接打印。</p>
+<p>常用于拼接可读文本。</p>
+<h3 id="dbg"><a href="#dbg" class="headerlink" title="dbg!"></a>dbg!</h3><p>打印表达式和位置，返回表达式值。</p>
+<p>适合临时调试。</p>
+<h3 id="assert"><a href="#assert" class="headerlink" title="assert!"></a>assert!</h3><p>断言条件必须为真。</p>
+<p>常用于测试或检查程序假设。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>println!</code> 是宏，因为它需要支持可变数量参数和格式字符串检查。</p>
+<p><code>dbg!</code> 会取得表达式所有权并返回它。调试非 Copy 值时要注意是否发生移动。</p>
+<p><code>assert_eq!</code> 比 <code>assert!(a == b)</code> 的失败信息更清楚。</p>
+<p>标准库方法通常比手写循环更简洁，但初学时应该先理解它们背后的所有权和迭代器行为。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要把 <code>format!</code> 和 <code>println!</code> 混淆。前者返回字符串，后者打印到终端。</li>
+<li><code>unwrap_or(default)</code> 会立即计算默认值。默认值计算昂贵时考虑 <code>unwrap_or_else</code>。</li>
+<li>不要把 <code>dbg!</code> 长期留在正式输出里。</li>
+<li>宏不是普通函数，错误信息有时会指向展开后的代码，需要回到宏调用位置理解。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：格式化用户信息"><a href="#练习-1：格式化用户信息" class="headerlink" title="练习 1：格式化用户信息"></a>练习 1：格式化用户信息</h3><p>要求：用 <code>format!</code> 生成用户描述字符串。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">maybe_name</span>: <span class="type">Option</span>&lt;&amp;<span class="type">str</span>&gt; = <span class="literal">None</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">name</span> = maybe_name</span><br><span class="line">    .<span class="title function_ invoke__">map</span>(<span class="type">str</span>::to_uppercase)</span><br><span class="line">    .<span class="title function_ invoke__">unwrap_or_else</span>(|| <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;GUEST&quot;</span>));</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;name&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="string">&quot;Kylin&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">age</span> = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="built_in">format!</span>(<span class="string">&quot;用户 &#123;name&#125;, 年龄 &#123;age&#125;&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>unwrap_or_else</code> 只在 <code>None</code> 时执行闭包，适合延迟构造默认值。</p>
+<p>解释：<code>format!</code> 返回 <code>String</code>，后续可以保存或传给函数。</p>
+<h3 id="练习-2：Option-默认值"><a href="#练习-2：Option-默认值" class="headerlink" title="练习 2：Option 默认值"></a>练习 2：Option 默认值</h3><p>要求：读取可选分数，没有分数时使用 0。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">score</span>: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt; = <span class="literal">None</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = score.<span class="title function_ invoke__">unwrap_or</span>(<span class="number">0</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;value&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>unwrap_or</code> 是处理 <code>None</code> 的常用方法。</p>
+<h3 id="练习-3：断言检查"><a href="#练习-3：断言检查" class="headerlink" title="练习 3：断言检查"></a>练习 3：断言检查</h3><p>要求：检查数组长度是否为 3。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">values</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(values.<span class="title function_ invoke__">len</span>(), <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;检查通过&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>assert_eq!</code> 在左右不相等时给出清晰失败信息。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust学习笔记 14：生命周期</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/">Rust学习笔记 16：异步编程 async-await</a></li>
@@ -374,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

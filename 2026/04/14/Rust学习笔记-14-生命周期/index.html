@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;14_lifetimes.rs运行命令： 1cargo run --bin lesson14_lifetimes 学习目标本篇整理生命周期标注、返回引用的有效期、结构体中保存引用，以及生命周期省略规则的直觉。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141516171819202122232425262728">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;14_lifetimes.rs 运行命令： 1cargo run --bin lesson14_lifetimes  学习目标生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。 初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。  理解生命周期用于防止悬垂引用。 知道很多生命周期可以由编译器自动省略。 会读懂简单的 &#39;a">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 14：生命周期">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;14_lifetimes.rs运行命令： 1cargo run --bin lesson14_lifetimes 学习目标本篇整理生命周期标注、返回引用的有效期、结构体中保存引用，以及生命周期省略规则的直觉。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码12345678910111213141516171819202122232425262728">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;14_lifetimes.rs 运行命令： 1cargo run --bin lesson14_lifetimes  学习目标生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。 初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。  理解生命周期用于防止悬垂引用。 知道很多生命周期可以由编译器自动省略。 会读懂简单的 &#39;a">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-14T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-14T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E5%8F%82%E6%95%B0"><span class="nav-number">3.1.</span> <span class="nav-text">生命周期参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%89%E6%95%88%E6%9C%9F%E7%BA%A6%E6%9D%9F"><span class="nav-number">3.2.</span> <span class="nav-text">有效期约束</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E5%BC%95%E7%94%A8%E5%AD%97%E6%AE%B5"><span class="nav-number">3.3.</span> <span class="nav-text">结构体引用字段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E4%B8%AD%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="nav-number">3.4.</span> <span class="nav-text">方法中的生命周期</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%B4%E6%97%B6%E5%AE%89%E5%85%A8"><span class="nav-number">3.5.</span> <span class="nav-text">临时安全</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E8%BF%94%E5%9B%9E%E6%9B%B4%E7%9F%AD%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：返回更短字符串</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E4%BF%9D%E5%AD%98%E6%A0%87%E9%A2%98%E5%BC%95%E7%94%A8"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：结构体保存标题引用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E5%BC%95%E7%94%A8"><span class="nav-number">5.1.</span> <span class="nav-text">返回引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#longest"><span class="nav-number">5.2.</span> <span class="nav-text">longest</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E5%BC%95%E7%94%A8%E5%AD%97%E6%AE%B5"><span class="nav-number">5.3.</span> <span class="nav-text">结构体引用字段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%AD%97%E9%9D%A2%E9%87%8F"><span class="nav-number">5.4.</span> <span class="nav-text">字符串字面量</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F-lifetime"><span class="nav-number">6.1.</span> <span class="nav-text">生命周期 lifetime</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%82%AC%E5%9E%82%E5%BC%95%E7%94%A8-dangling-reference"><span class="nav-number">6.2.</span> <span class="nav-text">悬垂引用 dangling reference</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E6%A0%87%E6%B3%A8"><span class="nav-number">6.3.</span> <span class="nav-text">生命周期标注</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%9C%81%E7%95%A5"><span class="nav-number">6.4.</span> <span class="nav-text">生命周期省略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E2%80%98static"><span class="nav-number">6.5.</span> <span class="nav-text">‘static</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E5%AE%9E%E7%8E%B0-longest"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：实现 longest</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E7%BB%93%E6%9E%84%E4%BD%93%E4%BF%9D%E5%AD%98%E5%BC%95%E7%94%A8"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：结构体保存引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E9%81%BF%E5%85%8D%E8%BF%94%E5%9B%9E%E5%B1%80%E9%83%A8%E5%BC%95%E7%94%A8"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：避免返回局部引用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>743</span>
+      <span>1.3k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>3 分钟</span>
+      <span>5 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/14_lifetimes.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/14_lifetimes.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson14_lifetimes</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理生命周期标注、返回引用的有效期、结构体中保存引用，以及生命周期省略规则的直觉。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// 生命周期标注说明：返回引用的有效期不超过两个输入引用中较短的那个。</span></span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        left</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        right</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ImportantExcerpt</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="comment">// 结构体保存引用时，需要说明引用必须活得和结构体一样久。</span></span><br><span class="line">    part: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;a</span>&gt; ImportantExcerpt&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">announce_and_return_part</span>(&amp;<span class="keyword">self</span>, announcement: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;announcement&#125;&quot;</span>);</span><br><span class="line">        <span class="keyword">self</span>.part</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;short&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">second</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;a longer string&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">longest</span>(&amp;first, &amp;second);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;更长的是: &#123;result&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">novel</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust is safe. Rust is fast.&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first_sentence</span> = novel.<span class="title function_ invoke__">split</span>(<span class="string">&#x27;.&#x27;</span>).<span class="title function_ invoke__">next</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">excerpt</span> = ImportantExcerpt &#123;</span><br><span class="line">        part: first_sentence,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘录: &#123;&#125;&quot;</span>, excerpt.<span class="title function_ invoke__">announce_and_return_part</span>(<span class="string">&quot;开始阅读&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="生命周期参数"><a href="#生命周期参数" class="headerlink" title="生命周期参数"></a>生命周期参数</h3><p><code>fn longest&lt;&#39;a&gt;(left: &amp;&#39;a str, right: &amp;&#39;a str) -&gt; &amp;&#39;a str</code> 表示返回引用和两个输入引用有关。</p>
-<h3 id="有效期约束"><a href="#有效期约束" class="headerlink" title="有效期约束"></a>有效期约束</h3><p><code>&#39;a</code> 描述的是约束关系，不是延长生命周期。返回引用不能比输入引用活得更久。</p>
-<h3 id="结构体引用字段"><a href="#结构体引用字段" class="headerlink" title="结构体引用字段"></a>结构体引用字段</h3><p><code>struct ImportantExcerpt&lt;&#39;a&gt;</code> 表示结构体中的 <code>part</code> 引用必须至少和结构体实例一样有效。</p>
-<h3 id="方法中的生命周期"><a href="#方法中的生命周期" class="headerlink" title="方法中的生命周期"></a>方法中的生命周期</h3><p><code>impl&lt;&#39;a&gt;</code> 为带生命周期的结构体实现方法。</p>
-<h3 id="临时安全"><a href="#临时安全" class="headerlink" title="临时安全"></a>临时安全</h3><p>示例中 <code>first_sentence</code> 引用 <code>novel</code>，因此 <code>novel</code> 必须在 <code>excerpt</code> 使用期间保持有效。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>生命周期不是让值活得更久，而是让编译器知道引用之间的有效期关系。</p>
-<p>多数简单函数不需要手写生命周期，因为编译器有省略规则。</p>
-<p>当函数返回引用，并且返回值可能来自多个输入引用时，通常需要显式生命周期。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要返回指向函数内部局部 <code>String</code> 的 <code>&amp;str</code>，局部变量离开函数就被释放。</li>
-<li>生命周期标注不能修复悬垂引用，只能描述合法引用关系。</li>
-<li>结构体保存引用时，通常需要生命周期参数。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。</p>
+<p>初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。</p>
+<ul>
+<li>理解生命周期用于防止悬垂引用。</li>
+<li>知道很多生命周期可以由编译器自动省略。</li>
+<li>会读懂简单的 <code>&#39;a</code> 标注。</li>
+<li>理解结构体中保存引用时为什么需要生命周期参数。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：返回更短字符串"><a href="#练习-1：返回更短字符串" class="headerlink" title="练习 1：返回更短字符串"></a>练习 1：返回更短字符串</h3><p>要求：写 <code>shortest&lt;&#39;a&gt;(left: &amp;&#39;a str, right: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">shortest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &lt;= right.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        left</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        right</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>生命周期 lifetime</td>
+<td>引用保持有效的代码范围。</td>
+<td><code>&#39;a</code> 是生命周期参数名。</td>
+</tr>
+<tr>
+<td>悬垂引用 dangling reference</td>
+<td>指向已经无效数据的引用。</td>
+<td>Rust 编译器会阻止它。</td>
+</tr>
+<tr>
+<td>生命周期标注</td>
+<td>显式说明多个引用之间的有效期关系。</td>
+<td><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</td>
+</tr>
+<tr>
+<td>生命周期省略</td>
+<td>编译器按规则自动推断常见生命周期。</td>
+<td>很多函数不需要手写 <code>&#39;a</code>。</td>
+</tr>
+<tr>
+<td>‘static</td>
+<td>能存活整个程序运行期间的生命周期。</td>
+<td>字符串字面量通常是 <code>&amp;&#39;static str</code>。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// 生命周期标注说明：返回引用的有效期不超过两个输入引用中较短的那个。</span></span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        left</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        right</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ImportantExcerpt</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="comment">// 结构体保存引用时，需要说明引用必须活得和结构体一样久。</span></span><br><span class="line">    part: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;a</span>&gt; ImportantExcerpt&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">announce_and_return_part</span>(&amp;<span class="keyword">self</span>, announcement: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;announcement&#125;&quot;</span>);</span><br><span class="line">        <span class="keyword">self</span>.part</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;short&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">second</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;a longer string&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">longest</span>(&amp;first, &amp;second);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;更长的是: &#123;result&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">novel</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust is safe. Rust is fast.&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first_sentence</span> = novel.<span class="title function_ invoke__">split</span>(<span class="string">&#x27;.&#x27;</span>).<span class="title function_ invoke__">next</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">excerpt</span> = ImportantExcerpt &#123;</span><br><span class="line">        part: first_sentence,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘录: &#123;&#125;&quot;</span>, excerpt.<span class="title function_ invoke__">announce_and_return_part</span>(<span class="string">&quot;开始阅读&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>shortest</code> 和 <code>longest</code> 的生命周期关系相同，只是比较逻辑相反。</p>
-<h3 id="练习-2：结构体保存标题引用"><a href="#练习-2：结构体保存标题引用" class="headerlink" title="练习 2：结构体保存标题引用"></a>练习 2：结构体保存标题引用</h3><p>要求：定义 <code>BookTitle&lt;&#39;a&gt; &#123; title: &amp;&#39;a str &#125;</code>，并打印标题。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson14_lifetimes</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="返回引用"><a href="#返回引用" class="headerlink" title="返回引用"></a>返回引用</h3><p>函数返回引用时，编译器必须知道它来自哪个输入。</p>
+<h3 id="longest"><a href="#longest" class="headerlink" title="longest"></a>longest</h3><p><code>longest&lt;&#39;a&gt;</code> 表示返回值不会比两个输入引用中较短者活得更久。</p>
+<h3 id="结构体引用字段"><a href="#结构体引用字段" class="headerlink" title="结构体引用字段"></a>结构体引用字段</h3><p>结构体保存引用时，要在类型上标注生命周期。</p>
+<h3 id="字符串字面量"><a href="#字符串字面量" class="headerlink" title="字符串字面量"></a>字符串字面量</h3><p>字面量存放在程序二进制中，常具有 <code>&#39;static</code> 生命周期。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="生命周期-lifetime"><a href="#生命周期-lifetime" class="headerlink" title="生命周期 lifetime"></a>生命周期 lifetime</h3><p>引用保持有效的代码范围。</p>
+<p><code>&#39;a</code> 是生命周期参数名。</p>
+<h3 id="悬垂引用-dangling-reference"><a href="#悬垂引用-dangling-reference" class="headerlink" title="悬垂引用 dangling reference"></a>悬垂引用 dangling reference</h3><p>指向已经无效数据的引用。</p>
+<p>Rust 编译器会阻止它。</p>
+<h3 id="生命周期标注"><a href="#生命周期标注" class="headerlink" title="生命周期标注"></a>生命周期标注</h3><p>显式说明多个引用之间的有效期关系。</p>
+<p><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</p>
+<h3 id="生命周期省略"><a href="#生命周期省略" class="headerlink" title="生命周期省略"></a>生命周期省略</h3><p>编译器按规则自动推断常见生命周期。</p>
+<p>很多函数不需要手写 <code>&#39;a</code>。</p>
+<h3 id="‘static"><a href="#‘static" class="headerlink" title="‘static"></a>‘static</h3><p>能存活整个程序运行期间的生命周期。</p>
+<p>字符串字面量通常是 <code>&amp;&#39;static str</code>。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>生命周期标注不会延长任何值的生命。它只是描述已有的有效范围。</p>
+<p><code>&#39;a</code> 的名字没有特殊含义，可以叫 <code>&#39;text</code>，但简单示例常用 <code>&#39;a</code>。</p>
+<p>返回引用时，返回值必须来自输入引用或其他足够长寿的数据，不能返回局部变量引用。</p>
+<p>生命周期和所有权配合工作。拥有值的数据离开作用域后，指向它的引用不能继续存在。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要试图用生命周期标注修复真正的所有权错误。</li>
+<li>不要返回函数内部创建的局部 <code>String</code> 的引用。</li>
+<li><code>&#39;static</code> 不等于“永远不释放所有数据”，它表示引用目标在整个程序期间有效。</li>
+<li>生命周期报错通常说明引用关系不清楚，先画出数据拥有者和借用者。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：实现-longest"><a href="#练习-1：实现-longest" class="headerlink" title="练习 1：实现 longest"></a>练习 1：实现 longest</h3><p>要求：返回两个字符串切片中更长的一个。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">BookTitle</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    title: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust Book&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">book</span> = BookTitle &#123; title: &amp;name &#125;;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, book.title);</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123; left &#125; <span class="keyword">else</span> &#123; right &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">longest</span>(<span class="string">&quot;Rust&quot;</span>, <span class="string">&quot;language&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>book</code> 保存了对 <code>name</code> 的引用，所以 <code>name</code> 必须比 <code>book</code> 使用时间更长。</p>
+<p>解释：返回值可能来自任一输入，所以要用同一个生命周期参数描述关系。</p>
+<h3 id="练习-2：结构体保存引用"><a href="#练习-2：结构体保存引用" class="headerlink" title="练习 2：结构体保存引用"></a>练习 2：结构体保存引用</h3><p>要求：定义保存标题引用的结构体。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Title</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    text: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">raw</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = Title &#123; text: &amp;raw &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, title.text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：结构体不能比它内部引用的字符串活得更久。</p>
+<h3 id="练习-3：避免返回局部引用"><a href="#练习-3：避免返回局部引用" class="headerlink" title="练习 3：避免返回局部引用"></a>练习 3：避免返回局部引用</h3><p>要求：修复返回局部字符串引用的错误。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">make_title</span>() <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="title function_ invoke__">make_title</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：函数内部创建的数据应返回所有权，而不是返回指向局部变量的引用。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">Rust学习笔记 13：Trait 与 Trait Bound</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">Rust学习笔记 15：常用标准库函数与实用宏</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

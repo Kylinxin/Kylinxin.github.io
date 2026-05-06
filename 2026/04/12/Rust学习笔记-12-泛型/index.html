@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;12_generics.rs运行命令： 1cargo run --bin lesson12_generics 学习目标本篇整理泛型函数、泛型结构体、impl&lt;T&gt;、trait bound，以及如何让同一段代码适配多种类型。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码1234567891011121314151617181920212">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;12_generics.rs 运行命令： 1cargo run --bin lesson12_generics  学习目标泛型让同一段代码适用于多种类型。它能减少重复，同时保持静态类型检查。 Rust 的泛型在编译期单态化，常见情况下不会带来运行时动态分发开销。  理解泛型参数 T 的含义。 会定义泛型函数和泛型结构体。 知道泛型需要 trait bound 才能使用">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 12：泛型">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;12_generics.rs运行命令： 1cargo run --bin lesson12_generics 学习目标本篇整理泛型函数、泛型结构体、impl&lt;T&gt;、trait bound，以及如何让同一段代码适配多种类型。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码1234567891011121314151617181920212">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;12_generics.rs 运行命令： 1cargo run --bin lesson12_generics  学习目标泛型让同一段代码适用于多种类型。它能减少重复，同时保持静态类型检查。 Rust 的泛型在编译期单态化，常见情况下不会带来运行时动态分发开销。  理解泛型参数 T 的含义。 会定义泛型函数和泛型结构体。 知道泛型需要 trait bound 才能使用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-12T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-12T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E5%87%BD%E6%95%B0"><span class="nav-number">3.1.</span> <span class="nav-text">泛型函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Trait-bound"><span class="nav-number">3.2.</span> <span class="nav-text">Trait bound</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">3.3.</span> <span class="nav-text">泛型结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B-impl"><span class="nav-number">3.4.</span> <span class="nav-text">泛型 impl</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E5%BC%95%E7%94%A8"><span class="nav-number">3.5.</span> <span class="nav-text">返回引用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E6%94%AF%E6%8C%81%E4%B8%8D%E5%90%8C%E7%B1%BB%E5%9E%8B%E5%9D%90%E6%A0%87"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：支持不同类型坐标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E8%BF%94%E5%9B%9E%E5%88%87%E7%89%87%E4%B8%AD%E6%9C%80%E5%B0%8F%E5%80%BC"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：返回切片中最小值</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E5%87%BD%E6%95%B0"><span class="nav-number">5.1.</span> <span class="nav-text">泛型函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">5.2.</span> <span class="nav-text">泛型结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%9A%E4%B8%AA%E6%B3%9B%E5%9E%8B%E5%8F%82%E6%95%B0"><span class="nav-number">5.3.</span> <span class="nav-text">多个泛型参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BA%A6%E6%9D%9F%E9%9C%80%E6%B1%82"><span class="nav-number">5.4.</span> <span class="nav-text">约束需求</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B-generic"><span class="nav-number">6.1.</span> <span class="nav-text">泛型 generic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0-T"><span class="nav-number">6.2.</span> <span class="nav-text">类型参数 T</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E6%80%81%E5%8C%96-monomorphization"><span class="nav-number">6.3.</span> <span class="nav-text">单态化 monomorphization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%BB%93%E6%9E%84%E4%BD%93-1"><span class="nav-number">6.4.</span> <span class="nav-text">泛型结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trait-bound"><span class="nav-number">6.5.</span> <span class="nav-text">trait bound</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9Aidentity-%E5%87%BD%E6%95%B0"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：identity 函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E6%B3%9B%E5%9E%8B%E7%BB%93%E6%9E%84%E4%BD%93"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：泛型结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E4%B8%A4%E4%B8%AA%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：两个类型参数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>608</span>
+      <span>1.2k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/12_generics.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/12_generics.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson12_generics</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理泛型函数、泛型结构体、<code>impl&lt;T&gt;</code>、trait bound，以及如何让同一段代码适配多种类型。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">largest</span>&lt;T: <span class="built_in">PartialOrd</span> + <span class="built_in">Copy</span>&gt;(items: &amp;[T]) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">largest</span> = items[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">for</span> &amp;item <span class="keyword">in</span> items &#123;</span><br><span class="line">        <span class="keyword">if</span> item &gt; largest &#123;</span><br><span class="line">            largest = item;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    largest</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: T,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;T&gt; Point&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">x</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> &amp;T &#123;</span><br><span class="line">        &amp;<span class="keyword">self</span>.x</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>, <span class="number">10</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大数字: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;numbers));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">chars</span> = [<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;z&#x27;</span>, <span class="string">&#x27;m&#x27;</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大字符: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;chars));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">integer_point</span> = Point &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">float_point</span> = Point &#123; x: <span class="number">1.2</span>, y: <span class="number">3.4</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;整数点: &#123;integer_point:?&#125;, x=&#123;&#125;&quot;</span>, integer_point.<span class="title function_ invoke__">x</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;浮点点: &#123;float_point:?&#125;, y=&#123;&#125;&quot;</span>, float_point.y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="泛型函数"><a href="#泛型函数" class="headerlink" title="泛型函数"></a>泛型函数</h3><p><code>fn largest&lt;T: PartialOrd + Copy&gt;(items: &amp;[T]) -&gt; T</code> 用类型参数 <code>T</code> 表示可复用的类型。</p>
-<h3 id="Trait-bound"><a href="#Trait-bound" class="headerlink" title="Trait bound"></a>Trait bound</h3><p><code>PartialOrd + Copy</code> 限制 <code>T</code> 必须能比较大小并能复制。</p>
-<h3 id="泛型结构体"><a href="#泛型结构体" class="headerlink" title="泛型结构体"></a>泛型结构体</h3><p><code>struct Point&lt;T&gt;</code> 表示 <code>x</code> 和 <code>y</code> 使用同一个泛型类型。</p>
-<h3 id="泛型-impl"><a href="#泛型-impl" class="headerlink" title="泛型 impl"></a>泛型 impl</h3><p><code>impl&lt;T&gt; Point&lt;T&gt;</code> 为所有 <code>Point&lt;T&gt;</code> 实现方法。</p>
-<h3 id="返回引用"><a href="#返回引用" class="headerlink" title="返回引用"></a>返回引用</h3><p><code>fn x(&amp;self) -&gt; &amp;T</code> 返回字段引用，避免移动字段。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>泛型减少重复代码。你可以写一次逻辑，让它适用于整数、字符或自定义类型。</p>
-<p>泛型不是“任意类型都可以”。trait bound 决定类型必须具备哪些能力。</p>
-<p>Rust 泛型在编译期单态化，通常没有运行时动态开销。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>如果泛型值需要比较，必须加 <code>PartialOrd</code> 等约束。</li>
-<li>如果要从切片中返回值，非 Copy 类型不能直接复制返回。</li>
-<li><code>Point&lt;T&gt;</code> 要求 x 和 y 类型相同。如果要不同类型，需要 <code>Point&lt;T, U&gt;</code>。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>泛型让同一段代码适用于多种类型。它能减少重复，同时保持静态类型检查。</p>
+<p>Rust 的泛型在编译期单态化，常见情况下不会带来运行时动态分发开销。</p>
+<ul>
+<li>理解泛型参数 <code>T</code> 的含义。</li>
+<li>会定义泛型函数和泛型结构体。</li>
+<li>知道泛型需要 trait bound 才能使用特定能力。</li>
+<li>理解 <code>Option&lt;T&gt;</code>、<code>Result&lt;T, E&gt;</code> 也是泛型类型。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：支持不同类型坐标"><a href="#练习-1：支持不同类型坐标" class="headerlink" title="练习 1：支持不同类型坐标"></a>练习 1：支持不同类型坐标</h3><p>要求：定义 <code>Point&lt;T, U&gt;</code>，让 x 和 y 可以是不同类型。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T, U&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: U,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">point</span> = Point &#123; x: <span class="number">3</span>, y: <span class="number">4.5</span> &#125;;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;point:?&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>泛型 generic</td>
+<td>把具体类型抽象成类型参数。</td>
+<td><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 可接收多种类型。</td>
+</tr>
+<tr>
+<td>类型参数 T</td>
+<td>泛型中的占位类型名。</td>
+<td><code>T</code> 不是固定名字，只是惯例。</td>
+</tr>
+<tr>
+<td>单态化 monomorphization</td>
+<td>编译器为实际类型生成具体版本。</td>
+<td>这是 Rust 泛型高性能的原因之一。</td>
+</tr>
+<tr>
+<td>泛型结构体</td>
+<td>字段类型带类型参数的结构体。</td>
+<td><code>Point&lt;T&gt;</code> 可表示整数点或浮点点。</td>
+</tr>
+<tr>
+<td>trait bound</td>
+<td>限制泛型类型必须具备某些能力。</td>
+<td>下一节会详细讲。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">largest</span>&lt;T: <span class="built_in">PartialOrd</span> + <span class="built_in">Copy</span>&gt;(items: &amp;[T]) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">largest</span> = items[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">for</span> &amp;item <span class="keyword">in</span> items &#123;</span><br><span class="line">        <span class="keyword">if</span> item &gt; largest &#123;</span><br><span class="line">            largest = item;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    largest</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: T,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;T&gt; Point&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">x</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> &amp;T &#123;</span><br><span class="line">        &amp;<span class="keyword">self</span>.x</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>, <span class="number">10</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大数字: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;numbers));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">chars</span> = [<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;z&#x27;</span>, <span class="string">&#x27;m&#x27;</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大字符: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;chars));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">integer_point</span> = Point &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">float_point</span> = Point &#123; x: <span class="number">1.2</span>, y: <span class="number">3.4</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;整数点: &#123;integer_point:?&#125;, x=&#123;&#125;&quot;</span>, integer_point.<span class="title function_ invoke__">x</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;浮点点: &#123;float_point:?&#125;, y=&#123;&#125;&quot;</span>, float_point.y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：两个泛型参数能表达两个字段的类型可以不同。</p>
-<h3 id="练习-2：返回切片中最小值"><a href="#练习-2：返回切片中最小值" class="headerlink" title="练习 2：返回切片中最小值"></a>练习 2：返回切片中最小值</h3><p>要求：写 <code>smallest&lt;T: PartialOrd + Copy&gt;(items: &amp;[T]) -&gt; T</code>。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson12_generics</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="泛型函数"><a href="#泛型函数" class="headerlink" title="泛型函数"></a>泛型函数</h3><p><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 接收什么类型就返回什么类型。</p>
+<h3 id="泛型结构体"><a href="#泛型结构体" class="headerlink" title="泛型结构体"></a>泛型结构体</h3><p><code>struct Pair&lt;T&gt;</code> 用同一种 <code>T</code> 保存两个值。</p>
+<h3 id="多个泛型参数"><a href="#多个泛型参数" class="headerlink" title="多个泛型参数"></a>多个泛型参数</h3><p><code>Result&lt;T, E&gt;</code> 同时有成功值类型和错误类型。</p>
+<h3 id="约束需求"><a href="#约束需求" class="headerlink" title="约束需求"></a>约束需求</h3><p>如果要比较、打印或相加泛型值，就必须添加相应 trait bound。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="泛型-generic"><a href="#泛型-generic" class="headerlink" title="泛型 generic"></a>泛型 generic</h3><p>把具体类型抽象成类型参数。</p>
+<p><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 可接收多种类型。</p>
+<h3 id="类型参数-T"><a href="#类型参数-T" class="headerlink" title="类型参数 T"></a>类型参数 T</h3><p>泛型中的占位类型名。</p>
+<p><code>T</code> 不是固定名字，只是惯例。</p>
+<h3 id="单态化-monomorphization"><a href="#单态化-monomorphization" class="headerlink" title="单态化 monomorphization"></a>单态化 monomorphization</h3><p>编译器为实际类型生成具体版本。</p>
+<p>这是 Rust 泛型高性能的原因之一。</p>
+<h3 id="泛型结构体-1"><a href="#泛型结构体-1" class="headerlink" title="泛型结构体"></a>泛型结构体</h3><p>字段类型带类型参数的结构体。</p>
+<p><code>Point&lt;T&gt;</code> 可表示整数点或浮点点。</p>
+<h3 id="trait-bound"><a href="#trait-bound" class="headerlink" title="trait bound"></a>trait bound</h3><p>限制泛型类型必须具备某些能力。</p>
+<p>下一节会详细讲。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>泛型不是“任意类型随便用”。没有约束时，你只能移动、返回或保存它，不能随便比较或打印。</p>
+<p><code>T</code>、<code>U</code>、<code>E</code> 只是类型参数名字。<code>E</code> 常用来表示 error 类型。</p>
+<p>泛型能把“算法结构”从“具体数据类型”中分离出来。</p>
+<p>当两个字段都写 <code>T</code> 时，它们必须是同一具体类型。需要不同类型时写 <code>T, U</code>。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要以为泛型函数内部自动知道 <code>T</code> 能打印。打印需要 <code>T: Debug</code> 或 <code>T: Display</code>。</li>
+<li>如果结构体字段一个是整数、一个是浮点数，就不要都写成同一个 <code>T</code>。</li>
+<li>泛型参数过多会降低可读性。初学阶段先保持简单。</li>
+<li>泛型解决重复类型逻辑，不适合掩盖完全不同的业务概念。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：identity-函数"><a href="#练习-1：identity-函数" class="headerlink" title="练习 1：identity 函数"></a>练习 1：identity 函数</h3><p>要求：写一个返回原值的泛型函数。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">smallest</span>&lt;T: <span class="built_in">PartialOrd</span> + <span class="built_in">Copy</span>&gt;(items: &amp;[T]) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">smallest</span> = items[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">for</span> &amp;item <span class="keyword">in</span> items &#123;</span><br><span class="line">        <span class="keyword">if</span> item &lt; smallest &#123;</span><br><span class="line">            smallest = item;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    smallest</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">identity</span>&lt;T&gt;(value: T) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    value</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">identity</span>(<span class="number">10</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">identity</span>(<span class="string">&quot;Rust&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：逻辑和 <code>largest</code> 类似，只是比较方向变成 <code>&lt;</code>。</p>
+<p>解释：<code>T</code> 由调用时传入的值推断出来。</p>
+<h3 id="练习-2：泛型结构体"><a href="#练习-2：泛型结构体" class="headerlink" title="练习 2：泛型结构体"></a>练习 2：泛型结构体</h3><p>要求：定义 <code>Point&lt;T&gt;</code> 并创建整数点和浮点点。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: T,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">int_point</span> = Point &#123; x: <span class="number">1</span>, y: <span class="number">2</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">float_point</span> = Point &#123; x: <span class="number">1.0</span>, y: <span class="number">2.0</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, int_point.x, float_point.y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：同一个结构体模板可以生成不同具体类型。</p>
+<h3 id="练习-3：两个类型参数"><a href="#练习-3：两个类型参数" class="headerlink" title="练习 3：两个类型参数"></a>练习 3：两个类型参数</h3><p>要求：定义 <code>Pair&lt;T, U&gt;</code> 保存不同类型。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Pair</span>&lt;T, U&gt; &#123;</span><br><span class="line">    left: T,</span><br><span class="line">    right: U,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">pair</span> = Pair &#123; left: <span class="string">&quot;age&quot;</span>, right: <span class="number">20</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, pair.left, pair.right);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>T</code> 和 <code>U</code> 允许两个字段拥有不同类型。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">Rust学习笔记 11：错误处理</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">Rust学习笔记 13：Trait 与 Trait Bound</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

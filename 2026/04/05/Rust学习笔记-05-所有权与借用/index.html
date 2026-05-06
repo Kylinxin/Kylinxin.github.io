@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;05_ownership_borrowing.rs运行命令： 1cargo run --bin lesson05_ownership_borrowing 学习目标本篇整理 Rust 的核心机制：所有权移动、不可变借用、可变借用和 Copy 类型。理解这一节是掌握 Rust 的关键。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码1234567891">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;05_ownership_borrowing.rs 运行命令： 1cargo run --bin lesson05_ownership_borrowing  学习目标本篇系统整理 Rust 最核心、也最容易让初学者卡住的机制：所有权 ownership、移动 move、不可变借用 immutable borrowing、可变借用 mutable borrowing、C">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 05：所有权与借用">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/05/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-05-%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E5%80%9F%E7%94%A8/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;05_ownership_borrowing.rs运行命令： 1cargo run --bin lesson05_ownership_borrowing 学习目标本篇整理 Rust 的核心机制：所有权移动、不可变借用、可变借用和 Copy 类型。理解这一节是掌握 Rust 的关键。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码1234567891">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;05_ownership_borrowing.rs 运行命令： 1cargo run --bin lesson05_ownership_borrowing  学习目标本篇系统整理 Rust 最核心、也最容易让初学者卡住的机制：所有权 ownership、移动 move、不可变借用 immutable borrowing、可变借用 mutable borrowing、C">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-05T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-05T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%80%E6%9C%89%E6%9D%83%E7%A7%BB%E5%8A%A8"><span class="nav-number">3.1.</span> <span class="nav-text">所有权移动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8"><span class="nav-number">3.2.</span> <span class="nav-text">不可变借用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8"><span class="nav-number">3.3.</span> <span class="nav-text">可变借用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Copy-%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.4.</span> <span class="nav-text">Copy 类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B5%84%E6%BA%90%E6%B8%85%E7%90%86"><span class="nav-number">3.5.</span> <span class="nav-text">资源清理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E9%81%BF%E5%85%8D%E6%89%80%E6%9C%89%E6%9D%83%E7%A7%BB%E5%8A%A8"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：避免所有权移动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E9%99%90%E5%88%B6%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：限制可变借用作用域</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E5%BB%BA%E7%AB%8B%E4%B8%80%E4%B8%AA%E6%A0%B8%E5%BF%83%E7%9B%B4%E8%A7%89"><span class="nav-number">4.</span> <span class="nav-text">先建立一个核心直觉</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">5.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%80%E6%9C%89%E6%9D%83-ownership"><span class="nav-number">5.1.</span> <span class="nav-text">所有权 ownership</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A7%BB%E5%8A%A8-move"><span class="nav-number">5.2.</span> <span class="nav-text">移动 move</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%80%9F%E7%94%A8-borrowing"><span class="nav-number">5.3.</span> <span class="nav-text">借用 borrowing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8-mutable-borrowing"><span class="nav-number">5.4.</span> <span class="nav-text">可变借用 mutable borrowing</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Copy"><span class="nav-number">5.5.</span> <span class="nav-text">Copy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Clone"><span class="nav-number">5.6.</span> <span class="nav-text">Clone</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Drop"><span class="nav-number">5.7.</span> <span class="nav-text">Drop</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%88%E5%92%8C%E5%A0%86%E7%9A%84%E7%9B%B4%E8%A7%89"><span class="nav-number">6.</span> <span class="nav-text">栈和堆的直觉</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%88%E4%B8%8A%E7%9A%84%E7%AE%80%E5%8D%95%E5%80%BC"><span class="nav-number">6.1.</span> <span class="nav-text">栈上的简单值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A0%86%E4%B8%8A%E7%9A%84%E5%8A%A8%E6%80%81%E5%80%BC"><span class="nav-number">6.2.</span> <span class="nav-text">堆上的动态值</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">7.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-take-ownership%EF%BC%9A%E5%87%BD%E6%95%B0%E5%8F%96%E5%BE%97%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">7.1.</span> <span class="nav-text">1. take_ownership：函数取得所有权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-borrow-text%EF%BC%9A%E4%B8%8D%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E5%8F%AA%E8%AF%BB%E8%AE%BF%E9%97%AE"><span class="nav-number">7.2.</span> <span class="nav-text">2. borrow_text：不可变借用只读访问</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-change-text%EF%BC%9A%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E7%94%A8%E4%BA%8E%E4%BF%AE%E6%94%B9"><span class="nav-number">7.3.</span> <span class="nav-text">3. change_text：可变借用用于修改</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%BF%85%E9%A1%BB%E6%8E%92%E4%BB%96"><span class="nav-number">7.4.</span> <span class="nav-text">4. 可变借用为什么必须排他</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Copy-%E7%B1%BB%E5%9E%8B%E4%B8%8D%E4%BC%9A%E7%A7%BB%E5%8A%A8%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">7.5.</span> <span class="nav-text">5. Copy 类型不会移动所有权</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Move%E3%80%81Borrow%E3%80%81Clone-%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">8.</span> <span class="nav-text">Move、Borrow、Clone 的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%E6%80%8E%E4%B9%88%E9%80%89"><span class="nav-number">9.</span> <span class="nav-text">函数参数怎么选</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A5%E6%94%B6-String"><span class="nav-number">9.1.</span> <span class="nav-text">接收 String</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A5%E6%94%B6-String-1"><span class="nav-number">9.2.</span> <span class="nav-text">接收 &amp;String</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A5%E6%94%B6-str"><span class="nav-number">9.3.</span> <span class="nav-text">接收 &amp;str</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A5%E6%94%B6-mut-String"><span class="nav-number">9.4.</span> <span class="nav-text">接收 &amp;mut String</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E7%BC%96%E8%AF%91%E9%94%99%E8%AF%AF%E4%B8%8E%E4%BF%AE%E6%AD%A3"><span class="nav-number">10.</span> <span class="nav-text">常见编译错误与修正</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-1%EF%BC%9A%E4%BD%BF%E7%94%A8%E5%B7%B2%E7%BB%8F-move-%E7%9A%84%E5%80%BC"><span class="nav-number">10.1.</span> <span class="nav-text">错误 1：使用已经 move 的值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-2%EF%BC%9A%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E5%92%8C%E4%B8%8D%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E9%87%8D%E5%8F%A0"><span class="nav-number">10.2.</span> <span class="nav-text">错误 2：可变借用和不可变借用重叠</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF-3%EF%BC%9A%E5%8F%98%E9%87%8F%E6%B2%A1%E6%9C%89%E5%A3%B0%E6%98%8E%E4%B8%BA-mut"><span class="nav-number">10.3.</span> <span class="nav-text">错误 3：变量没有声明为 mut</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%AC%E8%8A%82%E6%BA%90%E7%A0%81%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">11.</span> <span class="nav-text">本节源码运行过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">12.</span> <span class="nav-text">小结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">13.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E9%81%BF%E5%85%8D%E6%89%80%E6%9C%89%E6%9D%83%E7%A7%BB%E5%8A%A8"><span class="nav-number">13.1.</span> <span class="nav-text">练习 1：避免所有权移动</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E9%99%90%E5%88%B6%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="nav-number">13.2.</span> <span class="nav-text">练习 2：限制可变借用作用域</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9A%E4%BF%AE%E5%A4%8D-move-%E5%90%8E%E7%BB%A7%E7%BB%AD%E4%BD%BF%E7%94%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">13.3.</span> <span class="nav-text">练习 3：修复 move 后继续使用的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-4%EF%BC%9A%E8%BF%94%E5%9B%9E%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">13.4.</span> <span class="nav-text">练习 4：返回所有权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-5%EF%BC%9A%E4%BD%BF%E7%94%A8%E5%8F%AF%E5%8F%98%E5%80%9F%E7%94%A8%E4%BF%AE%E6%94%B9%E8%80%8C%E4%B8%8D%E8%BD%AC%E7%A7%BB%E6%89%80%E6%9C%89%E6%9D%83"><span class="nav-number">13.5.</span> <span class="nav-text">练习 5：使用可变借用修改而不转移所有权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-6%EF%BC%9A%E5%88%A4%E6%96%AD-move%E3%80%81copy%E3%80%81clone"><span class="nav-number">13.6.</span> <span class="nav-text">练习 6：判断 move、copy、clone</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-7%EF%BC%9A%E4%BF%AE%E5%A4%8D%E9%87%8D%E5%8F%A0%E5%80%9F%E7%94%A8"><span class="nav-number">13.7.</span> <span class="nav-text">练习 7：修复重叠借用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">14.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>757</span>
+      <span>4.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>3 分钟</span>
+      <span>15 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,335 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/05_ownership_borrowing.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/05_ownership_borrowing.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson05_ownership_borrowing</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理 Rust 的核心机制：所有权移动、不可变借用、可变借用和 Copy 类型。理解这一节是掌握 Rust 的关键。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">take_ownership</span>(text: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// text 的所有权移动到函数里，函数结束后会释放。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;接收所有权: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">borrow_text</span>(text: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// &amp;String 是不可变借用，不取得所有权。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;借用文本: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">change_text</span>(text: &amp;<span class="keyword">mut</span> <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// &amp;mut String 是可变借用，同一时间只能有一个可变借用。</span></span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">borrow_text</span>(&amp;owned);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;借用后仍可使用: &#123;owned&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">take_ownership</span>(owned);</span><br><span class="line">    <span class="comment">// 这里不能再使用 owned，因为所有权已经移动。</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">mutable_text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> mutable_text);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;修改后: &#123;mutable_text&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Copy 类型（如整数）会复制值，不会发生所有权移动。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">y</span> = x;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;x=&#123;x&#125;, y=&#123;y&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="所有权移动"><a href="#所有权移动" class="headerlink" title="所有权移动"></a>所有权移动</h3><p><code>take_ownership(text: String)</code> 接收 <code>String</code>，调用后所有权移动到函数中，原变量不能继续使用。</p>
-<h3 id="不可变借用"><a href="#不可变借用" class="headerlink" title="不可变借用"></a>不可变借用</h3><p><code>borrow_text(text: &amp;String)</code> 只借用值，不取得所有权。借用后原变量仍然可用。</p>
-<h3 id="可变借用"><a href="#可变借用" class="headerlink" title="可变借用"></a>可变借用</h3><p><code>change_text(text: &amp;mut String)</code> 可以修改借来的值。同一时间只能有一个可变借用。</p>
-<h3 id="Copy-类型"><a href="#Copy-类型" class="headerlink" title="Copy 类型"></a>Copy 类型</h3><p>整数等简单类型实现了 <code>Copy</code>。<code>let y = x;</code> 会复制值，<code>x</code> 仍然可用。</p>
-<h3 id="资源清理"><a href="#资源清理" class="headerlink" title="资源清理"></a>资源清理</h3><p>拥有值的变量离开作用域时，Rust 会自动释放资源，不需要手动 free。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>所有权解决“谁负责释放资源”的问题。每个值在同一时间只有一个所有者。</p>
-<p>借用让函数临时使用值而不取得所有权。它是 Rust 既安全又高效的关键。</p>
-<p>可变借用需要排他性，避免同时读写同一份数据导致不一致。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>把 <code>String</code> 传给接收所有权的函数后，原变量不能再用。</li>
-<li>同一时间不能既有可变借用，又有其他不可变借用。</li>
-<li>不要把 <code>&amp;String</code> 和 <code>&amp;str</code> 混淆。很多函数参数更推荐写成 <code>&amp;str</code>。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇系统整理 Rust 最核心、也最容易让初学者卡住的机制：<strong>所有权 ownership</strong>、<strong>移动 move</strong>、<strong>不可变借用 immutable borrowing</strong>、<strong>可变借用 mutable borrowing</strong>、<strong>Copy 类型</strong>和<strong>资源自动释放</strong>。</p>
+<p>学完这一节后，你应该能够：</p>
+<ul>
+<li>判断一个值在赋值、传参、返回时是否发生所有权移动。</li>
+<li>理解为什么 <code>String</code> 传给函数后原变量通常不能再使用。</li>
+<li>使用 <code>&amp;T</code> 让函数只读访问数据，而不取得所有权。</li>
+<li>使用 <code>&amp;mut T</code> 安全地修改数据，并理解“同一时间只能有一个可变借用”。</li>
+<li>区分 <code>Copy</code>、<code>Clone</code>、move 三种行为。</li>
+<li>初步知道函数参数什么时候写 <code>String</code>、<code>&amp;String</code>、<code>&amp;str</code>、<code>&amp;mut String</code>。</li>
 </ul>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>所有权 ownership</td>
+<td>一个值在同一时间只能有一个所有者。</td>
+<td>决定谁负责释放 <code>String</code> 等资源。</td>
+</tr>
+<tr>
+<td>移动 move</td>
+<td>所有权从一个变量转移到另一个变量。</td>
+<td><code>take_ownership(owned)</code> 后，<code>owned</code> 不能继续使用。</td>
+</tr>
+<tr>
+<td>借用 borrowing</td>
+<td>通过引用临时使用值，不取得所有权。</td>
+<td><code>borrow_text(&amp;owned)</code> 只读取字符串。</td>
+</tr>
+<tr>
+<td>可变借用 mutable borrowing</td>
+<td>通过 <code>&amp;mut T</code> 临时修改值。</td>
+<td><code>change_text(&amp;mut mutable_text)</code> 修改原字符串。</td>
+</tr>
+<tr>
+<td>Copy</td>
+<td>简单值赋值时直接复制，不发生 move。</td>
+<td><code>let y = x;</code> 后整数 <code>x</code> 仍然可用。</td>
+</tr>
+<tr>
+<td>Clone</td>
+<td>显式复制数据，可能产生堆内存拷贝。</td>
+<td>需要保留两份 <code>String</code> 时使用 <code>clone()</code>。</td>
+</tr>
+<tr>
+<td>Drop</td>
+<td>值离开作用域时自动清理资源。</td>
+<td>函数结束时拥有 <code>String</code> 的变量会释放内存。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">take_ownership</span>(text: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// text 的所有权移动到函数里，函数结束后会释放。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;接收所有权: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">borrow_text</span>(text: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// &amp;String 是不可变借用，不取得所有权。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;借用文本: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">change_text</span>(text: &amp;<span class="keyword">mut</span> <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="comment">// &amp;mut String 是可变借用，同一时间只能有一个可变借用。</span></span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">borrow_text</span>(&amp;owned);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;借用后仍可使用: &#123;owned&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">take_ownership</span>(owned);</span><br><span class="line">    <span class="comment">// 这里不能再使用 owned，因为所有权已经移动。</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">mutable_text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> mutable_text);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;修改后: &#123;mutable_text&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Copy 类型（如整数）会复制值，不会发生所有权移动。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> = <span class="number">5</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">y</span> = x;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;x=&#123;x&#125;, y=&#123;y&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="先建立一个核心直觉"><a href="#先建立一个核心直觉" class="headerlink" title="先建立一个核心直觉"></a>先建立一个核心直觉</h2><p>Rust 的所有权规则主要解决一个问题：<strong>谁负责释放内存和其他资源</strong>。</p>
+<p>在很多语言里，内存管理通常有两种路线：</p>
+<ul>
+<li>C&#x2F;C++：程序员手动申请、手动释放，性能高，但容易出现重复释放、忘记释放、悬垂指针等问题。</li>
+<li>Java&#x2F;Python&#x2F;Go：运行时垃圾回收器自动管理内存，写起来轻松，但需要运行时检查和回收。</li>
+</ul>
+<p>Rust 选择第三条路线：<strong>编译器在编译阶段检查所有权和借用规则，程序运行时不需要垃圾回收器，也不需要手动 free</strong>。</p>
+<p>可以把 Rust 的规则理解成三句话：</p>
+<ol>
+<li>每个值在同一时间只有一个所有者。</li>
+<li>当所有者离开作用域，值会被自动释放。</li>
+<li>可以通过引用借用值，但借用必须遵守读写安全规则。</li>
+</ol>
+<p>这三句话就是本节所有代码的基础。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="所有权-ownership"><a href="#所有权-ownership" class="headerlink" title="所有权 ownership"></a>所有权 ownership</h3><p>所有权表示“谁拥有这个值，谁负责在离开作用域时清理它”。Rust 不需要垃圾回收器，核心原因就是编译器能静态判断所有权。</p>
+<h3 id="移动-move"><a href="#移动-move" class="headerlink" title="移动 move"></a>移动 move</h3><p>移动表示所有权转移。对 <code>String</code> 这类拥有堆资源的类型，赋值、传参、返回值都可能发生 move。</p>
+<h3 id="借用-borrowing"><a href="#借用-borrowing" class="headerlink" title="借用 borrowing"></a>借用 borrowing</h3><p>借用表示临时使用别人的值。不可变借用 <code>&amp;T</code> 只能读取，不能修改，也不会让原变量失效。</p>
+<h3 id="可变借用-mutable-borrowing"><a href="#可变借用-mutable-borrowing" class="headerlink" title="可变借用 mutable borrowing"></a>可变借用 mutable borrowing</h3><p>可变借用 <code>&amp;mut T</code> 可以修改值，但必须排他。它存在时，不能同时存在其他读引用或写引用。</p>
+<h3 id="Copy"><a href="#Copy" class="headerlink" title="Copy"></a>Copy</h3><p><code>Copy</code> 类型赋值时会复制值，原变量仍然有效。整数、布尔值、字符等简单类型通常实现了 <code>Copy</code>。</p>
+<h3 id="Clone"><a href="#Clone" class="headerlink" title="Clone"></a>Clone</h3><p><code>Clone</code> 是显式复制。对 <code>String</code> 来说，<code>clone()</code> 通常会复制堆上的字符串内容，因此 Rust 要求你明确写出来。</p>
+<h3 id="Drop"><a href="#Drop" class="headerlink" title="Drop"></a>Drop</h3><p><code>Drop</code> 表示资源清理动作。拥有资源的变量离开作用域时，Rust 会自动调用清理逻辑。</p>
+<h2 id="栈和堆的直觉"><a href="#栈和堆的直觉" class="headerlink" title="栈和堆的直觉"></a>栈和堆的直觉</h2><p>理解 <code>String</code> 为什么会移动，需要先区分栈和堆。</p>
+<h3 id="栈上的简单值"><a href="#栈上的简单值" class="headerlink" title="栈上的简单值"></a>栈上的简单值</h3><p>像 <code>i32</code>、<code>bool</code>、<code>char</code> 这类大小固定、复制成本低的值通常放在栈上：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">x</span> = <span class="number">5</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">y</span> = x;</span><br></pre></td></tr></table></figure>
+
+<p>这里 <code>x</code> 和 <code>y</code> 都是整数。整数很小，复制一份很便宜，所以 <code>y = x</code> 会直接复制值，之后 <code>x</code> 仍然可以继续使用。</p>
+<h3 id="堆上的动态值"><a href="#堆上的动态值" class="headerlink" title="堆上的动态值"></a>堆上的动态值</h3><p><code>String</code> 是可增长字符串，它的真实字符内容存在堆上。变量本身通常保存三类信息：</p>
+<ul>
+<li>指向堆内存的指针。</li>
+<li>当前字符串长度。</li>
+<li>当前分配容量。</li>
+</ul>
+<p>例如：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s1</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">s2</span> = s1;</span><br></pre></td></tr></table></figure>
+
+<p>如果 Rust 简单复制 <code>s1</code> 的指针给 <code>s2</code>，就会出现两个变量都以为自己负责释放同一块堆内存的问题。为了避免重复释放，Rust 默认让 <code>String</code> 发生 <strong>move</strong>：所有权从 <code>s1</code> 移到 <code>s2</code>，<code>s1</code> 失效。</p>
+<p>因此，对堆上资源来说，Rust 更关心“谁拥有这块资源”，而不是只看变量名。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="1-take-ownership：函数取得所有权"><a href="#1-take-ownership：函数取得所有权" class="headerlink" title="1. take_ownership：函数取得所有权"></a>1. <code>take_ownership</code>：函数取得所有权</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">take_ownership</span>(text: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;接收所有权: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数的参数类型是 <code>String</code>，不是引用。调用时如果传入一个 <code>String</code> 变量，所有权会移动到参数 <code>text</code> 中。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">take_ownership</span>(owned);</span><br></pre></td></tr></table></figure>
+
+<p>调用发生后：</p>
+<ul>
+<li><code>owned</code> 不再拥有字符串。</li>
+<li>函数内部的 <code>text</code> 成为新的所有者。</li>
+<li>函数结束时，<code>text</code> 离开作用域，字符串资源被释放。</li>
+</ul>
+<p>所以下面这种写法无法通过编译：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">take_ownership</span>(owned);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;owned&#125;&quot;</span>); <span class="comment">// 错误：owned 的所有权已经移动</span></span><br></pre></td></tr></table></figure>
+
+<p>这不是 Rust “不让你打印变量”，而是编译器发现：这个变量已经不再拥有有效资源。</p>
+<h3 id="2-borrow-text：不可变借用只读访问"><a href="#2-borrow-text：不可变借用只读访问" class="headerlink" title="2. borrow_text：不可变借用只读访问"></a>2. <code>borrow_text</code>：不可变借用只读访问</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">borrow_text</span>(text: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;借用文本: &#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>&amp;String</code> 表示不可变引用，也叫不可变借用。函数可以读取 <code>String</code>，但不会取得所有权。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">borrow_text</span>(&amp;owned);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;借用后仍可使用: &#123;owned&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这里传入的是 <code>&amp;owned</code>，意思是“把 <code>owned</code> 借给函数看一下”。函数结束后，<code>owned</code> 仍然是原来的所有者，所以可以继续使用。</p>
+<p>不可变借用适合这些场景：</p>
+<ul>
+<li>函数只需要读取数据。</li>
+<li>不希望调用方失去所有权。</li>
+<li>不希望复制或克隆大对象。</li>
+</ul>
+<h3 id="3-change-text：可变借用用于修改"><a href="#3-change-text：可变借用用于修改" class="headerlink" title="3. change_text：可变借用用于修改"></a>3. <code>change_text</code>：可变借用用于修改</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">change_text</span>(text: &amp;<span class="keyword">mut</span> <span class="type">String</span>) &#123;</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>&amp;mut String</code> 表示可变引用。函数不拥有这个 <code>String</code>，但可以在借用期间修改它。</p>
+<p>调用时需要两层明确标记：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">mutable_text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> mutable_text);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;修改后: &#123;mutable_text&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>第一层：变量本身必须声明为 <code>mut</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">mutable_text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>第二层：调用函数时必须传入 <code>&amp;mut mutable_text</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> mutable_text);</span><br></pre></td></tr></table></figure>
+
+<p>Rust 要求你在定义变量和发起借用时都明确表达“这里会修改数据”。这让代码的读写意图非常清楚。</p>
+<h3 id="4-可变借用为什么必须排他"><a href="#4-可变借用为什么必须排他" class="headerlink" title="4. 可变借用为什么必须排他"></a>4. 可变借用为什么必须排他</h3><p>Rust 的核心规则是：</p>
+<ul>
+<li>同一时间可以有多个不可变引用。</li>
+<li>同一时间只能有一个可变引用。</li>
+<li>可变引用存在时，不能同时存在其他引用。</li>
+</ul>
+<p>这条规则用于避免数据竞争和读写不一致。</p>
+<p>错误示例：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">r1</span> = &amp;text;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">r2</span> = &amp;<span class="keyword">mut</span> text; <span class="comment">// 错误：已有不可变借用时不能再可变借用</span></span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;r1&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>正确写法是让不可变借用先结束，再创建可变借用：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">r1</span> = &amp;text;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;r1&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">r2</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">r2.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;r2&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在现代 Rust 中，引用的生命周期通常会在“最后一次使用”后结束，而不一定非要等到大括号结束。这叫非词法生命周期，英文常见缩写是 NLL。</p>
+<h3 id="5-Copy-类型不会移动所有权"><a href="#5-Copy-类型不会移动所有权" class="headerlink" title="5. Copy 类型不会移动所有权"></a>5. <code>Copy</code> 类型不会移动所有权</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">x</span> = <span class="number">5</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">y</span> = x;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;x=&#123;x&#125;, y=&#123;y&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>整数实现了 <code>Copy</code>，所以赋值时会复制值。复制之后，<code>x</code> 和 <code>y</code> 都可用。</p>
+<p>常见 <code>Copy</code> 类型包括：</p>
+<ul>
+<li>整数类型：<code>i32</code>、<code>u64</code> 等。</li>
+<li>浮点数：<code>f32</code>、<code>f64</code>。</li>
+<li>布尔值：<code>bool</code>。</li>
+<li>字符：<code>char</code>。</li>
+<li>只包含 <code>Copy</code> 类型的元组，例如 <code>(i32, bool)</code>。</li>
+</ul>
+<p><code>String</code> 没有实现 <code>Copy</code>，因为它拥有堆内存。复制 <code>String</code> 通常意味着分配新内存并复制字符内容，成本不低，所以 Rust 不会悄悄做这件事。</p>
+<p>如果你确实需要复制 <code>String</code> 的内容，要显式使用 <code>clone()</code>：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s1</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">s2</span> = s1.<span class="title function_ invoke__">clone</span>();</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;s1=&#123;s1&#125;, s2=&#123;s2&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p><code>clone()</code> 是一次明确的深拷贝。Rust 希望你意识到这里可能有额外成本。</p>
+<h2 id="Move、Borrow、Clone-的区别"><a href="#Move、Borrow、Clone-的区别" class="headerlink" title="Move、Borrow、Clone 的区别"></a>Move、Borrow、Clone 的区别</h2><table>
+<thead>
+<tr>
+<th>行为</th>
+<th>示例</th>
+<th>原变量还能用吗</th>
+<th>是否复制堆数据</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>move</td>
+<td><code>let b = a;</code></td>
+<td>通常不能</td>
+<td>不复制</td>
+<td>转移资源所有权</td>
+</tr>
+<tr>
+<td>borrow</td>
+<td><code>let b = &amp;a;</code></td>
+<td>能</td>
+<td>不复制</td>
+<td>临时只读使用</td>
+</tr>
+<tr>
+<td>mutable borrow</td>
+<td><code>let b = &amp;mut a;</code></td>
+<td>借用结束后能</td>
+<td>不复制</td>
+<td>临时修改</td>
+</tr>
+<tr>
+<td>clone</td>
+<td><code>let b = a.clone();</code></td>
+<td>能</td>
+<td>通常复制</td>
+<td>需要两份独立数据</td>
+</tr>
+<tr>
+<td>copy</td>
+<td><code>let b = a;</code></td>
+<td>能</td>
+<td>值很小，直接复制</td>
+<td><code>i32</code>、<code>bool</code> 等简单值</td>
+</tr>
+</tbody></table>
+<p>初学阶段可以先记住一个实用判断：</p>
+<ul>
+<li>只是读取：优先借用。</li>
+<li>需要修改：用可变借用。</li>
+<li>函数要长期保存或消费这个值：传所有权。</li>
+<li>确实需要两份独立数据：显式 <code>clone()</code>。</li>
+</ul>
+<h2 id="函数参数怎么选"><a href="#函数参数怎么选" class="headerlink" title="函数参数怎么选"></a>函数参数怎么选</h2><p>所有权规则最终会影响 API 设计。下面是常见选择。</p>
+<h3 id="接收-String"><a href="#接收-String" class="headerlink" title="接收 String"></a>接收 <code>String</code></h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">save_name</span>(name: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;保存: &#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>表示函数要取得字符串所有权。调用后原变量不能继续使用。适合函数要消费、保存、转移这个字符串的场景。</p>
+<h3 id="接收-String-1"><a href="#接收-String-1" class="headerlink" title="接收 &amp;String"></a>接收 <code>&amp;String</code></h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_name</span>(name: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>表示只借用一个 <code>String</code>。不过在真实项目中，如果函数只需要读取字符串内容，通常更推荐 <code>&amp;str</code>。</p>
+<h3 id="接收-str"><a href="#接收-str" class="headerlink" title="接收 &amp;str"></a>接收 <code>&amp;str</code></h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_text</span>(text: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>&amp;str</code> 更通用，因为它既能接收字符串字面量，也能接收 <code>String</code> 的切片：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">owned</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">print_text</span>(&amp;owned);</span><br><span class="line"><span class="title function_ invoke__">print_text</span>(<span class="string">&quot;Rust&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这是 Rust 中很常见的参数设计习惯：<strong>只读字符串优先写 <code>&amp;str</code></strong>。</p>
+<h3 id="接收-mut-String"><a href="#接收-mut-String" class="headerlink" title="接收 &amp;mut String"></a>接收 <code>&amp;mut String</code></h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">append_lang</span>(text: &amp;<span class="keyword">mut</span> <span class="type">String</span>) &#123;</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>表示函数要修改调用方传入的字符串，但不取得所有权。调用方保留这个 <code>String</code>，借用结束后可以继续使用。</p>
+<h2 id="常见编译错误与修正"><a href="#常见编译错误与修正" class="headerlink" title="常见编译错误与修正"></a>常见编译错误与修正</h2><h3 id="错误-1：使用已经-move-的值"><a href="#错误-1：使用已经-move-的值" class="headerlink" title="错误 1：使用已经 move 的值"></a>错误 1：使用已经 move 的值</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">take_ownership</span>(s);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;s&#125;&quot;</span>); <span class="comment">// 错误</span></span><br></pre></td></tr></table></figure>
+
+<p>修正方式一：如果函数只读，改成借用。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_ invoke__">borrow_text</span>(&amp;s);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;s&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>修正方式二：如果确实需要函数取得所有权，同时自己还要一份，显式克隆。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">take_ownership</span>(s.<span class="title function_ invoke__">clone</span>());</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;s&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="错误-2：可变借用和不可变借用重叠"><a href="#错误-2：可变借用和不可变借用重叠" class="headerlink" title="错误 2：可变借用和不可变借用重叠"></a>错误 2：可变借用和不可变借用重叠</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">read</span> = &amp;s;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">write</span> = &amp;<span class="keyword">mut</span> s; <span class="comment">// 错误</span></span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;read&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>修正方式：先完成读取，再开始修改。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">read</span> = &amp;s;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;read&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">write</span> = &amp;<span class="keyword">mut</span> s;</span><br><span class="line">write.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="错误-3：变量没有声明为-mut"><a href="#错误-3：变量没有声明为-mut" class="headerlink" title="错误 3：变量没有声明为 mut"></a>错误 3：变量没有声明为 <code>mut</code></h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> s); <span class="comment">// 错误：s 不是可变变量</span></span><br></pre></td></tr></table></figure>
+
+<p>修正方式：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">s</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">change_text</span>(&amp;<span class="keyword">mut</span> s);</span><br></pre></td></tr></table></figure>
+
+<h2 id="本节源码运行过程"><a href="#本节源码运行过程" class="headerlink" title="本节源码运行过程"></a>本节源码运行过程</h2><p>运行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson05_ownership_borrowing</span><br></pre></td></tr></table></figure>
+
+<p>程序大致输出：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">借用文本: Rust</span><br><span class="line">借用后仍可使用: Rust</span><br><span class="line">接收所有权: Rust</span><br><span class="line">修改后: Rust language</span><br><span class="line">x=5, y=5</span><br></pre></td></tr></table></figure>
+
+<p>输出顺序说明：</p>
+<ol>
+<li><code>borrow_text(&amp;owned)</code> 只是借用，所以 <code>owned</code> 还能继续打印。</li>
+<li><code>take_ownership(owned)</code> 取得所有权，之后源码里没有再使用 <code>owned</code>。</li>
+<li><code>change_text(&amp;mut mutable_text)</code> 修改原字符串。</li>
+<li><code>x</code> 是 <code>Copy</code> 类型，赋值给 <code>y</code> 后仍然能打印 <code>x</code>。</li>
+</ol>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>所有权和借用不是 Rust 的“附加规则”，而是 Rust 的基本编程模型。你写函数、传参数、设计结构体字段、遍历集合、处理错误时都会遇到它。</p>
+<p>这一节最重要的判断方式是：</p>
+<ul>
+<li>这个值由谁拥有？</li>
+<li>这次传参是在移动所有权，还是只是在借用？</li>
+<li>如果要修改，是否需要 <code>mut</code> 和 <code>&amp;mut</code>？</li>
+<li>当前是否存在重叠的读写借用？</li>
+<li>如果想保留两份数据，是不是应该显式 <code>clone()</code>？</li>
+</ul>
+<p>只要每次都按这几个问题检查，所有权系统就会从“难点”变成“帮你检查代码的工具”。</p>
 <h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：避免所有权移动"><a href="#练习-1：避免所有权移动" class="headerlink" title="练习 1：避免所有权移动"></a>练习 1：避免所有权移动</h3><p>要求：写一个函数打印字符串长度，但调用后原 <code>String</code> 仍可继续使用。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_len</span>(text: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;长度: &#123;&#125;&quot;</span>, text.<span class="title function_ invoke__">len</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">print_len</span>(&amp;name);</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;仍可使用: &#123;name&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_len</span>(text: &amp;<span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;长度: &#123;&#125;&quot;</span>, text.<span class="title function_ invoke__">len</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">print_len</span>(&amp;name);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;仍可使用: &#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>解释：函数参数使用引用 <code>&amp;String</code>，只借用值，不移动所有权。</p>
+<p>进一步改进：真实项目中更推荐用 <code>&amp;str</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_len</span>(text: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;长度: &#123;&#125;&quot;</span>, text.<span class="title function_ invoke__">len</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">print_len</span>(&amp;name);</span><br><span class="line">    <span class="title function_ invoke__">print_len</span>(<span class="string">&quot;borrow&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;仍可使用: &#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <h3 id="练习-2：限制可变借用作用域"><a href="#练习-2：限制可变借用作用域" class="headerlink" title="练习 2：限制可变借用作用域"></a>练习 2：限制可变借用作用域</h3><p>要求：先用可变借用修改字符串，再在外部打印原字符串。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">borrowed</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">    borrowed.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; book&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">borrowed</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">        borrowed.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; book&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>解释：把可变借用放进小作用域，离开作用域后就可以再次使用原变量。</p>
+<h3 id="练习-3：修复-move-后继续使用的问题"><a href="#练习-3：修复-move-后继续使用的问题" class="headerlink" title="练习 3：修复 move 后继续使用的问题"></a>练习 3：修复 move 后继续使用的问题</h3><p>要求：下面代码不能通过编译，请写出两种修复方式。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">consume</span>(text: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust ownership&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">consume</span>(title);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考答案一：函数改为借用。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">consume</span>(text: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust ownership&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">consume</span>(&amp;title);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考答案二：调用时显式克隆。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">consume</span>(text: <span class="type">String</span>) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust ownership&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">consume</span>(title.<span class="title function_ invoke__">clone</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：第一种方式避免移动所有权，通常更推荐。第二种方式保留函数签名，但会复制一份字符串内容。</p>
+<h3 id="练习-4：返回所有权"><a href="#练习-4：返回所有权" class="headerlink" title="练习 4：返回所有权"></a>练习 4：返回所有权</h3><p>要求：写一个函数接收 <code>String</code>，在末尾追加内容后把所有权还给调用方。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">add_suffix</span>(<span class="keyword">mut</span> text: <span class="type">String</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">    text</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="title function_ invoke__">add_suffix</span>(text);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>text</code> 被移动进函数，函数内部拥有它。返回 <code>text</code> 时，所有权又移动回调用方的新变量。</p>
+<h3 id="练习-5：使用可变借用修改而不转移所有权"><a href="#练习-5：使用可变借用修改而不转移所有权" class="headerlink" title="练习 5：使用可变借用修改而不转移所有权"></a>练习 5：使用可变借用修改而不转移所有权</h3><p>要求：写一个函数 <code>append_suffix(text: &amp;mut String, suffix: &amp;str)</code>，把 <code>suffix</code> 追加到 <code>text</code> 后面。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">append_suffix</span>(text: &amp;<span class="keyword">mut</span> <span class="type">String</span>, suffix: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(suffix);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">title</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">append_suffix</span>(&amp;<span class="keyword">mut</span> title, <span class="string">&quot; ownership&quot;</span>);</span><br><span class="line">    <span class="title function_ invoke__">append_suffix</span>(&amp;<span class="keyword">mut</span> title, <span class="string">&quot; and borrowing&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>text</code> 是可变借用，函数可以修改原字符串；<code>suffix</code> 是 <code>&amp;str</code>，可以接收字符串字面量，也可以接收 <code>String</code> 的引用。</p>
+<h3 id="练习-6：判断-move、copy、clone"><a href="#练习-6：判断-move、copy、clone" class="headerlink" title="练习 6：判断 move、copy、clone"></a>练习 6：判断 move、copy、clone</h3><p>要求：判断下面每行之后，原变量是否还能使用，并说明原因。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="variable">number</span> = <span class="number">10</span>;</span><br><span class="line"><span class="keyword">let</span> <span class="variable">copied</span> = number;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">moved</span> = name;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">city</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Macau&quot;</span>);</span><br><span class="line"><span class="keyword">let</span> <span class="variable">cloned</span> = city.<span class="title function_ invoke__">clone</span>();</span><br></pre></td></tr></table></figure>
+
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">number</span> = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">copied</span> = number;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;number=&#123;number&#125;, copied=&#123;copied&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">moved</span> = name;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;moved=&#123;moved&#125;&quot;</span>);</span><br><span class="line">    <span class="comment">// println!(&quot;&#123;name&#125;&quot;); // 错误：name 已经 move 到 moved</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">city</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Macau&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">cloned</span> = city.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;city=&#123;city&#125;, cloned=&#123;cloned&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：</p>
+<ul>
+<li><code>number</code> 是整数，实现 <code>Copy</code>，赋值后还能继续使用。</li>
+<li><code>name</code> 是 <code>String</code>，赋值给 <code>moved</code> 后发生所有权移动，<code>name</code> 不能继续使用。</li>
+<li><code>city.clone()</code> 显式复制堆数据，<code>city</code> 和 <code>cloned</code> 都能继续使用。</li>
+</ul>
+<h3 id="练习-7：修复重叠借用"><a href="#练习-7：修复重叠借用" class="headerlink" title="练习 7：修复重叠借用"></a>练习 7：修复重叠借用</h3><p>要求：下面代码不能通过编译，请修改为可以先打印长度，再追加内容。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">len_ref</span> = &amp;text;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">write_ref</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">    write_ref.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;长度参考: &#123;&#125;&quot;</span>, len_ref.<span class="title function_ invoke__">len</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">len_ref</span> = &amp;text;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;长度参考: &#123;&#125;&quot;</span>, len_ref.<span class="title function_ invoke__">len</span>());</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">write_ref</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">    write_ref.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; language&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;write_ref&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：先完成不可变借用 <code>len_ref</code> 的最后一次使用，再创建可变借用 <code>write_ref</code>。这样读写借用不会重叠。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/04/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-04-%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6/">Rust学习笔记 04：流程控制</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/">Rust学习笔记 06：引用与切片</a></li>
@@ -373,14 +682,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

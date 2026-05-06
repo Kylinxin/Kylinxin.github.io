@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;10_modules_packages.rs运行命令： 1cargo run --bin lesson10_modules_packages 学习目标本篇整理 mod、pub、嵌套模块、use 路径引入，以及 Cargo package 和 crate 的基本关系。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101112131">
+    <meta name="description" content="对应代码文件：src&#x2F;bin&#x2F;10_modules_packages.rs 运行命令： 1cargo run --bin lesson10_modules_packages  学习目标模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。 本项目把每节课放在 src&#x2F;bin 下，并在 Cargo.toml 中声明多个 bin target。  理解 package、">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Rust学习笔记 10：模块系统和包管理">
 <meta property="og:url" content="https://kylinxin.github.io/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;10_modules_packages.rs运行命令： 1cargo run --bin lesson10_modules_packages 学习目标本篇整理 mod、pub、嵌套模块、use 路径引入，以及 Cargo package 和 crate 的基本关系。学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。 完整源码123456789101112131">
+<meta property="og:description" content="对应代码文件：src&#x2F;bin&#x2F;10_modules_packages.rs 运行命令： 1cargo run --bin lesson10_modules_packages  学习目标模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。 本项目把每节课放在 src&#x2F;bin 下，并在 Cargo.toml 中声明多个 bin target。  理解 package、">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-04-10T01:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-10T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-06T11:50:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Rust">
 <meta property="article:tag" content="Cargo">
@@ -162,7 +162,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">2.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">3.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#mod"><span class="nav-number">3.1.</span> <span class="nav-text">mod</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pub"><span class="nav-number">3.2.</span> <span class="nav-text">pub</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B5%8C%E5%A5%97%E6%A8%A1%E5%9D%97"><span class="nav-number">3.3.</span> <span class="nav-text">嵌套模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#use"><span class="nav-number">3.4.</span> <span class="nav-text">use</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Cargo-%E7%BB%84%E7%BB%87"><span class="nav-number">3.5.</span> <span class="nav-text">Cargo 组织</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">4.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">5.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">6.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E6%96%B0%E5%A2%9E%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%B7%A5%E5%85%B7%E6%A8%A1%E5%9D%97"><span class="nav-number">6.1.</span> <span class="nav-text">练习 1：新增字符串工具模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E4%BD%BF%E7%94%A8-use-%E7%AE%80%E5%8C%96%E8%B7%AF%E5%BE%84"><span class="nav-number">6.2.</span> <span class="nav-text">练习 2：使用 use 简化路径</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E7%9B%AE%E6%A0%87"><span class="nav-number">1.</span> <span class="nav-text">学习目标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">2.</span> <span class="nav-text">核心概念速查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%BA%90%E7%A0%81"><span class="nav-number">3.</span> <span class="nav-text">完整源码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E4%B8%8E%E8%A7%82%E5%AF%9F"><span class="nav-number">4.</span> <span class="nav-text">运行与观察</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%90%E6%AE%B5%E8%A7%A3%E8%AF%BB"><span class="nav-number">5.</span> <span class="nav-text">逐段解读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E9%83%A8%E6%A8%A1%E5%9D%97"><span class="nav-number">5.1.</span> <span class="nav-text">内部模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%BC%80%E5%87%BD%E6%95%B0"><span class="nav-number">5.2.</span> <span class="nav-text">公开函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%AF%E5%BE%84%E8%B0%83%E7%94%A8"><span class="nav-number">5.3.</span> <span class="nav-text">路径调用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#use-%E7%AE%80%E5%8C%96%E8%B7%AF%E5%BE%84"><span class="nav-number">5.4.</span> <span class="nav-text">use 简化路径</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%93%E6%9C%89%E8%AF%8D%E8%AF%AD%E8%AF%A6%E8%A7%A3"><span class="nav-number">6.</span> <span class="nav-text">专有词语详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#package"><span class="nav-number">6.1.</span> <span class="nav-text">package</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#crate"><span class="nav-number">6.2.</span> <span class="nav-text">crate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#module"><span class="nav-number">6.3.</span> <span class="nav-text">module</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pub"><span class="nav-number">6.4.</span> <span class="nav-text">pub</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#use"><span class="nav-number">6.5.</span> <span class="nav-text">use</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%AD%A6%E8%80%85%E6%8B%93%E5%B1%95"><span class="nav-number">7.</span> <span class="nav-text">初学者拓展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">8.</span> <span class="nav-text">常见误区</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E9%98%B6%E7%BB%83%E4%B9%A0%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="nav-number">9.</span> <span class="nav-text">进阶练习与参考答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-1%EF%BC%9A%E5%AE%9A%E4%B9%89%E5%B7%A5%E5%85%B7%E6%A8%A1%E5%9D%97"><span class="nav-number">9.1.</span> <span class="nav-text">练习 1：定义工具模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-2%EF%BC%9A%E4%BD%BF%E7%94%A8-use"><span class="nav-number">9.2.</span> <span class="nav-text">练习 2：使用 use</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%83%E4%B9%A0-3%EF%BC%9ACargo-%E8%BF%90%E8%A1%8C%E6%8C%87%E5%AE%9A%E7%9B%AE%E6%A0%87"><span class="nav-number">9.3.</span> <span class="nav-text">练习 3：Cargo 运行指定目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E7%AC%94%E8%AE%B0"><span class="nav-number">10.</span> <span class="nav-text">相关笔记</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -253,6 +253,13 @@
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
         <i class="far fa-folder"></i>
       </span>
       <span class="post-meta-item-text">分类于</span>
@@ -268,14 +275,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>641</span>
+      <span>1.1k</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>4 分钟</span>
     </span>
 </div>
 
@@ -285,33 +292,96 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/10_modules_packages.rs</code><br>运行命令：</p>
+    <div class="post-body" itemprop="articleBody"><p>对应代码文件：<code>src/bin/10_modules_packages.rs</code></p>
+<p>运行命令：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson10_modules_packages</span><br></pre></td></tr></table></figure>
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本篇整理 <code>mod</code>、<code>pub</code>、嵌套模块、<code>use</code> 路径引入，以及 Cargo package 和 crate 的基本关系。<br>学完这一节后，你应该能读懂本节源码，并能独立完成文末练习。</p>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 一个文件内也可以定义模块，便于把相关代码分组。</span></span><br><span class="line"><span class="keyword">mod</span> math &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">add</span>(a: <span class="type">i32</span>, b: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        a + b</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">mod</span> stats &#123;</span><br><span class="line">        <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">average</span>(values: &amp;[<span class="type">f64</span>]) <span class="punctuation">-&gt;</span> <span class="type">f64</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">sum</span>: <span class="type">f64</span> = values.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">            sum / values.<span class="title function_ invoke__">len</span>() <span class="keyword">as</span> <span class="type">f64</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// use 可以把路径引入当前作用域，减少重复书写。</span></span><br><span class="line"><span class="keyword">use</span> math::stats::average;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sum</span> = math::<span class="title function_ invoke__">add</span>(<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;模块函数 add: &#123;sum&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">data</span> = [<span class="number">80.0</span>, <span class="number">90.0</span>, <span class="number">100.0</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;平均值: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">average</span>(&amp;data));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在真实项目中，Cargo.toml 描述 package，src/lib.rs 和 src/bin/*.rs 组织 crate。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;本文件用内联 mod 演示模块，保持示例自包含。&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="mod"><a href="#mod" class="headerlink" title="mod"></a>mod</h3><p><code>mod math &#123; ... &#125;</code> 定义模块，用来把相关代码分组。</p>
-<h3 id="pub"><a href="#pub" class="headerlink" title="pub"></a>pub</h3><p><code>pub fn add</code> 表示函数对模块外可见。没有 <code>pub</code> 的项默认私有。</p>
-<h3 id="嵌套模块"><a href="#嵌套模块" class="headerlink" title="嵌套模块"></a>嵌套模块</h3><p><code>pub mod stats</code> 定义子模块。路径可以写成 <code>math::stats::average</code>。</p>
-<h3 id="use"><a href="#use" class="headerlink" title="use"></a>use</h3><p><code>use math::stats::average;</code> 把长路径引入当前作用域，后续可以直接调用 <code>average</code>。</p>
-<h3 id="Cargo-组织"><a href="#Cargo-组织" class="headerlink" title="Cargo 组织"></a>Cargo 组织</h3><p><code>Cargo.toml</code> 描述 package，<code>src/lib.rs</code>、<code>src/main.rs</code> 和 <code>src/bin/*.rs</code> 组织 crate。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>模块解决命名空间和可见性问题。大项目不能把所有函数都放在一个文件里。</p>
-<p><code>pub</code> 不是“导出一切”，而是有意识地公开稳定接口。</p>
-<p>学习阶段可以用单文件 <code>mod</code>，真实项目通常拆到多个文件。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>函数放进模块后，如果没有 <code>pub</code>，外部无法调用。</li>
-<li><code>use</code> 只是简化路径，不会改变所有权或可见性。</li>
-<li>package 和 crate 不是完全同义。一个 package 可以包含多个 crate。</li>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。</p>
+<p>本项目把每节课放在 <code>src/bin</code> 下，并在 <code>Cargo.toml</code> 中声明多个 bin target。</p>
+<ul>
+<li>理解 package、crate、module 的基本区别。</li>
+<li>掌握 <code>mod</code>、<code>pub</code>、<code>use</code> 的用途。</li>
+<li>知道如何通过 Cargo 运行指定二进制示例。</li>
+<li>理解路径中的 <code>crate</code>、<code>self</code>、<code>super</code> 含义。</li>
 </ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：新增字符串工具模块"><a href="#练习-1：新增字符串工具模块" class="headerlink" title="练习 1：新增字符串工具模块"></a>练习 1：新增字符串工具模块</h3><p>要求：新增 <code>text</code> 模块，提供 <code>pub fn shout(value: &amp;str) -&gt; String</code>，返回大写并加感叹号。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> text &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">shout</span>(value: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;!&quot;</span>, value.<span class="title function_ invoke__">to_uppercase</span>())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, text::<span class="title function_ invoke__">shout</span>(<span class="string">&quot;rust&quot;</span>));</span><br></pre></td></tr></table></figure>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>package</td>
+<td>一个 Cargo 管理的项目。</td>
+<td>通常由一个 <code>Cargo.toml</code> 描述。</td>
+</tr>
+<tr>
+<td>crate</td>
+<td>Rust 编译单元。</td>
+<td>可以是库 crate，也可以是二进制 crate。</td>
+</tr>
+<tr>
+<td>module</td>
+<td>crate 内部的代码组织单元。</td>
+<td><code>mod math</code> 定义一个模块。</td>
+</tr>
+<tr>
+<td>pub</td>
+<td>公开可见性关键字。</td>
+<td>没有 <code>pub</code> 的项默认只在当前模块及子模块内可见。</td>
+</tr>
+<tr>
+<td>use</td>
+<td>把路径引入当前作用域。</td>
+<td>让长路径写起来更短。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 一个文件内也可以定义模块，便于把相关代码分组。</span></span><br><span class="line"><span class="keyword">mod</span> math &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">add</span>(a: <span class="type">i32</span>, b: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        a + b</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">mod</span> stats &#123;</span><br><span class="line">        <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">average</span>(values: &amp;[<span class="type">f64</span>]) <span class="punctuation">-&gt;</span> <span class="type">f64</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">sum</span>: <span class="type">f64</span> = values.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">            sum / values.<span class="title function_ invoke__">len</span>() <span class="keyword">as</span> <span class="type">f64</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// use 可以把路径引入当前作用域，减少重复书写。</span></span><br><span class="line"><span class="keyword">use</span> math::stats::average;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sum</span> = math::<span class="title function_ invoke__">add</span>(<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;模块函数 add: &#123;sum&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">data</span> = [<span class="number">80.0</span>, <span class="number">90.0</span>, <span class="number">100.0</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;平均值: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">average</span>(&amp;data));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在真实项目中，Cargo.toml 描述 package，src/lib.rs 和 src/bin/*.rs 组织 crate。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;本文件用内联 mod 演示模块，保持示例自包含。&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：模块可以按功能分组。<code>pub</code> 让函数能被模块外调用。</p>
-<h3 id="练习-2：使用-use-简化路径"><a href="#练习-2：使用-use-简化路径" class="headerlink" title="练习 2：使用 use 简化路径"></a>练习 2：使用 use 简化路径</h3><p>要求：把 <code>math::stats::average</code> 引入作用域，并直接调用。</p>
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson10_modules_packages</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="内部模块"><a href="#内部模块" class="headerlink" title="内部模块"></a>内部模块</h3><p>示例用 <code>mod math</code> 在单文件中定义模块，保持本节自包含。</p>
+<h3 id="公开函数"><a href="#公开函数" class="headerlink" title="公开函数"></a>公开函数</h3><p><code>pub fn add</code> 允许模块外部调用。</p>
+<h3 id="路径调用"><a href="#路径调用" class="headerlink" title="路径调用"></a>路径调用</h3><p><code>math::add(2, 3)</code> 通过模块路径访问函数。</p>
+<h3 id="use-简化路径"><a href="#use-简化路径" class="headerlink" title="use 简化路径"></a>use 简化路径</h3><p><code>use crate::math::add;</code> 后可以直接调用 <code>add()</code>。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="package"><a href="#package" class="headerlink" title="package"></a>package</h3><p>一个 Cargo 管理的项目。</p>
+<p>通常由一个 <code>Cargo.toml</code> 描述。</p>
+<h3 id="crate"><a href="#crate" class="headerlink" title="crate"></a>crate</h3><p>Rust 编译单元。</p>
+<p>可以是库 crate，也可以是二进制 crate。</p>
+<h3 id="module"><a href="#module" class="headerlink" title="module"></a>module</h3><p>crate 内部的代码组织单元。</p>
+<p><code>mod math</code> 定义一个模块。</p>
+<h3 id="pub"><a href="#pub" class="headerlink" title="pub"></a>pub</h3><p>公开可见性关键字。</p>
+<p>没有 <code>pub</code> 的项默认只在当前模块及子模块内可见。</p>
+<h3 id="use"><a href="#use" class="headerlink" title="use"></a>use</h3><p>把路径引入当前作用域。</p>
+<p>让长路径写起来更短。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>一个 package 可以包含多个二进制 crate。本项目每个 <code>src/bin/*.rs</code> 都是一个独立二进制。</p>
+<p><code>mod</code> 是声明模块。模块代码可以写在同一文件，也可以拆到独立文件。</p>
+<p><code>pub</code> 只公开当前项。结构体公开后，字段仍然默认私有，字段也要单独 <code>pub</code>。</p>
+<p><code>use</code> 不会改变所有权，也不会复制代码。它只是让路径在当前作用域更方便。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要把 package、crate、module 混为一谈。它们处在不同组织层级。</li>
+<li>函数写了 <code>pub</code>，所在模块如果不可见，外部仍然访问不到。</li>
+<li><code>use</code> 引入同名项时可能冲突，需要使用别名 <code>as</code>。</li>
+<li>多个 <code>src/bin</code> 文件彼此独立，不能直接共享私有函数。共享代码通常放到库模块。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义工具模块"><a href="#练习-1：定义工具模块" class="headerlink" title="练习 1：定义工具模块"></a>练习 1：定义工具模块</h3><p>要求：定义 <code>utils</code> 模块，公开 <code>double</code> 函数。</p>
 <p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> math::stats::average;</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">data</span> = [<span class="number">10.0</span>, <span class="number">20.0</span>, <span class="number">30.0</span>];</span><br><span class="line"><span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">average</span>(&amp;data));</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> utils &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">double</span>(value: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        value * <span class="number">2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, utils::<span class="title function_ invoke__">double</span>(<span class="number">21</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>解释：<code>use</code> 能减少重复路径，尤其适合频繁调用的函数或类型。</p>
+<p>解释：<code>pub</code> 让模块外的 <code>main</code> 能调用 <code>double</code>。</p>
+<h3 id="练习-2：使用-use"><a href="#练习-2：使用-use" class="headerlink" title="练习 2：使用 use"></a>练习 2：使用 use</h3><p>要求：用 <code>use</code> 简化上题的调用路径。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> utils &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">double</span>(value: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        value * <span class="number">2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> utils::double;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">double</span>(<span class="number">21</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>use utils::double</code> 后，当前作用域可以直接写函数名。</p>
+<h3 id="练习-3：Cargo-运行指定目标"><a href="#练习-3：Cargo-运行指定目标" class="headerlink" title="练习 3：Cargo 运行指定目标"></a>练习 3：Cargo 运行指定目标</h3><p>要求：写出运行第 10 节的命令。</p>
+<p>参考答案：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson10_modules_packages</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>--bin</code> 后面跟的是 <code>Cargo.toml</code> 中声明的 bin 名，不是文件名。</p>
 <h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
 <li><a href="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">Rust学习笔记 09：常见集合类型</a></li>
 <li><a href="https://kylinxin.github.io/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">Rust学习笔记 11：错误处理</a></li>
@@ -373,14 +443,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">324k</span>
+    <span title="站点总字数">335k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">19:38</span>
+    <span title="站点阅读时长">20:16</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
