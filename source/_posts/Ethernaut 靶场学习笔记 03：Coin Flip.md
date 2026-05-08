@@ -1,7 +1,7 @@
 ---
 title: "Ethernaut 靶场学习笔记 03：Coin Flip"
-date: 2026-05-08 10:03:00
-updated: 2026-05-08 22:50:00
+date: 2026-05-04 09:00:00
+updated: 2026-05-04 09:00:00
 categories:
   - "区块链安全"
   - "Ethernaut"

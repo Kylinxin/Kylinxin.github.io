@@ -20,15 +20,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。   关卡：Level 6 - Delegation  本关目标通过 Delegation 的 fallback + delegatecall 执行 Delegate.pwn，接管 owner。 考察知识点 delegatecall 函数选择器 存储上下文复用">
+    <meta name="description" content="这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。   关卡：Level 0 - Hello Ethernaut  本关目标熟悉 Ethernaut 的基本操作：连接钱包、创建实例、在浏览器控制台调用合约、提交实例。 考察知识点 Ethernaut 实例生命周期 浏览器控制台与异步合约调用 公开变量 gett">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Ethernaut 靶场学习笔记 06：Delegation">
-<meta property="og:url" content="https://kylinxin.github.io/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/index.html">
+<meta property="og:title" content="Ethernaut 靶场学习笔记 00：Hello Ethernaut">
+<meta property="og:url" content="https://kylinxin.github.io/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/index.html">
 <meta property="og:site_name" content="Ky不是枕木">
-<meta property="og:description" content="这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。   关卡：Level 6 - Delegation  本关目标通过 Delegation 的 fallback + delegatecall 执行 Delegate.pwn，接管 owner。 考察知识点 delegatecall 函数选择器 存储上下文复用">
+<meta property="og:description" content="这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。   关卡：Level 0 - Hello Ethernaut  本关目标熟悉 Ethernaut 的基本操作：连接钱包、创建实例、在浏览器控制台调用合约、提交实例。 考察知识点 Ethernaut 实例生命周期 浏览器控制台与异步合约调用 公开变量 gett">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2026-05-08T02:06:00.000Z">
-<meta property="article:modified_time" content="2026-05-08T14:50:00.000Z">
+<meta property="article:published_time" content="2026-05-01T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-01T01:00:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="Ethernaut">
 <meta property="article:tag" content="Solidity">
@@ -36,13 +36,13 @@
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/">
+<link rel="canonical" href="https://kylinxin.github.io/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/","path":"2026/05/08/Ethernaut 靶场学习笔记 06：Delegation/","title":"Ethernaut 靶场学习笔记 06：Delegation"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/","path":"2026/05/01/Ethernaut 靶场学习笔记 00：Hello Ethernaut/","title":"Ethernaut 靶场学习笔记 00：Hello Ethernaut"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Ethernaut 靶场学习笔记 06：Delegation | Ky不是枕木</title>
+<title>Ethernaut 靶场学习笔记 00：Hello Ethernaut | Ky不是枕木</title>
   
 
 
@@ -220,7 +220,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/faction/1.png">
@@ -233,12 +233,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Ethernaut 靶场学习笔记 06：Delegation | Ky不是枕木">
+      <meta itemprop="name" content="Ethernaut 靶场学习笔记 00：Hello Ethernaut | Ky不是枕木">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Ethernaut 靶场学习笔记 06：Delegation
+          Ethernaut 靶场学习笔记 00：Hello Ethernaut
         </h1>
 
         <div class="post-meta-container">
@@ -248,9 +248,8 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">发表于</span>
-      
 
-      <time title="创建时间：2026-05-08 10:06:00 / 修改时间：22:50:00" itemprop="dateCreated datePublished" datetime="2026-05-08T10:06:00+08:00">2026-05-08</time>
+      <time title="创建时间：2026-05-01 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-01T09:00:00+08:00">2026-05-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -273,14 +272,14 @@
         <i class="far fa-file-word"></i>
       </span>
       <span class="post-meta-item-text">本文字数：</span>
-      <span>505</span>
+      <span>690</span>
     </span>
     <span class="post-meta-item" title="阅读时长">
       <span class="post-meta-item-icon">
         <i class="far fa-clock"></i>
       </span>
       <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
+      <span>3 分钟</span>
     </span>
 </div>
 
@@ -294,43 +293,41 @@
 <p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
 </blockquote>
 <ul>
-<li>关卡：Level 6 - Delegation</li>
+<li>关卡：Level 0 - Hello Ethernaut</li>
 </ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>通过 Delegation 的 fallback + delegatecall 执行 Delegate.pwn，接管 owner。</p>
+<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>熟悉 Ethernaut 的基本操作：连接钱包、创建实例、在浏览器控制台调用合约、提交实例。</p>
 <h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li>delegatecall</li>
-<li>函数选择器</li>
-<li>存储上下文复用</li>
+<li>Ethernaut 实例生命周期</li>
+<li>浏览器控制台与异步合约调用</li>
+<li>公开变量 getter</li>
 </ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.0;</span><br><span class="line"></span><br><span class="line">contract Delegate &#123;</span><br><span class="line"></span><br><span class="line">  address public owner;</span><br><span class="line"></span><br><span class="line">  constructor(address _owner) &#123;</span><br><span class="line">    owner = _owner;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function pwn() public &#123;</span><br><span class="line">    owner = msg.sender;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract Delegation &#123;</span><br><span class="line"></span><br><span class="line">  address public owner;</span><br><span class="line">  Delegate delegate;</span><br><span class="line"></span><br><span class="line">  constructor(address _delegateAddress) &#123;</span><br><span class="line">    delegate = Delegate(_delegateAddress);</span><br><span class="line">    owner = msg.sender;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  fallback() external &#123;</span><br><span class="line">    (bool result,) = address(delegate).delegatecall(msg.data);</span><br><span class="line">    if (result) &#123;</span><br><span class="line">      this;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.0;</span><br><span class="line"></span><br><span class="line">contract Instance &#123;</span><br><span class="line"></span><br><span class="line">  string public password;</span><br><span class="line">  uint8 public infoNum = 42;</span><br><span class="line">  string public theMethodName = &#x27;The method name is method7123949.&#x27;;</span><br><span class="line">  bool private cleared = false;</span><br><span class="line"></span><br><span class="line">  // constructor</span><br><span class="line">  constructor(string memory _password) &#123;</span><br><span class="line">    password = _password;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function info() public pure returns (string memory) &#123;</span><br><span class="line">    return &#x27;You will find what you need in info1().&#x27;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function info1() public pure returns (string memory) &#123;</span><br><span class="line">    return &#x27;Try info2(), but with &quot;hello&quot; as a parameter.&#x27;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function info2(string memory param) public pure returns (string memory) &#123;</span><br><span class="line">    if(keccak256(abi.encodePacked(param)) == keccak256(abi.encodePacked(&#x27;hello&#x27;))) &#123;</span><br><span class="line">      return &#x27;The property infoNum holds the number of the next info method to call.&#x27;;</span><br><span class="line">    &#125;</span><br><span class="line">    return &#x27;Wrong parameter.&#x27;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function info42() public pure returns (string memory) &#123;</span><br><span class="line">    return &#x27;theMethodName is the name of the next method.&#x27;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function method7123949() public pure returns (string memory) &#123;</span><br><span class="line">    return &#x27;If you know the password, submit it to authenticate().&#x27;;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function authenticate(string memory passkey) public &#123;</span><br><span class="line">    if(keccak256(abi.encodePacked(passkey)) == keccak256(abi.encodePacked(password))) &#123;</span><br><span class="line">      cleared = true;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  function getCleared() public view returns (bool) &#123;</span><br><span class="line">    return cleared;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li><code>Delegation</code> 自己没有 <code>pwn()</code>，但 fallback 会把任意 calldata 通过 <code>delegatecall</code> 交给 <code>Delegate</code>。</li>
-<li><code>delegatecall</code> 的关键点：执行的是被调用合约代码，但读写的是调用方的 storage，<code>msg.sender</code> 也保持为原始调用者。</li>
-<li><code>Delegate.pwn()</code> 写 <code>owner = msg.sender</code>。通过 delegatecall 执行时，写入的是 <code>Delegation.owner</code>。</li>
-<li>要触发它，只需要把 <code>pwn()</code> 的函数选择器作为 calldata 发给 Delegation 实例。选择器是 <code>bytes4(keccak256(&quot;pwn()&quot;)) = 0xdd365b8b</code>。</li>
+<li>本关没有复杂漏洞，重点是建立操作习惯。Ethernaut 页面创建实例后，会在控制台暴露 <code>contract</code>、<code>player</code>、<code>instance</code> 等变量，<code>contract</code> 就是当前实例的 ABI 封装对象。</li>
+<li>源码中 <code>password</code> 是 <code>public</code>，Solidity 会自动生成 <code>password()</code> getter，所以控制台可以直接读到口令。<code>cleared</code> 虽然是 <code>private</code>，但这里只需要通过 <code>authenticate</code> 改它。</li>
+<li><code>info2</code> 用 <code>keccak256(abi.encodePacked(param))</code> 比较字符串，所以参数必须是精确的 <code>hello</code>。后续 <code>infoNum</code>、<code>theMethodName</code> 都是在训练如何根据返回值继续找下一个函数。</li>
 </ol>
 <h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>目标 fallback 把 calldata 委托给 Delegate 合约。</li>
-<li><code>pwn()</code> 的函数选择器为 <code>0xdd365b8b</code>。</li>
-<li>直接向实例发送这 4 字节 calldata，fallback 会 delegatecall 到 <code>pwn()</code>。</li>
-<li>Delegate 代码写入 slot0，实际改的是 Delegation 的 slot0。</li>
+<li>连接钱包并选择测试网，创建本关实例。</li>
+<li>在浏览器 DevTools Console 中逐个调用 <code>info</code> 系列函数。</li>
+<li>读取公开变量 <code>password</code>，把得到的口令传入 <code>authenticate</code>。</li>
+<li>回到页面提交实例。</li>
 </ol>
-<h2 id="Console-WP"><a href="#Console-WP" class="headerlink" title="Console WP"></a>Console WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">await</span> web3.<span class="property">eth</span>.<span class="property">abi</span>.<span class="title function_">encodeFunctionSignature</span>(<span class="string">&quot;pwn()&quot;</span>)</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">sendTransaction</span>(&#123; <span class="attr">data</span>: <span class="string">&quot;0xdd365b8b&quot;</span> &#125;)</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">owner</span>()</span><br></pre></td></tr></table></figure>
+<h2 id="Console-WP"><a href="#Console-WP" class="headerlink" title="Console WP"></a>Console WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info1</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info2</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"><span class="keyword">const</span> n = <span class="keyword">await</span> contract.<span class="title function_">infoNum</span>()</span><br><span class="line"><span class="keyword">await</span> contract[<span class="string">&quot;info&quot;</span> + n]()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">theMethodName</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">method7123949</span>()</span><br><span class="line"><span class="keyword">const</span> pass = <span class="keyword">await</span> contract.<span class="title function_">password</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">authenticate</span>(pass)</span><br></pre></td></tr></table></figure>
 
 <h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>计算或记下 <code>pwn()</code> selector：<code>0xdd365b8b</code>。</li>
-<li>向实例发送一笔 calldata 为 <code>0xdd365b8b</code> 的交易。</li>
-<li>fallback delegatecall 到 Delegate，实际覆盖 Delegation 的 slot0 owner。</li>
-<li>确认 <code>owner()</code> 变成玩家地址并提交。</li>
+<li>创建实例后打开浏览器 DevTools Console。</li>
+<li>按提示链式调用 <code>info -&gt; info1 -&gt; info2(&quot;hello&quot;) -&gt; infoNum -&gt; info42 -&gt; theMethodName -&gt; method7123949</code>。</li>
+<li>读取 <code>password()</code> 得到口令，调用 <code>authenticate(password)</code>。</li>
+<li>回到页面提交实例。</li>
 </ol>
 <h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：delegatecall 的危险点在于代码来自别处，但状态是自己的。</li>
-<li>防御建议：只 delegatecall 到可信、固定、存储布局兼容的实现；升级代理要严格控制实现地址。</li>
-<li>拓展：代理模式、库合约和 upgradeable 合约都大量依赖 delegatecall，审计时必须检查目标地址可控性与 storage layout。</li>
+<li>易错点：这是环境教学关，重点不是漏洞，而是理解 Ethernaut 的 <code>contract</code> 变量就是当前实例的 Web3 合约对象。</li>
+<li>防御建议：生产合约不要把敏感口令放在链上公开变量里；即使变量标成 <code>private</code>，链上存储也能被读取。</li>
 </ul>
 <h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/SJSC5T6Vp">https://hackmd.io/@0xbc000/SJSC5T6Vp</a></li>
+<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/ryToeKj4a">https://hackmd.io/@0xbc000/ryToeKj4a</a></li>
 <li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
 <li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
 </ul>
@@ -352,13 +349,13 @@
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2005%EF%BC%9AToken/" rel="prev" title="Ethernaut 靶场学习笔记 05：Token">
-                  <i class="fa fa-angle-left"></i> Ethernaut 靶场学习笔记 05：Token
+                <a href="/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/" rel="prev" title="Rust学习笔记 16：异步编程 async-await">
+                  <i class="fa fa-angle-left"></i> Rust学习笔记 16：异步编程 async-await
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2026/05/08/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2007%EF%BC%9AForce/" rel="next" title="Ethernaut 靶场学习笔记 07：Force">
-                  Ethernaut 靶场学习笔记 07：Force <i class="fa fa-angle-right"></i>
+                <a href="/2026/05/02/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2001%EF%BC%9AFallback/" rel="next" title="Ethernaut 靶场学习笔记 01：Fallback">
+                  Ethernaut 靶场学习笔记 01：Fallback <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
