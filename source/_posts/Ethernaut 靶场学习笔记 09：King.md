@@ -27,7 +27,7 @@ abbrlink: "ethernaut-level-09"
 
 ## 题目源码
 
-```solidity
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -71,7 +71,7 @@ contract King {
 
 ## 攻击合约 WP
 
-```solidity
+```javascript
 contract KingAttack {
     constructor(address payable instance) payable {
         (bool ok, ) = instance.call{value: msg.value}("");

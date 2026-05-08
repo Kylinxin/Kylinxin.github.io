@@ -27,7 +27,7 @@ abbrlink: "ethernaut-level-07"
 
 ## 题目源码
 
-```solidity
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -57,7 +57,7 @@ contract Force {/*
 
 ## 攻击合约 WP
 
-```solidity
+```javascript
 contract ForceAttack {
     constructor() payable {}
 

@@ -27,7 +27,7 @@ abbrlink: "ethernaut-level-02"
 
 ## 题目源码
 
-```solidity
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 

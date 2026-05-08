@@ -27,7 +27,7 @@ abbrlink: "ethernaut-level-03"
 
 ## 题目源码
 
-```solidity
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -78,7 +78,7 @@ contract CoinFlip {
 
 ## 攻击合约 WP
 
-```solidity
+```javascript
 interface ICoinFlip {
     function flip(bool guess) external returns (bool);
 }

@@ -27,7 +27,7 @@ abbrlink: "ethernaut-level-04"
 
 ## 题目源码
 
-```solidity
+```javascript
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -68,7 +68,7 @@ contract Telephone {
 
 ## 攻击合约 WP
 
-```solidity
+```javascript
 interface ITelephone {
     function changeOwner(address newOwner) external;
 }
