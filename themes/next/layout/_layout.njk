@@ -16,7 +16,7 @@
   </noscript>
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage"{% if theme.motion.enable %} class="use-motion"{% endif %}>
+<body itemscope itemtype="http://schema.org/WebPage" class="{% if theme.motion.enable %}use-motion{% endif %}{% if is_home() %} home-linear-page{% endif %}">
   <div class="headband"></div>
 
   <main class="main">

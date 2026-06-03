@@ -11,7 +11,7 @@
 {%- endif %}
 
 {%- if config.preconnect %}
-  <link rel="preload" href="{{ url_for(theme.css) }}/main.css" as="style">
+  <link rel="preload" href="{{ url_for(theme.css) }}/main.css?v=linear-verge-20260603c" as="style">
 {%- endif %}
 {{ next_pre() }}
 
@@ -44,7 +44,7 @@
   <meta name="baidu-site-verification" content="{{ theme.baidu_site_verification }}">
 {%- endif %}
 
-<link rel="stylesheet" href="{{ url_for(theme.css) }}/main.css">
+<link rel="stylesheet" href="{{ url_for(theme.css) }}/main.css?v=linear-verge-20260603c">
 
 {{ next_font() }}
 

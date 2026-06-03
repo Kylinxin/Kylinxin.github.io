@@ -1416,7 +1416,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #7f65ff;
+    background: #ff5d0e;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -3065,12 +3065,12 @@ body {
   background: var(--kx-line);
   height: 1px;
 }
-.main:has(.main-inner.index) {
+body.home-linear-page .main {
   display: block !important;
   max-width: calc(100vw - 80px) !important;
   width: 1280px !important;
 }
-.main:has(.main-inner.index) > .column {
+body.home-linear-page .main > .column {
   display: none !important;
 }
 .main {
@@ -3497,7 +3497,7 @@ body {
   .main {
     padding-top: 16px;
   }
-  .main:has(.main-inner.index) {
+  body.home-linear-page .main {
     max-width: none !important;
     width: auto !important;
   }

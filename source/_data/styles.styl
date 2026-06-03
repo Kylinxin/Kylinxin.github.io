@@ -28,13 +28,13 @@ body {
   height: 1px;
 }
 
-.main:has(.main-inner.index) {
+body.home-linear-page .main {
   display: block !important;
   max-width: calc(100vw - 80px) !important;
   width: 1280px !important;
 }
 
-.main:has(.main-inner.index) > .column {
+body.home-linear-page .main > .column {
   display: none !important;
 }
 
@@ -534,7 +534,7 @@ body {
     padding-top: 16px;
   }
 
-  .main:has(.main-inner.index) {
+  body.home-linear-page .main {
     max-width: none !important;
     width: auto !important;
   }
