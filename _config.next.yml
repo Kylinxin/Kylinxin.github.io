@@ -2,6 +2,10 @@ scheme: Gemini
 
 darkmode: true
 
+custom_file_path:
+  variable: source/_data/variables.styl
+  style: source/_data/styles.styl
+
 menu:
   home: / || fa fa-home
   archives: /archives/ || fa fa-archive

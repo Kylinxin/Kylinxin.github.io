@@ -24,7 +24,7 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Ethernaut 靶场学习笔记 06：Delegation">
 <meta property="og:url" content="https://kylinxin.github.io/2026/05/07/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/index.html">
-<meta property="og:site_name" content="Ky不是枕木">
+<meta property="og:site_name" content="Kylinxin&#39;s Blog">
 <meta property="og:description" content="这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。   关卡：Level 6 - Delegation  本关目标通过 Delegation 的 fallback + delegatecall 执行 Delegate.pwn，接管 owner。 考察知识点 delegatecall 函数选择器 存储上下文复用">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-05-07T01:00:00.000Z">
@@ -42,7 +42,7 @@
 <script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2026/05/07/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2006%EF%BC%9ADelegation/","path":"2026/05/07/Ethernaut 靶场学习笔记 06：Delegation/","title":"Ethernaut 靶场学习笔记 06：Delegation"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Ethernaut 靶场学习笔记 06：Delegation | Ky不是枕木</title>
+<title>Ethernaut 靶场学习笔记 06：Delegation | Kylinxin's Blog</title>
   
 
 
@@ -74,7 +74,7 @@
   <noscript>
     <link rel="stylesheet" href="/css/noscript.css">
   </noscript>
-<link rel="alternate" href="/atom.xml" title="Ky不是枕木" type="application/atom+xml">
+<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
 <body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
@@ -95,10 +95,9 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <p class="site-title">Ky不是枕木</p>
+      <p class="site-title">Kylinxin's Blog</p>
       <i class="logo-line"></i>
     </a>
-      <p class="site-subtitle" itemprop="description">分享学习经验</p>
   </div>
 
   <div class="site-nav-right">
@@ -171,7 +170,7 @@
     <img class="site-author-image" itemprop="image" alt="Kylinxin"
       src="/images/faction/1.png">
   <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">当你觉得生活都不顺心如意的时候，来学习pwn吧！</div>
+  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
 </div>
 <div class="site-state-wrap animated">
   <nav class="site-state">
@@ -228,12 +227,12 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Ky不是枕木">
-      <meta itemprop="description" content="当你觉得生活都不顺心如意的时候，来学习pwn吧！">
+      <meta itemprop="name" content="Kylinxin's Blog">
+      <meta itemprop="description" content="Kylinxin's Blog">
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Ethernaut 靶场学习笔记 06：Delegation | Ky不是枕木">
+      <meta itemprop="name" content="Ethernaut 靶场学习笔记 06：Delegation | Kylinxin's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
