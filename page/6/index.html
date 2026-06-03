@@ -140,75 +140,49 @@
 
 </header>
         
-  
-  <aside class="sidebar">
-
-    <div class="sidebar-inner sidebar-overview-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
-
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-        </div>
-        <!--/noindex-->
-
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">58</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">13</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">40</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
-
-        </div>
-      </div>
-    </div>
-
-    
-  </aside>
-
 
     </div>
 
     <div class="main-inner index posts-expand">
 
 
+  <nav class="home-topbar" aria-label="Home navigation">
+    <a class="home-brand" href="/">Kylinxin's Blog</a>
+    <div class="home-toplinks">
+      <a href="/archives/">ARCHIVE</a>
+      <a href="/categories/">CATEGORIES</a>
+      <a href="/tags/">TAGS</a>
+      <a class="home-dark-pill" href="#">DARK ON</a>
+    </div>
+  </nav>
+
   <section class="home-hero" aria-label="Kylinxin's Blog">
+    <div class="home-kicker">ENGINEERING JOURNAL</div>
     <h1>Kylinxin's Blog</h1>
   </section>
-    
+
+  <div class="home-dashboard">
+    <aside class="home-profile" aria-label="Profile">
+      <div class="home-monogram">KY</div>
+      <h2>Kylinxin</h2>
+      <div class="home-divider"></div>
+      <div class="home-label">SERIES</div>
+      <nav class="home-series" aria-label="Series">
+        <a class="is-active" href="/categories/heap/">Heap Exploitation</a>
+        <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>
+        <a href="/categories/Rust/">Rust</a>
+        <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>
+      </nav>
+      <div class="home-divider"></div>
+      <div class="home-label">STATUS</div>
+      <div class="home-status">
+        <span><i class="is-green"></i>site generated</span>
+        <span><i class="is-indigo"></i>dark mode active</span>
+      </div>
+    </aside>
+
+    <div class="home-timeline" aria-label="Recent posts">
+        
 
 
 <div class="post-block">
@@ -403,7 +377,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -496,7 +470,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -607,7 +581,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -768,7 +742,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -989,7 +963,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -1203,7 +1177,7 @@
 
 
 
-    
+        
 
 
 <div class="post-block">
@@ -1358,6 +1332,28 @@
   <nav class="pagination">
     <a class="extend prev" rel="prev" title="上一页" aria-label="上一页" href="/page/5/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/7/"><i class="fa fa-angle-right"></i></a>
   </nav>
+</div>
+
+    <aside class="home-console" aria-label="Console preview">
+      <div class="home-label">ACTIVE NOTE</div>
+      <h2>Console</h2>
+      <div class="home-terminal" aria-hidden="true">
+        <span class="is-mint">pwndbg&gt; tele $rsp</span>
+        <span>00: 0x7ffff7e1b500</span>
+        <span class="is-muted"># pivot into fake frame</span>
+        <span>rax = SYS_read</span>
+        <span class="is-indigo">rip -&gt; setcontext+53</span>
+      </div>
+      <h3>Tags</h3>
+      <div class="home-tags" aria-label="Tags">
+        <a href="/tags/how2heap/">heap</a>
+        <a href="/tags/orw/">orw</a>
+        <a href="/tags/Rust/">Rust</a>
+        <a class="is-active" href="/tags/Solidity/">Solidity</a>
+      </div>
+    </aside>
+  </div>
+
 
 </div>
   </main>

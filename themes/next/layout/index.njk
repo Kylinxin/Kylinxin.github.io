@@ -7,18 +7,70 @@
 
 {% block content %}
 
+  <nav class="home-topbar" aria-label="Home navigation">
+    <a class="home-brand" href="/">Kylinxin's Blog</a>
+    <div class="home-toplinks">
+      <a href="/archives/">ARCHIVE</a>
+      <a href="/categories/">CATEGORIES</a>
+      <a href="/tags/">TAGS</a>
+      <a class="home-dark-pill" href="#">DARK ON</a>
+    </div>
+  </nav>
+
   <section class="home-hero" aria-label="{{ title }}">
+    <div class="home-kicker">ENGINEERING JOURNAL</div>
     <h1>{{ title }}</h1>
   </section>
 
-  {%- for post in page.posts.toArray() %}
-    {{ partial('_macro/post.njk', {post: post, is_index: true}) }}
-  {%- endfor %}
+  <div class="home-dashboard">
+    <aside class="home-profile" aria-label="Profile">
+      <div class="home-monogram">KY</div>
+      <h2>Kylinxin</h2>
+      <div class="home-divider"></div>
+      <div class="home-label">SERIES</div>
+      <nav class="home-series" aria-label="Series">
+        <a class="is-active" href="/categories/heap/">Heap Exploitation</a>
+        <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>
+        <a href="/categories/Rust/">Rust</a>
+        <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>
+      </nav>
+      <div class="home-divider"></div>
+      <div class="home-label">STATUS</div>
+      <div class="home-status">
+        <span><i class="is-green"></i>site generated</span>
+        <span><i class="is-indigo"></i>dark mode active</span>
+      </div>
+    </aside>
 
-  {%- include '_partials/pagination.njk' -%}
+    <div class="home-timeline" aria-label="Recent posts">
+      {%- for post in page.posts.toArray() %}
+        {{ partial('_macro/post.njk', {post: post, is_index: true}) }}
+      {%- endfor %}
+
+      {%- include '_partials/pagination.njk' -%}
+    </div>
+
+    <aside class="home-console" aria-label="Console preview">
+      <div class="home-label">ACTIVE NOTE</div>
+      <h2>Console</h2>
+      <div class="home-terminal" aria-hidden="true">
+        <span class="is-mint">pwndbg&gt; tele $rsp</span>
+        <span>00: 0x7ffff7e1b500</span>
+        <span class="is-muted"># pivot into fake frame</span>
+        <span>rax = SYS_read</span>
+        <span class="is-indigo">rip -&gt; setcontext+53</span>
+      </div>
+      <h3>Tags</h3>
+      <div class="home-tags" aria-label="Tags">
+        <a href="/tags/how2heap/">heap</a>
+        <a href="/tags/orw/">orw</a>
+        <a href="/tags/Rust/">Rust</a>
+        <a class="is-active" href="/tags/Solidity/">Solidity</a>
+      </div>
+    </aside>
+  </div>
 
 {% endblock %}
 
 {% block sidebar %}
-  {{ sidebar_template.render(false) }}
 {% endblock %}
