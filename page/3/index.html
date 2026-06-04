@@ -190,6 +190,392 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/faction/1.png">
+      <meta itemprop="name" content="Kylinxin">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Kylinxin's Blog">
+      <meta itemprop="description" content="Kylinxin's Blog">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Kylinxin's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" class="post-title-link" itemprop="url">Rust学习笔记 14：生命周期</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-04-14 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-14T09:00:00+08:00">2026-04-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>对应代码文件：<code>src/bin/14_lifetimes.rs</code></p>
+<p>运行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson14_lifetimes</span><br></pre></td></tr></table></figure>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。</p>
+<p>初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。</p>
+<ul>
+<li>理解生命周期用于防止悬垂引用。</li>
+<li>知道很多生命周期可以由编译器自动省略。</li>
+<li>会读懂简单的 <code>&#39;a</code> 标注。</li>
+<li>理解结构体中保存引用时为什么需要生命周期参数。</li>
+</ul>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>生命周期 lifetime</td>
+<td>引用保持有效的代码范围。</td>
+<td><code>&#39;a</code> 是生命周期参数名。</td>
+</tr>
+<tr>
+<td>悬垂引用 dangling reference</td>
+<td>指向已经无效数据的引用。</td>
+<td>Rust 编译器会阻止它。</td>
+</tr>
+<tr>
+<td>生命周期标注</td>
+<td>显式说明多个引用之间的有效期关系。</td>
+<td><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</td>
+</tr>
+<tr>
+<td>生命周期省略</td>
+<td>编译器按规则自动推断常见生命周期。</td>
+<td>很多函数不需要手写 <code>&#39;a</code>。</td>
+</tr>
+<tr>
+<td>‘static</td>
+<td>能存活整个程序运行期间的生命周期。</td>
+<td>字符串字面量通常是 <code>&amp;&#39;static str</code>。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// 生命周期标注说明：返回引用的有效期不超过两个输入引用中较短的那个。</span></span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        left</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        right</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ImportantExcerpt</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="comment">// 结构体保存引用时，需要说明引用必须活得和结构体一样久。</span></span><br><span class="line">    part: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;a</span>&gt; ImportantExcerpt&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">announce_and_return_part</span>(&amp;<span class="keyword">self</span>, announcement: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;announcement&#125;&quot;</span>);</span><br><span class="line">        <span class="keyword">self</span>.part</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;short&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">second</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;a longer string&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">longest</span>(&amp;first, &amp;second);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;更长的是: &#123;result&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">novel</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust is safe. Rust is fast.&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first_sentence</span> = novel.<span class="title function_ invoke__">split</span>(<span class="string">&#x27;.&#x27;</span>).<span class="title function_ invoke__">next</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">excerpt</span> = ImportantExcerpt &#123;</span><br><span class="line">        part: first_sentence,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘录: &#123;&#125;&quot;</span>, excerpt.<span class="title function_ invoke__">announce_and_return_part</span>(<span class="string">&quot;开始阅读&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson14_lifetimes</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="返回引用"><a href="#返回引用" class="headerlink" title="返回引用"></a>返回引用</h3><p>函数返回引用时，编译器必须知道它来自哪个输入。</p>
+<h3 id="longest"><a href="#longest" class="headerlink" title="longest"></a>longest</h3><p><code>longest&lt;&#39;a&gt;</code> 表示返回值不会比两个输入引用中较短者活得更久。</p>
+<h3 id="结构体引用字段"><a href="#结构体引用字段" class="headerlink" title="结构体引用字段"></a>结构体引用字段</h3><p>结构体保存引用时，要在类型上标注生命周期。</p>
+<h3 id="字符串字面量"><a href="#字符串字面量" class="headerlink" title="字符串字面量"></a>字符串字面量</h3><p>字面量存放在程序二进制中，常具有 <code>&#39;static</code> 生命周期。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="生命周期-lifetime"><a href="#生命周期-lifetime" class="headerlink" title="生命周期 lifetime"></a>生命周期 lifetime</h3><p>引用保持有效的代码范围。</p>
+<p><code>&#39;a</code> 是生命周期参数名。</p>
+<h3 id="悬垂引用-dangling-reference"><a href="#悬垂引用-dangling-reference" class="headerlink" title="悬垂引用 dangling reference"></a>悬垂引用 dangling reference</h3><p>指向已经无效数据的引用。</p>
+<p>Rust 编译器会阻止它。</p>
+<h3 id="生命周期标注"><a href="#生命周期标注" class="headerlink" title="生命周期标注"></a>生命周期标注</h3><p>显式说明多个引用之间的有效期关系。</p>
+<p><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</p>
+<h3 id="生命周期省略"><a href="#生命周期省略" class="headerlink" title="生命周期省略"></a>生命周期省略</h3><p>编译器按规则自动推断常见生命周期。</p>
+<p>很多函数不需要手写 <code>&#39;a</code>。</p>
+<h3 id="‘static"><a href="#‘static" class="headerlink" title="‘static"></a>‘static</h3><p>能存活整个程序运行期间的生命周期。</p>
+<p>字符串字面量通常是 <code>&amp;&#39;static str</code>。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>生命周期标注不会延长任何值的生命。它只是描述已有的有效范围。</p>
+<p><code>&#39;a</code> 的名字没有特殊含义，可以叫 <code>&#39;text</code>，但简单示例常用 <code>&#39;a</code>。</p>
+<p>返回引用时，返回值必须来自输入引用或其他足够长寿的数据，不能返回局部变量引用。</p>
+<p>生命周期和所有权配合工作。拥有值的数据离开作用域后，指向它的引用不能继续存在。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要试图用生命周期标注修复真正的所有权错误。</li>
+<li>不要返回函数内部创建的局部 <code>String</code> 的引用。</li>
+<li><code>&#39;static</code> 不等于“永远不释放所有数据”，它表示引用目标在整个程序期间有效。</li>
+<li>生命周期报错通常说明引用关系不清楚，先画出数据拥有者和借用者。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：实现-longest"><a href="#练习-1：实现-longest" class="headerlink" title="练习 1：实现 longest"></a>练习 1：实现 longest</h3><p>要求：返回两个字符串切片中更长的一个。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123; left &#125; <span class="keyword">else</span> &#123; right &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">longest</span>(<span class="string">&quot;Rust&quot;</span>, <span class="string">&quot;language&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：返回值可能来自任一输入，所以要用同一个生命周期参数描述关系。</p>
+<h3 id="练习-2：结构体保存引用"><a href="#练习-2：结构体保存引用" class="headerlink" title="练习 2：结构体保存引用"></a>练习 2：结构体保存引用</h3><p>要求：定义保存标题引用的结构体。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Title</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    text: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">raw</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = Title &#123; text: &amp;raw &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, title.text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：结构体不能比它内部引用的字符串活得更久。</p>
+<h3 id="练习-3：避免返回局部引用"><a href="#练习-3：避免返回局部引用" class="headerlink" title="练习 3：避免返回局部引用"></a>练习 3：避免返回局部引用</h3><p>要求：修复返回局部字符串引用的错误。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">make_title</span>() <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="title function_ invoke__">make_title</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：函数内部创建的数据应返回所有权，而不是返回指向局部变量的引用。</p>
+<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
+<li><a href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">Rust学习笔记 13：Trait 与 Trait Bound</a></li>
+<li><a href="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">Rust学习笔记 15：常用标准库函数与实用宏</a></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+        
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/faction/1.png">
+      <meta itemprop="name" content="Kylinxin">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Kylinxin's Blog">
+      <meta itemprop="description" content="Kylinxin's Blog">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Kylinxin's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/" class="post-title-link" itemprop="url">Rust学习笔记 13：Trait 与 Trait Bound</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-04-13 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-13T09:00:00+08:00">2026-04-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>对应代码文件：<code>src/bin/13_traits_trait_bounds.rs</code></p>
+<p>运行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson13_traits_trait_bounds</span><br></pre></td></tr></table></figure>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。</p>
+<p>如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。</p>
+<ul>
+<li>理解 trait 是行为接口。</li>
+<li>会为自定义类型实现 trait。</li>
+<li>会用 <code>impl Trait</code> 和 <code>&lt;T: Trait&gt;</code> 写参数。</li>
+<li>知道标准库常见 trait，如 <code>Debug</code>、<code>Display</code>、<code>Clone</code>、<code>Copy</code>。</li>
+</ul>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Trait</td>
+<td>一组方法签名或默认实现。</td>
+<td>类似“能力契约”，但不是类继承。</td>
+</tr>
+<tr>
+<td>实现 impl</td>
+<td>为某个类型提供 trait 要求的方法。</td>
+<td><code>impl Summary for Article</code>。</td>
+</tr>
+<tr>
+<td>Trait Bound</td>
+<td>泛型参数必须满足的 trait 约束。</td>
+<td><code>T: Summary</code> 表示 T 必须能摘要。</td>
+</tr>
+<tr>
+<td>impl Trait</td>
+<td>参数或返回值位置的简写形式。</td>
+<td><code>fn print(item: &amp;impl Summary)</code>。</td>
+</tr>
+<tr>
+<td>默认实现</td>
+<td>trait 中直接提供方法体。</td>
+<td>实现者可以使用默认逻辑，也可以覆盖。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// trait 可以提供默认实现。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;unknown&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; by &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;blog&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="comment">// T: Summary 是 trait bound，表示 T 必须实现 Summary。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘要: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;来源: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">source</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">notify</span>(item: &amp;<span class="keyword">impl</span> <span class="title class_">Summary</span>) &#123;</span><br><span class="line">    <span class="comment">// impl Trait 是更简洁的参数写法。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123;</span><br><span class="line">        title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Learning Rust&quot;</span>),</span><br><span class="line">        author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Kylin&quot;</span>),</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print_summary</span>(&amp;article);</span><br><span class="line">    <span class="title function_ invoke__">notify</span>(&amp;article);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson13_traits_trait_bounds</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义-trait"><a href="#定义-trait" class="headerlink" title="定义 trait"></a>定义 trait</h3><p><code>trait Summary</code> 声明 <code>summarize</code> 行为。</p>
+<h3 id="实现-trait"><a href="#实现-trait" class="headerlink" title="实现 trait"></a>实现 trait</h3><p>不同结构体可以各自实现 <code>Summary</code>。</p>
+<h3 id="Trait-bound"><a href="#Trait-bound" class="headerlink" title="Trait bound"></a>Trait bound</h3><p><code>fn notify&lt;T: Summary&gt;(item: &amp;T)</code> 接收任何能摘要的类型。</p>
+<h3 id="默认方法"><a href="#默认方法" class="headerlink" title="默认方法"></a>默认方法</h3><p>trait 可以提供默认方法，减少重复实现。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Trait"><a href="#Trait" class="headerlink" title="Trait"></a>Trait</h3><p>一组方法签名或默认实现。</p>
+<p>类似“能力契约”，但不是类继承。</p>
+<h3 id="实现-impl"><a href="#实现-impl" class="headerlink" title="实现 impl"></a>实现 impl</h3><p>为某个类型提供 trait 要求的方法。</p>
+<p><code>impl Summary for Article</code>。</p>
+<h3 id="Trait-Bound"><a href="#Trait-Bound" class="headerlink" title="Trait Bound"></a>Trait Bound</h3><p>泛型参数必须满足的 trait 约束。</p>
+<p><code>T: Summary</code> 表示 T 必须能摘要。</p>
+<h3 id="impl-Trait"><a href="#impl-Trait" class="headerlink" title="impl Trait"></a>impl Trait</h3><p>参数或返回值位置的简写形式。</p>
+<p><code>fn print(item: &amp;impl Summary)</code>。</p>
+<h3 id="默认实现"><a href="#默认实现" class="headerlink" title="默认实现"></a>默认实现</h3><p>trait 中直接提供方法体。</p>
+<p>实现者可以使用默认逻辑，也可以覆盖。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>Trait 表达共享行为，不表达共享字段。不同类型可以用完全不同的数据实现同一个行为。</p>
+<p><code>impl Trait</code> 简洁，适合简单参数。显式泛型 <code>&lt;T: Trait&gt;</code> 适合多个参数需要表达同一类型或多个约束。</p>
+<p>一个类型可以实现多个 trait。一个函数也可以要求 <code>T: Summary + Clone</code>。</p>
+<p>Rust 的 trait 遵循孤儿规则：通常只能为本地类型实现外部 trait，或为外部类型实现本地 trait。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要把 trait 当作父类。Trait 不保存实例字段。</li>
+<li>泛型函数里调用 trait 方法前，必须写 trait bound。</li>
+<li><code>Debug</code> 用于开发调试，<code>Display</code> 用于用户友好输出，两者不同。</li>
+<li><code>Copy</code> 继承自 <code>Clone</code> 的语义，但只有轻量、按位复制安全的类型才应实现。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义-Summary"><a href="#练习-1：定义-Summary" class="headerlink" title="练习 1：定义 Summary"></a>练习 1：定义 Summary</h3><p>要求：给文章类型实现摘要能力。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;文章: &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>) &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, article.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：trait 只规定行为，具体格式由实现者决定。</p>
+<h3 id="练习-2：使用-trait-bound"><a href="#练习-2：使用-trait-bound" class="headerlink" title="练习 2：使用 trait bound"></a>练习 2：使用 trait bound</h3><p>要求：写函数打印任何可摘要对象。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>T: Summary</code> 让函数内部可以安全调用 <code>summarize</code>。</p>
+<h3 id="练习-3：多个约束"><a href="#练习-3：多个约束" class="headerlink" title="练习 3：多个约束"></a>练习 3：多个约束</h3><p>要求：写函数要求参数既能摘要又能克隆。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">duplicate_summary</span>&lt;T&gt;(item: &amp;T) <span class="punctuation">-&gt;</span> <span class="type">String</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    T: Summary + <span class="built_in">Clone</span>,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">copied</span> = item.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    copied.<span class="title function_ invoke__">summarize</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>where</code> 子句适合约束较多时提高可读性。</p>
+<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
+<li><a href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">Rust学习笔记 12：泛型</a></li>
+<li><a href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust学习笔记 14：生命周期</a></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+        
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1147,392 +1533,6 @@
 
 
 
-        
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/" class="post-title-link" itemprop="url">Rust学习笔记 07：结构体和方法</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-07 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-07T09:00:00+08:00">2026-04-07</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.2k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/07_structs_methods.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson07_structs_methods</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>结构体用于把相关数据组合成有名字的类型。方法则把和这个类型相关的行为放在一起。</p>
-<p>Rust 没有传统面向对象里的类，但结构体加 <code>impl</code> 可以表达清晰的数据和行为边界。</p>
-<ul>
-<li>掌握命名字段结构体的定义和创建。</li>
-<li>理解字段访问、结构体更新语法和派生调试输出。</li>
-<li>掌握 <code>impl</code>、方法和关联函数。</li>
-<li>区分 <code>self</code>、<code>&amp;self</code> 和 <code>&amp;mut self</code>。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>结构体 struct</td>
-<td>把多个字段组合成一个自定义类型。</td>
-<td><code>User &#123; name, active &#125;</code> 表示一个用户对象。</td>
-</tr>
-<tr>
-<td>字段 field</td>
-<td>结构体内部的命名数据。</td>
-<td><code>user.name</code> 访问 <code>name</code> 字段。</td>
-</tr>
-<tr>
-<td>方法 method</td>
-<td>定义在 <code>impl</code> 中，第一个参数是 <code>self</code> 相关形式的函数。</td>
-<td><code>user.summary()</code> 是方法调用。</td>
-</tr>
-<tr>
-<td>关联函数 associated function</td>
-<td>定义在 <code>impl</code> 中，但不接收 <code>self</code>。</td>
-<td>常用于构造函数，如 <code>User::new()</code>。</td>
-</tr>
-<tr>
-<td>derive</td>
-<td>让编译器自动生成常见能力。</td>
-<td><code>#[derive(Debug)]</code> 允许用 <code>&#123;:?&#125;</code> 打印。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    username: <span class="type">String</span>,</span><br><span class="line">    email: <span class="type">String</span>,</span><br><span class="line">    active: <span class="type">bool</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="comment">// 关联函数不接收 self，常用于构造值。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(username: &amp;<span class="type">str</span>, email: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123;</span><br><span class="line">            username: username.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            email: email.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            active: <span class="literal">true</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 方法的第一个参数是 &amp;self，用于读取实例数据。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summary</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; &lt;&#123;&#125;&gt;&quot;</span>, <span class="keyword">self</span>.username, <span class="keyword">self</span>.email)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// &amp;mut self 方法可以修改实例。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">deactivate</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">self</span>.active = <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">user</span> = User::<span class="title function_ invoke__">new</span>(<span class="string">&quot;kylin&quot;</span>, <span class="string">&quot;kylin@example.com&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;用户: &#123;&#125;&quot;</span>, user.<span class="title function_ invoke__">summary</span>());</span><br><span class="line"></span><br><span class="line">    user.<span class="title function_ invoke__">deactivate</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;停用后: &#123;user:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 结构体更新语法可以复用已有字段。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">another</span> = User &#123;</span><br><span class="line">        username: <span class="string">&quot;rustacean&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ..user</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;新用户: &#123;another:?&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson07_structs_methods</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义结构体"><a href="#定义结构体" class="headerlink" title="定义结构体"></a>定义结构体</h3><p><code>struct User</code> 定义 <code>name</code>、<code>email</code>、<code>active</code> 等字段。</p>
-<h3 id="创建实例"><a href="#创建实例" class="headerlink" title="创建实例"></a>创建实例</h3><p><code>User &#123; ... &#125;</code> 给每个字段赋值，得到具体用户。</p>
-<h3 id="实现方法"><a href="#实现方法" class="headerlink" title="实现方法"></a>实现方法</h3><p><code>impl User</code> 中的 <code>summary(&amp;self)</code> 读取字段并返回字符串。</p>
-<h3 id="可变方法"><a href="#可变方法" class="headerlink" title="可变方法"></a>可变方法</h3><p><code>deactivate(&amp;mut self)</code> 修改用户状态，需要可变实例。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="结构体-struct"><a href="#结构体-struct" class="headerlink" title="结构体 struct"></a>结构体 struct</h3><p>把多个字段组合成一个自定义类型。</p>
-<p><code>User &#123; name, active &#125;</code> 表示一个用户对象。</p>
-<h3 id="字段-field"><a href="#字段-field" class="headerlink" title="字段 field"></a>字段 field</h3><p>结构体内部的命名数据。</p>
-<p><code>user.name</code> 访问 <code>name</code> 字段。</p>
-<h3 id="方法-method"><a href="#方法-method" class="headerlink" title="方法 method"></a>方法 method</h3><p>定义在 <code>impl</code> 中，第一个参数是 <code>self</code> 相关形式的函数。</p>
-<p><code>user.summary()</code> 是方法调用。</p>
-<h3 id="关联函数-associated-function"><a href="#关联函数-associated-function" class="headerlink" title="关联函数 associated function"></a>关联函数 associated function</h3><p>定义在 <code>impl</code> 中，但不接收 <code>self</code>。</p>
-<p>常用于构造函数，如 <code>User::new()</code>。</p>
-<h3 id="derive"><a href="#derive" class="headerlink" title="derive"></a>derive</h3><p>让编译器自动生成常见能力。</p>
-<p><code>#[derive(Debug)]</code> 允许用 <code>&#123;:?&#125;</code> 打印。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>&amp;self</code> 是 <code>self: &amp;Self</code> 的简写，表示方法只借用实例。</p>
-<p><code>&amp;mut self</code> 表示方法会修改实例。调用它的变量必须是 <code>mut</code>。</p>
-<p><code>self</code> 表示方法取得实例所有权。调用后原实例通常不能再使用。</p>
-<p>结构体更新语法 <code>..other</code> 可能移动未 Copy 字段的所有权，使用时要注意后续是否还要用原实例。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要忘记给需要修改的实例写 <code>let mut user</code>。</li>
-<li>不要把关联函数和方法混淆。有关联函数用 <code>Type::function()</code> 调用。</li>
-<li><code>Debug</code> 输出适合调试，不等同于面向用户的格式化文本。</li>
-<li>字段可见性默认私有。模块章节会进一步讲 <code>pub</code>。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义书籍结构体"><a href="#练习-1：定义书籍结构体" class="headerlink" title="练习 1：定义书籍结构体"></a>练习 1：定义书籍结构体</h3><p>要求：定义 <code>Book</code>，包含标题、作者、页数，并写摘要方法。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">    pages: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summary</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;《&#123;&#125;》 by &#123;&#125;, &#123;&#125; 页&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author, <span class="keyword">self</span>.pages)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">book</span> = Book &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust Book&quot;</span>), author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Steve&quot;</span>), pages: <span class="number">500</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, book.<span class="title function_ invoke__">summary</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>summary(&amp;self)</code> 只读取字段，所以不需要取得所有权。</p>
-<h3 id="练习-2：写构造函数"><a href="#练习-2：写构造函数" class="headerlink" title="练习 2：写构造函数"></a>练习 2：写构造函数</h3><p>要求：为 <code>Book</code> 增加 <code>new</code> 关联函数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    pages: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(title: &amp;<span class="type">str</span>, pages: <span class="type">u32</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123; title: title.<span class="title function_ invoke__">to_string</span>(), pages &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">book</span> = Book::<span class="title function_ invoke__">new</span>(<span class="string">&quot;Rust&quot;</span>, <span class="number">300</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, book.title, book.pages);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>Self</code> 表示当前实现块对应的类型，也就是 <code>Book</code>。</p>
-<h3 id="练习-3：修改字段"><a href="#练习-3：修改字段" class="headerlink" title="练习 3：修改字段"></a>练习 3：修改字段</h3><p>要求：写方法把任务状态改为完成。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Task</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    done: <span class="type">bool</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Task</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">finish</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">self</span>.done = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">task</span> = Task &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;learn struct&quot;</span>), done: <span class="literal">false</span> &#125;;</span><br><span class="line">    task.<span class="title function_ invoke__">finish</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, task.title, task.done);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：方法要修改字段，所以接收 <code>&amp;mut self</code>，变量也要声明为 <code>mut</code>。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/">Rust学习笔记 06：引用与切片</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">Rust学习笔记 08：枚举与模式匹配</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-        
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/" class="post-title-link" itemprop="url">Rust学习笔记 06：引用与切片</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-06 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-06T09:00:00+08:00">2026-04-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.2k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>5 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/06_references_slices.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson06_references_slices</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本节继续所有权之后的主题：引用和切片。引用让你借用整个值，切片让你借用值的一部分。</p>
-<p>切片不拥有数据，只描述一段连续区域。它常用于字符串、数组和 Vec 的只读访问。</p>
-<ul>
-<li>理解 <code>&amp;T</code> 和 <code>&amp;mut T</code> 的含义。</li>
-<li>知道切片 <code>&amp;str</code>、<code>&amp;[T]</code> 是借用的一段连续数据。</li>
-<li>掌握字符串切片和数组切片的范围语法。</li>
-<li>会通过缩小作用域减少借用冲突。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>引用 reference</td>
-<td>指向某个值的借用，不拥有该值。</td>
-<td><code>&amp;name</code> 是不可变引用。</td>
-</tr>
-<tr>
-<td>可变引用 mutable reference</td>
-<td>可以修改借来的值。</td>
-<td><code>&amp;mut text</code> 必须配合可变变量使用。</td>
-</tr>
-<tr>
-<td>切片 slice</td>
-<td>引用集合中连续的一部分。</td>
-<td><code>&amp;numbers[1..4]</code> 借用索引 1 到 3。</td>
-</tr>
-<tr>
-<td>字符串切片 &amp;str</td>
-<td>指向 UTF-8 字符串内容的一段视图。</td>
-<td>字符串字面量的类型就是 <code>&amp;str</code>。</td>
-</tr>
-<tr>
-<td>范围 range</td>
-<td><code>start..end</code> 表示左闭右开区间。</td>
-<td><code>0..5</code> 包含 0，不包含 5。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">first_word</span>(text: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// bytes() 逐字节遍历字符串。这里只处理 ASCII 空格边界。</span></span><br><span class="line">    <span class="keyword">for</span> (index, byte) <span class="keyword">in</span> text.<span class="title function_ invoke__">bytes</span>().<span class="title function_ invoke__">enumerate</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> byte == <span class="string">b&#x27; &#x27;</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;text[..index];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    text</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust ownership&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// &amp;message 创建不可变引用，可以读但不能改。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ref1</span> = &amp;message;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ref2</span> = &amp;message;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;两个不可变引用: &#123;ref1&#125;, &#123;ref2&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 切片引用一段连续数据，不拥有数据。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">word</span> = <span class="title function_ invoke__">first_word</span>(&amp;message);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;第一个单词: &#123;word&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">middle</span> = &amp;numbers[<span class="number">1</span>..<span class="number">4</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;数组切片: &#123;middle:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 可变引用的作用域越小，越容易避免借用冲突。</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">mutable_ref</span> = &amp;<span class="keyword">mut</span> name;</span><br><span class="line">        mutable_ref.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;acean&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;可变引用修改后: &#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson06_references_slices</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="不可变引用"><a href="#不可变引用" class="headerlink" title="不可变引用"></a>不可变引用</h3><p><code>let reference = &amp;message;</code> 借用整个字符串并读取。</p>
-<h3 id="字符串切片"><a href="#字符串切片" class="headerlink" title="字符串切片"></a>字符串切片</h3><p><code>&amp;message[0..4]</code> 借用字符串前四个字节对应的内容。</p>
-<h3 id="数组切片"><a href="#数组切片" class="headerlink" title="数组切片"></a>数组切片</h3><p><code>&amp;numbers[1..4]</code> 借用数组中一段连续元素。</p>
-<h3 id="可变引用作用域"><a href="#可变引用作用域" class="headerlink" title="可变引用作用域"></a>可变引用作用域</h3><p>把 <code>&amp;mut text</code> 放进小代码块，让借用尽快结束。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="引用-reference"><a href="#引用-reference" class="headerlink" title="引用 reference"></a>引用 reference</h3><p>指向某个值的借用，不拥有该值。</p>
-<p><code>&amp;name</code> 是不可变引用。</p>
-<h3 id="可变引用-mutable-reference"><a href="#可变引用-mutable-reference" class="headerlink" title="可变引用 mutable reference"></a>可变引用 mutable reference</h3><p>可以修改借来的值。</p>
-<p><code>&amp;mut text</code> 必须配合可变变量使用。</p>
-<h3 id="切片-slice"><a href="#切片-slice" class="headerlink" title="切片 slice"></a>切片 slice</h3><p>引用集合中连续的一部分。</p>
-<p><code>&amp;numbers[1..4]</code> 借用索引 1 到 3。</p>
-<h3 id="字符串切片-str"><a href="#字符串切片-str" class="headerlink" title="字符串切片 &amp;str"></a>字符串切片 &amp;str</h3><p>指向 UTF-8 字符串内容的一段视图。</p>
-<p>字符串字面量的类型就是 <code>&amp;str</code>。</p>
-<h3 id="范围-range"><a href="#范围-range" class="headerlink" title="范围 range"></a>范围 range</h3><p><code>start..end</code> 表示左闭右开区间。</p>
-<p><code>0..5</code> 包含 0，不包含 5。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>引用本身也有类型。<code>&amp;String</code> 是借用一个 String，<code>&amp;str</code> 是借用字符串内容的一段。</p>
-<p>字符串切片索引按字节计算，不按人眼看到的字符计算。切到 UTF-8 字符中间会 panic。</p>
-<p>切片常用于函数参数，因为它既避免复制，又能接受数组、Vec 或字符串的一部分。</p>
-<p>当函数只读一段集合时，优先考虑 <code>&amp;[T]</code>。当函数只读字符串时，优先考虑 <code>&amp;str</code>。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要把切片当作拥有数据的新集合。它只是借用视图。</li>
-<li>不要随便用字节索引切中文字符串。中文字符通常占多个字节。</li>
-<li><code>&amp;mut</code> 借用期间不要再创建其他引用。</li>
-<li>函数参数写 <code>&amp;String</code> 通常不如 <code>&amp;str</code> 灵活。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：提取首词"><a href="#练习-1：提取首词" class="headerlink" title="练习 1：提取首词"></a>练习 1：提取首词</h3><p>要求：写函数返回英文句子的第一个单词。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">first_word</span>(text: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (index, byte) <span class="keyword">in</span> text.<span class="title function_ invoke__">bytes</span>().<span class="title function_ invoke__">enumerate</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> byte == <span class="string">b&#x27; &#x27;</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;text[..index];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    text</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">first_word</span>(<span class="string">&quot;Rust language&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：返回值 <code>&amp;str</code> 借用输入字符串的一部分，没有复制内容。</p>
-<h3 id="练习-2：数组切片求和"><a href="#练习-2：数组切片求和" class="headerlink" title="练习 2：数组切片求和"></a>练习 2：数组切片求和</h3><p>要求：写函数接收 <code>&amp;[i32]</code> 并求和。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">sum</span>(values: &amp;[<span class="type">i32</span>]) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">total</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">value</span> <span class="keyword">in</span> values &#123;</span><br><span class="line">        total += value;</span><br><span class="line">    &#125;</span><br><span class="line">    total</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">sum</span>(&amp;numbers[<span class="number">1</span>..<span class="number">4</span>]));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>&amp;[i32]</code> 可以接收数组或 Vec 的连续片段。</p>
-<h3 id="练习-3：缩小可变借用"><a href="#练习-3：缩小可变借用" class="headerlink" title="练习 3：缩小可变借用"></a>练习 3：缩小可变借用</h3><p>要求：先修改字符串，再打印原字符串。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">borrowed</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">        borrowed.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; slice&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：可变引用离开内部作用域后，原变量可以再次使用。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/05/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-05-%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E5%80%9F%E7%94%A8/">Rust学习笔记 05：所有权与借用</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">Rust学习笔记 07：结构体和方法</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
   <nav class="pagination">
     <a class="extend prev" rel="prev" title="上一页" aria-label="上一页" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/4/"><i class="fa fa-angle-right"></i></a>
   </nav>
@@ -1579,14 +1579,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">340k</span>
+    <span title="站点总字数">349k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">20:37</span>
+    <span title="站点阅读时长">21:11</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动

