@@ -3,11 +3,11 @@
   list:
     - name: GitHub
       link: https://github.com/Kylinxin
-      avatar: /images/faction/1.png
+      avatar: /images/avatar.jpg
       description: Code, notes, and project traces.
     - name: Kylinxin's Blog
       link: https://kylinxin.github.io
-      avatar: /images/faction/1.png
+      avatar: /images/avatar.jpg
       description: Security, Web3, systems, and study notes.
 
 - links_category: References

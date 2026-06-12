@@ -10,7 +10,7 @@ info:
 defaults:
   favicon: /favicon.ico
   logo:
-  avatar: /images/faction/1.png
+  avatar: /images/avatar.jpg
 
 colors:
   primary: "#A31F34"
@@ -39,7 +39,7 @@ global:
     auto_expand: false
   open_graph:
     enable: true
-    image: /images/faction/1.png
+    image: /images/avatar.jpg
     description: Kylinxin's notes on security, Web3, systems, and programming.
   google_analytics:
     enable: false
