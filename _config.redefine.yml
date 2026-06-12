@@ -195,7 +195,7 @@ comment:
   enable: false
 
 footer:
-  runtime: true
+  runtime: false
   icon: '<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>'
   start: 2023/4/9 00:00:00
   statistics: true
