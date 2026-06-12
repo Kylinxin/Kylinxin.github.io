@@ -1,0 +1,23 @@
+- links_category: Personal
+  has_thumbnail: false
+  list:
+    - name: GitHub
+      link: https://github.com/Kylinxin
+      avatar: /images/faction/1.png
+      description: Code, notes, and project traces.
+    - name: Kylinxin's Blog
+      link: https://kylinxin.github.io
+      avatar: /images/faction/1.png
+      description: Security, Web3, systems, and study notes.
+
+- links_category: References
+  has_thumbnail: false
+  list:
+    - name: Hexo
+      link: https://hexo.io
+      avatar: /images/redefine-logo.svg
+      description: Static blog framework used by this site.
+    - name: Theme Redefine
+      link: https://github.com/EvanNotFound/hexo-theme-redefine
+      avatar: /images/redefine-logo.svg
+      description: Current blog theme.

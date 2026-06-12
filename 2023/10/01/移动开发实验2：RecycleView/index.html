@@ -1,293 +1,609 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="AS类微信界面开发功能要求1、在任一tab页中实现列表效果；本功能的实现需要使用 recycleview； 2、将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示信息 开发技术开发工具：as  版本：API 24 Android 7.0 思路分析本次实验目的是实现在任一tab页将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2023/10/01/移动开发实验2：recycleview/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="移动开发实验2：RecycleView和Activity跳转">
 <meta property="og:url" content="https://kylinxin.github.io/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="AS类微信界面开发功能要求1、在任一tab页中实现列表效果；本功能的实现需要使用 recycleview； 2、将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示信息 开发技术开发工具：as  版本：API 24 Android 7.0 思路分析本次实验目的是实现在任一tab页将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png">
-<meta property="og:image" content="https://s2.loli.net/2023/11/07/zNT4RWb9QBOnJ5a.png">
-<meta property="og:image" content="https://s2.loli.net/2023/11/07/2x7VMdsqJFDzOPL.png">
-<meta property="og:image" content="https://s2.loli.net/2023/11/07/CImD2GeQHcdvFsE.gif">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:published_time" content="2023-09-30T18:00:00.000Z">
 <meta property="article:modified_time" content="2023-09-30T18:00:00.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="移动开发实验">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            移动开发实验2：RecycleView和Activity跳转 | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/","path":"2023/10/01/移动开发实验2：RecycleView/","title":"移动开发实验2：RecycleView和Activity跳转"}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>移动开发实验2：RecycleView和Activity跳转 | Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
-
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <p class="site-title">Kylinxin's Blog</p>
-      <i class="logo-line"></i>
-    </a>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
 </div>
 
+<main class="page-container" id="swup">
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
-        
-  
-  <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
 
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#AS%E7%B1%BB%E5%BE%AE%E4%BF%A1%E7%95%8C%E9%9D%A2%E5%BC%80%E5%8F%91"><span class="nav-number">1.</span> <span class="nav-text">AS类微信界面开发</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82"><span class="nav-number">1.1.</span> <span class="nav-text">功能要求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E6%8A%80%E6%9C%AF"><span class="nav-number">1.2.</span> <span class="nav-text">开发技术</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E5%88%86%E6%9E%90"><span class="nav-number">1.3.</span> <span class="nav-text">思路分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E8%BF%87%E7%A8%8B"><span class="nav-number">1.4.</span> <span class="nav-text">设计过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E7%BC%96%E5%86%99layout"><span class="nav-number">1.4.1.</span> <span class="nav-text">1.  编写layout</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-%E5%9C%A8%E6%96%B0%E5%BB%BA%E7%9A%84item-xml%E4%B8%AD%E6%B7%BB%E5%8A%A0recycleview"><span class="nav-number">1.4.1.1.</span> <span class="nav-text">1.1 在新建的item.xml中添加recycleview</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-%E5%9C%A8fragment-txl-xml%E4%B8%AD%E5%AE%9E%E7%8E%B0%E6%AF%8F%E4%B8%80%E9%A1%B9%E7%9A%84%E4%BF%A1%E6%81%AF"><span class="nav-number">1.4.1.2.</span> <span class="nav-text">1.2 在fragment_txl.xml中实现每一项的信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3-%E5%AE%9E%E7%8E%B0%E8%B7%B3%E8%BD%AC%E8%AF%A6%E6%83%85%E9%A1%B5%E9%9D%A2activity-txl-details-xml%E7%9A%84%E5%86%85%E5%AE%B9"><span class="nav-number">1.4.1.3.</span> <span class="nav-text">1.3 实现跳转详情页面activity_txl_details.xml的内容</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%A0%B8%E5%BF%83%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.4.2.</span> <span class="nav-text">2. 核心代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-%E5%9C%A8txlFragment%E9%87%8C%E9%9D%A2%E5%AE%9E%E7%8E%B0%E4%BA%86%E5%88%9D%E5%A7%8B%E5%8C%96%E6%93%8D%E4%BD%9C%EF%BC%8C%E5%B9%B6%E7%94%9F%E6%88%90%E6%95%B0%E6%8D%AE%E6%95%B0%E7%BB%84%EF%BC%8C%E5%88%9B%E5%BB%BARecycleView%E5%AE%9E%E4%BE%8B%E5%92%8C%E8%AE%BE%E7%BD%AEAdapter"><span class="nav-number">1.4.2.1.</span> <span class="nav-text">2.1 在txlFragment里面实现了初始化操作，并生成数据数组，创建RecycleView实例和设置Adapter</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-Myadapater-%E5%AE%9E%E7%8E%B0%E8%B7%B3%E8%BD%AC%E6%93%8D%E4%BD%9C"><span class="nav-number">1.4.2.2.</span> <span class="nav-text">2.2 Myadapater 实现跳转操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-txlDetails"><span class="nav-number">1.4.2.3.</span> <span class="nav-text">2.3 txlDetails</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E6%9E%9C%E5%B1%95%E7%A4%BA"><span class="nav-number">1.5.</span> <span class="nav-text">结果展示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E4%BB%93%E5%BA%93"><span class="nav-number">1.6.</span> <span class="nav-text">代码仓库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.7.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
-        </div>
-        <!--/noindex-->
+		</div>
 
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">60</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">14</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">44</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
+		<div class="main-content-body transition-fade-up">
+			
 
-        </div>
-      </div>
-    </div>
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
 
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">移动开发实验2：RecycleView和Activity跳转</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/faction/1.png">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2023-10-01 02:00</span>
+        <span class="mobile">2023-10-01 02:00</span>
+        <span class="hover-info">创建</span>
+    </span>
     
-  </aside>
-
-
-    </div>
-
-    <div class="main-inner post posts-expand">
-
-
-  
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="移动开发实验2：RecycleView和Activity跳转 | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          移动开发实验2：RecycleView和Activity跳转
-        </h1>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-10-01 02:00:00" itemprop="dateCreated datePublished" datetime="2023-10-01T02:00:00+08:00">2023-10-01</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%AE%9E%E9%AA%8C/" itemprop="url" rel="index"><span itemprop="name">实验</span></a>
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2023-10-01 02:00</span>
+            <span class="mobile">2023-10-01 02:00</span>
+            <span class="hover-info">更新</span>
         </span>
-    </span>
+    
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>10k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>37 分钟</span>
-    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%AE%9E%E9%AA%8C/">实验</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C/">移动开发实验</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>2.6k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>13 分钟</span>
+        </span>
+    
+    
 </div>
 
-        </div>
-      </header>
+				</div>
+			</div>
+		</div>
+		
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody"><h1 id="AS类微信界面开发"><a href="#AS类微信界面开发" class="headerlink" title="AS类微信界面开发"></a>AS类微信界面开发</h1><h2 id="功能要求"><a href="#功能要求" class="headerlink" title="功能要求"></a>功能要求</h2><p>1、在任一tab页中实现列表效果；本功能的实现需要使用 recycleview；</p>
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h1 id="AS类微信界面开发"><a href="#AS类微信界面开发" class="headerlink" title="AS类微信界面开发"></a>AS类微信界面开发</h1><h2 id="功能要求"><a href="#功能要求" class="headerlink" title="功能要求"></a>功能要求</h2><p>1、在任一tab页中实现列表效果；本功能的实现需要使用 recycleview；</p>
 <p>2、将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示信息</p>
 <h2 id="开发技术"><a href="#开发技术" class="headerlink" title="开发技术"></a>开发技术</h2><p>开发工具：as </p>
 <p>版本：API 24 Android 7.0</p>
@@ -300,122 +616,429 @@
 </blockquote>
 <p>总体思路为在layout创建item.xml文件放recyclerview控件，fragment_txl.xml放列表每一项的信息。在txlfragment定义初始化信息并将信息写成数组方便传参，配合Myadapter适配器进行使用，跳转的具体方法采用startActivity()进行跳转，在跳转的详情页面txlDetails接受传过来的intent并显示数据，设置返回按钮用于返回。</p>
 <h2 id="设计过程"><a href="#设计过程" class="headerlink" title="设计过程"></a>设计过程</h2><h3 id="1-编写layout"><a href="#1-编写layout" class="headerlink" title="1.  编写layout"></a>1.  编写layout</h3><h4 id="1-1-在新建的item-xml中添加recycleview"><a href="#1-1-在新建的item-xml中添加recycleview" class="headerlink" title="1.1 在新建的item.xml中添加recycleview"></a><strong>1.1 在新建的item.xml中添加recycleview</strong></h4><p><strong>效果</strong></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png'><img src="https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png" alt="image.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/07/O5o2CYQq1kedMth.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
 <p><strong>代码</strong></p>
-<figure class="highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">"1.0"</span> encoding=<span class="hljs-string">"utf-8"</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"vertical"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">androidx.recyclerview.widget.RecyclerView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/itemview"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginEnd</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginBottom</span>=<span class="hljs-string">"8dp"</span> /&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Xml"><figure class="iseeu highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">"1.0"</span> encoding=<span class="hljs-string">"utf-8"</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"vertical"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">androidx.recyclerview.widget.RecyclerView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/itemview"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginEnd</span>=<span class="hljs-string">"8dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginBottom</span>=<span class="hljs-string">"8dp"</span> /&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>创建了一个RecyclerView，命名为itemview</p>
 <h4 id="1-2-在fragment-txl-xml中实现每一项的信息"><a href="#1-2-在fragment-txl-xml中实现每一项的信息" class="headerlink" title="1.2 在fragment_txl.xml中实现每一项的信息"></a>1.2 在fragment_txl.xml中实现每一项的信息</h4><p><strong>效果</strong></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/07/zNT4RWb9QBOnJ5a.png'><img src="https://s2.loli.net/2023/11/07/zNT4RWb9QBOnJ5a.png" alt="image.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/07/zNT4RWb9QBOnJ5a.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/07/zNT4RWb9QBOnJ5a.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
 <p><strong>代码</strong></p>
-<figure class="highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:app</span>=<span class="hljs-string">"http://schemas.android.com/apk/res-auto"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:tools</span>=<span class="hljs-string">"http://schemas.android.com/tools"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout_txl"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag"></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"15dp"</span>&gt;</span><br><br>        <span class="hljs-tag">&lt;<span class="hljs-name">ImageView</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/image_touxiang"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"60dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"68dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_marginRight</span>=<span class="hljs-string">"20dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_gravity</span>=<span class="hljs-string">"left|center_vertical"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">tools:srcCompat</span>=<span class="hljs-string">"@tools:sample/avatars"</span> /&gt;</span><br><br>        <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/text_duihuakuang"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"left|center_vertical"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:text</span>=<span class="hljs-string">"TextView"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"24sp"</span> /&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br><span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Xml"><figure class="iseeu highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:app</span>=<span class="hljs-string">"http://schemas.android.com/apk/res-auto"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:tools</span>=<span class="hljs-string">"http://schemas.android.com/tools"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout_txl"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag"></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"15dp"</span>&gt;</span><br><br>        <span class="hljs-tag">&lt;<span class="hljs-name">ImageView</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/image_touxiang"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"60dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"68dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_marginRight</span>=<span class="hljs-string">"20dp"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_gravity</span>=<span class="hljs-string">"left|center_vertical"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">tools:srcCompat</span>=<span class="hljs-string">"@tools:sample/avatars"</span> /&gt;</span><br><br>        <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/text_duihuakuang"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"left|center_vertical"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:text</span>=<span class="hljs-string">"TextView"</span></span><br><span class="hljs-tag">            <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"24sp"</span> /&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br><span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>用一个Linearlayout包含了一个ImageView和TextView，方便后续点击跳转</p>
 <h4 id="1-3-实现跳转详情页面activity-txl-details-xml的内容"><a href="#1-3-实现跳转详情页面activity-txl-details-xml的内容" class="headerlink" title="1.3 实现跳转详情页面activity_txl_details.xml的内容"></a><strong>1.3 实现跳转详情页面activity_txl_details.xml的内容</strong></h4><p><strong>效果</strong></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/07/2x7VMdsqJFDzOPL.png'><img src="https://s2.loli.net/2023/11/07/2x7VMdsqJFDzOPL.png" alt="image.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/07/2x7VMdsqJFDzOPL.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/07/2x7VMdsqJFDzOPL.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
 <p><strong>代码</strong></p>
-<figure class="highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">"1.0"</span> encoding=<span class="hljs-string">"utf-8"</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">androidx.constraintlayout.widget.ConstraintLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:app</span>=<span class="hljs-string">"http://schemas.android.com/apk/res-auto"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:tools</span>=<span class="hljs-string">"http://schemas.android.com/tools"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"vertical"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">tools:context</span>=<span class="hljs-string">".txlDetails"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"名字"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.008"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.275"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout3"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout4"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">Button</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/returnButton"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"408dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"返回"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/imageDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"146dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/wxtag"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"24dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"标签"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"5dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/wxtag2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"188dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"未分类"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.441"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/wxtag"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.611"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"141dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"24dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"地区"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"5dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/region2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"未知"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.773"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.501"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">ImageView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/imageDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"154dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"121dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.498"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.042"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:srcCompat</span>=<span class="hljs-string">"@tools:sample/avatars"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"28dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"电话号码"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"0dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/phone"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"36dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"11111111111"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.058"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.388"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/textDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"152dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"3"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"微信昵称"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.0"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.275"</span> /&gt;</span><br><br><span class="hljs-tag">&lt;/<span class="hljs-name">androidx.constraintlayout.widget.ConstraintLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Xml"><figure class="iseeu highlight xml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">"1.0"</span> encoding=<span class="hljs-string">"utf-8"</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">androidx.constraintlayout.widget.ConstraintLayout</span> <span class="hljs-attr">xmlns:android</span>=<span class="hljs-string">"http://schemas.android.com/apk/res/android"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:app</span>=<span class="hljs-string">"http://schemas.android.com/apk/res-auto"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">xmlns:tools</span>=<span class="hljs-string">"http://schemas.android.com/tools"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"match_parent"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"vertical"</span></span><br><span class="hljs-tag">    <span class="hljs-attr">tools:context</span>=<span class="hljs-string">".txlDetails"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"名字"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.008"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.275"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout3"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">LinearLayout</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/linearLayout4"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"411dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:orientation</span>=<span class="hljs-string">"horizontal"</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">LinearLayout</span>&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">Button</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/returnButton"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"408dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"返回"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/imageDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"146dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/wxtag"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"24dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"标签"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"5dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/wxtag2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"188dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"未分类"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.441"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/wxtag"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.611"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"141dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"24dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"地区"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"5dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/region2"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"未知"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.773"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"@+id/region"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.501"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">ImageView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/imageDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"154dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"121dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.498"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toStartOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.042"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:srcCompat</span>=<span class="hljs-string">"@tools:sample/avatars"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginTop</span>=<span class="hljs-string">"28dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"电话号码"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toBottomOf</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">tools:layout_editor_absoluteX</span>=<span class="hljs-string">"0dp"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/phone"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"36dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"1"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"11111111111"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.058"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/phoneNumber"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.388"</span> /&gt;</span><br><br>    <span class="hljs-tag">&lt;<span class="hljs-name">TextView</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:id</span>=<span class="hljs-string">"@+id/textDetail"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_width</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_height</span>=<span class="hljs-string">"wrap_content"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_marginStart</span>=<span class="hljs-string">"152dp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:layout_weight</span>=<span class="hljs-string">"3"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:gravity</span>=<span class="hljs-string">"center"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:text</span>=<span class="hljs-string">"微信昵称"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textStyle</span>=<span class="hljs-string">"bold"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">android:textSize</span>=<span class="hljs-string">"35sp"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintBottom_toBottomOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintEnd_toEndOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintHorizontal_bias</span>=<span class="hljs-string">"0.0"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintStart_toEndOf</span>=<span class="hljs-string">"@+id/WeChatname"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintTop_toTopOf</span>=<span class="hljs-string">"parent"</span></span><br><span class="hljs-tag">        <span class="hljs-attr">app:layout_constraintVertical_bias</span>=<span class="hljs-string">"0.275"</span> /&gt;</span><br><br><span class="hljs-tag">&lt;/<span class="hljs-name">androidx.constraintlayout.widget.ConstraintLayout</span>&gt;</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>设置了一些基础信息</p>
 <h3 id="2-核心代码实现"><a href="#2-核心代码实现" class="headerlink" title="2. 核心代码实现"></a>2. 核心代码实现</h3><h4 id="2-1-在txlFragment里面实现了初始化操作，并生成数据数组，创建RecycleView实例和设置Adapter"><a href="#2-1-在txlFragment里面实现了初始化操作，并生成数据数组，创建RecycleView实例和设置Adapter" class="headerlink" title="2.1 在txlFragment里面实现了初始化操作，并生成数据数组，创建RecycleView实例和设置Adapter"></a>2.1 在txlFragment里面实现了初始化操作，并生成数据数组，创建RecycleView实例和设置Adapter</h4><p><strong>代码</strong></p>
-<figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><br><span class="hljs-keyword">import</span> android.content.Context;<br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.graphics.Color;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.view.LayoutInflater;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.view.ViewGroup;<br><span class="hljs-keyword">import</span> android.widget.LinearLayout;<br><br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResult;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultCallback;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultLauncher;<br><span class="hljs-keyword">import</span> androidx.activity.result.contract.ActivityResultContracts;<br><span class="hljs-keyword">import</span> androidx.annotation.NonNull;<br><span class="hljs-keyword">import</span> androidx.fragment.app.Fragment;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.ItemTouchHelper;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.LinearLayoutManager;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.RecyclerView;<br><br><span class="hljs-keyword">import</span> java.util.ArrayList;<br><span class="hljs-keyword">import</span> java.util.Collections;<br><span class="hljs-keyword">import</span> java.util.HashMap;<br><span class="hljs-keyword">import</span> java.util.List;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">txlFragment</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">Fragment</span> &#123;<br>    <span class="hljs-comment">//获取recyclerView对象并且实例化适配器</span><br>    <span class="hljs-keyword">private</span> RecyclerView recyclerView;<br>    <span class="hljs-keyword">private</span> MyAdapter myAdapter;<br>    LinearLayout linearLayout;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> View <span class="hljs-title function_">onCreateView</span><span class="hljs-params">(LayoutInflater inflater, ViewGroup container,</span><br><span class="hljs-params">                             Bundle savedInstanceState)</span> &#123;<br>        <span class="hljs-comment">// Inflate the layout for this fragment</span><br>        <span class="hljs-comment">//return inflater.inflate(R.layout.fra_lx, container, false);</span><br>        View view;<br>        <span class="hljs-comment">//存所有控件的视图</span><br>        view=inflater.inflate(R.layout.item, container, <span class="hljs-literal">false</span>);<br>        <span class="hljs-comment">//调用recycleview控件</span><br>        recyclerView=view.findViewById(R.id.itemview);<br>        linearLayout=view.findViewById(R.id.linearLayout_txl);<br>        <span class="hljs-comment">//创建数据</span><br>        String[] names=&#123;<span class="hljs-string">"Pappy"</span>,<span class="hljs-string">"Mommy"</span>,<span class="hljs-string">"Sister"</span>,<span class="hljs-string">"Little Sister"</span>,<span class="hljs-string">"Brother"</span>,<span class="hljs-string">"Little Brother"</span>,<span class="hljs-string">"Roommate"</span>&#125;;<br>        <span class="hljs-type">int</span>[] images=&#123;R.drawable.baba,R.drawable.mama,R.drawable.jiejie,R.drawable.meimei,R.drawable.gege,<br>                R.drawable.didi,R.drawable.shiyou1&#125;;<br>        String[] phones=&#123;<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<br>                <span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>&#125;;<br>        String[] regions=&#123;<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"湖北 武汉"</span>&#125;;<br>        String[] tags=&#123;<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"同学"</span>&#125;;<br>        List&lt;Map&lt;String,Object&gt;&gt; items=<span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;Map&lt;String,Object&gt;&gt;();<br>        <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;names.length;i++)&#123;<br>            Map&lt;String,Object&gt; item=<span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;String, Object&gt;();<br>            item.put(<span class="hljs-string">"i_name"</span>,names[i]);<br>            item.put(<span class="hljs-string">"i_image"</span>,images[i]);<br>            item.put(<span class="hljs-string">"i_phone"</span>,phones[i]);<br>            item.put(<span class="hljs-string">"i_region"</span>,regions[i]);<br>            item.put(<span class="hljs-string">"i_tag"</span>,tags[i]);<br>            items.add(item);<br>        &#125;<br>        <span class="hljs-comment">//创建RecycleView实例和设置Adapter</span><br>        Context context=getContext();<br>        myAdapter=<span class="hljs-keyword">new</span> <span class="hljs-title class_">MyAdapter</span>(items,context);<br>        LinearLayoutManager manager=<span class="hljs-keyword">new</span> <span class="hljs-title class_">LinearLayoutManager</span>(context);<br>        manager.setOrientation(recyclerView.VERTICAL);<br>        recyclerView.setLayoutManager(manager);<br>        recyclerView.setAdapter(myAdapter);<br>        <span class="hljs-keyword">return</span> view;<br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Java"><figure class="iseeu highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><br><span class="hljs-keyword">import</span> android.content.Context;<br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.graphics.Color;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.view.LayoutInflater;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.view.ViewGroup;<br><span class="hljs-keyword">import</span> android.widget.LinearLayout;<br><br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResult;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultCallback;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultLauncher;<br><span class="hljs-keyword">import</span> androidx.activity.result.contract.ActivityResultContracts;<br><span class="hljs-keyword">import</span> androidx.annotation.NonNull;<br><span class="hljs-keyword">import</span> androidx.fragment.app.Fragment;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.ItemTouchHelper;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.LinearLayoutManager;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.RecyclerView;<br><br><span class="hljs-keyword">import</span> java.util.ArrayList;<br><span class="hljs-keyword">import</span> java.util.Collections;<br><span class="hljs-keyword">import</span> java.util.HashMap;<br><span class="hljs-keyword">import</span> java.util.List;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">txlFragment</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">Fragment</span> &#123;<br>    <span class="hljs-comment">//获取recyclerView对象并且实例化适配器</span><br>    <span class="hljs-keyword">private</span> RecyclerView recyclerView;<br>    <span class="hljs-keyword">private</span> MyAdapter myAdapter;<br>    LinearLayout linearLayout;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> View <span class="hljs-title function_">onCreateView</span><span class="hljs-params">(LayoutInflater inflater, ViewGroup container,</span><br><span class="hljs-params">                             Bundle savedInstanceState)</span> &#123;<br>        <span class="hljs-comment">// Inflate the layout for this fragment</span><br>        <span class="hljs-comment">//return inflater.inflate(R.layout.fra_lx, container, false);</span><br>        View view;<br>        <span class="hljs-comment">//存所有控件的视图</span><br>        view=inflater.inflate(R.layout.item, container, <span class="hljs-literal">false</span>);<br>        <span class="hljs-comment">//调用recycleview控件</span><br>        recyclerView=view.findViewById(R.id.itemview);<br>        linearLayout=view.findViewById(R.id.linearLayout_txl);<br>        <span class="hljs-comment">//创建数据</span><br>        String[] names=&#123;<span class="hljs-string">"Pappy"</span>,<span class="hljs-string">"Mommy"</span>,<span class="hljs-string">"Sister"</span>,<span class="hljs-string">"Little Sister"</span>,<span class="hljs-string">"Brother"</span>,<span class="hljs-string">"Little Brother"</span>,<span class="hljs-string">"Roommate"</span>&#125;;<br>        <span class="hljs-type">int</span>[] images=&#123;R.drawable.baba,R.drawable.mama,R.drawable.jiejie,R.drawable.meimei,R.drawable.gege,<br>                R.drawable.didi,R.drawable.shiyou1&#125;;<br>        String[] phones=&#123;<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>,<br>                <span class="hljs-string">"123456789"</span>,<span class="hljs-string">"123456789"</span>&#125;;<br>        String[] regions=&#123;<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"四川 南充"</span>,<span class="hljs-string">"湖北 武汉"</span>&#125;;<br>        String[] tags=&#123;<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"家人"</span>,<span class="hljs-string">"同学"</span>&#125;;<br>        List&lt;Map&lt;String,Object&gt;&gt; items=<span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;Map&lt;String,Object&gt;&gt;();<br>        <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;names.length;i++)&#123;<br>            Map&lt;String,Object&gt; item=<span class="hljs-keyword">new</span> <span class="hljs-title class_">HashMap</span>&lt;String, Object&gt;();<br>            item.put(<span class="hljs-string">"i_name"</span>,names[i]);<br>            item.put(<span class="hljs-string">"i_image"</span>,images[i]);<br>            item.put(<span class="hljs-string">"i_phone"</span>,phones[i]);<br>            item.put(<span class="hljs-string">"i_region"</span>,regions[i]);<br>            item.put(<span class="hljs-string">"i_tag"</span>,tags[i]);<br>            items.add(item);<br>        &#125;<br>        <span class="hljs-comment">//创建RecycleView实例和设置Adapter</span><br>        Context context=getContext();<br>        myAdapter=<span class="hljs-keyword">new</span> <span class="hljs-title class_">MyAdapter</span>(items,context);<br>        LinearLayoutManager manager=<span class="hljs-keyword">new</span> <span class="hljs-title class_">LinearLayoutManager</span>(context);<br>        manager.setOrientation(recyclerView.VERTICAL);<br>        recyclerView.setLayoutManager(manager);<br>        recyclerView.setAdapter(myAdapter);<br>        <span class="hljs-keyword">return</span> view;<br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
-<h4 id="2-2-Myadapater-实现跳转操作"><a href="#2-2-Myadapater-实现跳转操作" class="headerlink" title="2.2 Myadapater 实现跳转操作"></a>2.2 Myadapater 实现跳转操作</h4><figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><span class="hljs-keyword">import</span> android.content.Context;<br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.util.Log;<br><span class="hljs-keyword">import</span> android.view.LayoutInflater;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.view.ViewGroup;<br><span class="hljs-keyword">import</span> android.widget.ImageView;<br><span class="hljs-keyword">import</span> android.widget.LinearLayout;<br><span class="hljs-keyword">import</span> android.widget.TextView;<br><br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResult;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultCallback;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultLauncher;<br><span class="hljs-keyword">import</span> androidx.activity.result.contract.ActivityResultContracts;<br><span class="hljs-keyword">import</span> androidx.annotation.NonNull;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.RecyclerView;<br><br><span class="hljs-keyword">import</span> java.util.List;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyAdapter</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">RecyclerView</span>.Adapter &lt;MyAdapter.MyViewHolder&gt;&#123;<br>    <span class="hljs-comment">//定义存储数据和运行环境的变量</span><br>    <span class="hljs-keyword">private</span> List&lt;Map&lt;String,Object&gt;&gt; mydata;<br>    <span class="hljs-keyword">private</span> Context mycontext;<br><br>    <span class="hljs-comment">//获取数据和运行环境</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">MyAdapter</span><span class="hljs-params">(List&lt;Map&lt;String,Object&gt;&gt; data, Context context)</span>&#123;<br>        mydata=data;<br>        mycontext=context;<br>    &#125;<br><br>    <span class="hljs-meta">@NonNull</span><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> MyViewHolder <span class="hljs-title function_">onCreateViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> ViewGroup parent, <span class="hljs-type">int</span> viewType)</span> &#123;<br>        View view= LayoutInflater.from(mycontext).inflate(R.layout.fragment_txl,parent,<span class="hljs-literal">false</span>);<br>        MyViewHolder holder=<span class="hljs-keyword">new</span> <span class="hljs-title class_">MyViewHolder</span>(view);<br>        <span class="hljs-keyword">return</span> holder;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onBindViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> MyAdapter.MyViewHolder holder, <span class="hljs-type">int</span> position)</span> &#123;<br>        String name=mydata.get(position).get(<span class="hljs-string">"i_name"</span>).toString();<br>        <span class="hljs-type">int</span> image=Integer.parseInt(mydata.get(position).get(<span class="hljs-string">"i_image"</span>).toString());<br>        <span class="hljs-comment">//获取详情页面中某个联系人的对应数据</span><br>        String phone=mydata.get(position).get(<span class="hljs-string">"i_phone"</span>).toString();<br>        String region=mydata.get(position).get(<span class="hljs-string">"i_region"</span>).toString();<br>        String tag=mydata.get(position).get(<span class="hljs-string">"i_tag"</span>).toString();<br>        holder.textView.setText(name);<br>        holder.imageView.setImageResource(image);<br><br>        <span class="hljs-comment">//添加点击事件</span><br>        holder.linearLayout_txl.setOnClickListener(<span class="hljs-keyword">new</span> <span class="hljs-title class_">View</span>.OnClickListener() &#123;<br>            <span class="hljs-meta">@Override</span><br>            <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onClick</span><span class="hljs-params">(View v)</span> &#123;<br>                <span class="hljs-comment">//点击后跳转到联系人详情页</span><br>                Intent intent=<span class="hljs-keyword">new</span> <span class="hljs-title class_">Intent</span>(mycontext, txlDetails.class);<br><br>                <span class="hljs-comment">//使用bundle传值</span><br>                <span class="hljs-type">Bundle</span> <span class="hljs-variable">bundle</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Bundle</span>();<br>                bundle.putString(<span class="hljs-string">"details"</span>,name);<br>                bundle.putInt(<span class="hljs-string">"image"</span>, image);<br>                bundle.putString(<span class="hljs-string">"phone"</span>,phone);<br>                bundle.putString(<span class="hljs-string">"region"</span>,region);<br>                bundle.putString(<span class="hljs-string">"tag"</span>,tag);<br><br>                intent.putExtras(bundle);<br>                mycontext.startActivity(intent);<br>            &#125;<br>        &#125;);<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">getItemCount</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> mydata.size();<br>    &#125;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyViewHolder</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">RecyclerView</span>.ViewHolder &#123;<br>        <span class="hljs-keyword">public</span> LinearLayout linearLayout_txl;<br>        <span class="hljs-keyword">private</span> TextView textView;<br>        <span class="hljs-keyword">private</span> ImageView imageView;<br>        <span class="hljs-keyword">public</span> <span class="hljs-title function_">MyViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> View itemView)</span> &#123;<br>            <span class="hljs-built_in">super</span>(itemView);<br>            <span class="hljs-comment">//获取item中的控件id</span><br>            textView=itemView.findViewById(R.id.text_duihuakuang);<br>            imageView=itemView.findViewById(R.id.image_touxiang);<br>            linearLayout_txl=itemView.findViewById(R.id.linearLayout_txl);<br>        &#125;<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<h4 id="2-2-Myadapater-实现跳转操作"><a href="#2-2-Myadapater-实现跳转操作" class="headerlink" title="2.2 Myadapater 实现跳转操作"></a>2.2 Myadapater 实现跳转操作</h4><div class="code-container" data-rel="Java"><figure class="iseeu highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><span class="hljs-keyword">import</span> android.content.Context;<br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.util.Log;<br><span class="hljs-keyword">import</span> android.view.LayoutInflater;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.view.ViewGroup;<br><span class="hljs-keyword">import</span> android.widget.ImageView;<br><span class="hljs-keyword">import</span> android.widget.LinearLayout;<br><span class="hljs-keyword">import</span> android.widget.TextView;<br><br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResult;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultCallback;<br><span class="hljs-keyword">import</span> androidx.activity.result.ActivityResultLauncher;<br><span class="hljs-keyword">import</span> androidx.activity.result.contract.ActivityResultContracts;<br><span class="hljs-keyword">import</span> androidx.annotation.NonNull;<br><span class="hljs-keyword">import</span> androidx.recyclerview.widget.RecyclerView;<br><br><span class="hljs-keyword">import</span> java.util.List;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyAdapter</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">RecyclerView</span>.Adapter &lt;MyAdapter.MyViewHolder&gt;&#123;<br>    <span class="hljs-comment">//定义存储数据和运行环境的变量</span><br>    <span class="hljs-keyword">private</span> List&lt;Map&lt;String,Object&gt;&gt; mydata;<br>    <span class="hljs-keyword">private</span> Context mycontext;<br><br>    <span class="hljs-comment">//获取数据和运行环境</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-title function_">MyAdapter</span><span class="hljs-params">(List&lt;Map&lt;String,Object&gt;&gt; data, Context context)</span>&#123;<br>        mydata=data;<br>        mycontext=context;<br>    &#125;<br><br>    <span class="hljs-meta">@NonNull</span><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> MyViewHolder <span class="hljs-title function_">onCreateViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> ViewGroup parent, <span class="hljs-type">int</span> viewType)</span> &#123;<br>        View view= LayoutInflater.from(mycontext).inflate(R.layout.fragment_txl,parent,<span class="hljs-literal">false</span>);<br>        MyViewHolder holder=<span class="hljs-keyword">new</span> <span class="hljs-title class_">MyViewHolder</span>(view);<br>        <span class="hljs-keyword">return</span> holder;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onBindViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> MyAdapter.MyViewHolder holder, <span class="hljs-type">int</span> position)</span> &#123;<br>        String name=mydata.get(position).get(<span class="hljs-string">"i_name"</span>).toString();<br>        <span class="hljs-type">int</span> image=Integer.parseInt(mydata.get(position).get(<span class="hljs-string">"i_image"</span>).toString());<br>        <span class="hljs-comment">//获取详情页面中某个联系人的对应数据</span><br>        String phone=mydata.get(position).get(<span class="hljs-string">"i_phone"</span>).toString();<br>        String region=mydata.get(position).get(<span class="hljs-string">"i_region"</span>).toString();<br>        String tag=mydata.get(position).get(<span class="hljs-string">"i_tag"</span>).toString();<br>        holder.textView.setText(name);<br>        holder.imageView.setImageResource(image);<br><br>        <span class="hljs-comment">//添加点击事件</span><br>        holder.linearLayout_txl.setOnClickListener(<span class="hljs-keyword">new</span> <span class="hljs-title class_">View</span>.OnClickListener() &#123;<br>            <span class="hljs-meta">@Override</span><br>            <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onClick</span><span class="hljs-params">(View v)</span> &#123;<br>                <span class="hljs-comment">//点击后跳转到联系人详情页</span><br>                Intent intent=<span class="hljs-keyword">new</span> <span class="hljs-title class_">Intent</span>(mycontext, txlDetails.class);<br><br>                <span class="hljs-comment">//使用bundle传值</span><br>                <span class="hljs-type">Bundle</span> <span class="hljs-variable">bundle</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Bundle</span>();<br>                bundle.putString(<span class="hljs-string">"details"</span>,name);<br>                bundle.putInt(<span class="hljs-string">"image"</span>, image);<br>                bundle.putString(<span class="hljs-string">"phone"</span>,phone);<br>                bundle.putString(<span class="hljs-string">"region"</span>,region);<br>                bundle.putString(<span class="hljs-string">"tag"</span>,tag);<br><br>                intent.putExtras(bundle);<br>                mycontext.startActivity(intent);<br>            &#125;<br>        &#125;);<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">getItemCount</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> mydata.size();<br>    &#125;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">MyViewHolder</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">RecyclerView</span>.ViewHolder &#123;<br>        <span class="hljs-keyword">public</span> LinearLayout linearLayout_txl;<br>        <span class="hljs-keyword">private</span> TextView textView;<br>        <span class="hljs-keyword">private</span> ImageView imageView;<br>        <span class="hljs-keyword">public</span> <span class="hljs-title function_">MyViewHolder</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> View itemView)</span> &#123;<br>            <span class="hljs-built_in">super</span>(itemView);<br>            <span class="hljs-comment">//获取item中的控件id</span><br>            textView=itemView.findViewById(R.id.text_duihuakuang);<br>            imageView=itemView.findViewById(R.id.image_touxiang);<br>            linearLayout_txl=itemView.findViewById(R.id.linearLayout_txl);<br>        &#125;<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>跳转的实现主要是对于LinearLayout_txl 的点击动作实现一个监听，具体操作 Intent intent=new Intent(mycontext, txlDetails.class) <code>myContext</code>是一个代表当前Activity的上下文对象。<code>txlDetails.class</code>是目标Activity的类名。然后将数据压缩绑定到bundle里面，添加到intent，最后调用startActivity(intent) 进行跳转</p>
-<h4 id="2-3-txlDetails"><a href="#2-3-txlDetails" class="headerlink" title="2.3 txlDetails"></a>2.3 txlDetails</h4><figure class="highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><br><span class="hljs-keyword">import</span> androidx.appcompat.app.AppCompatActivity;<br><br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.util.Log;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.widget.Button;<br><span class="hljs-keyword">import</span> android.widget.ImageView;<br><span class="hljs-keyword">import</span> android.widget.TextView;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">txlDetails</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">AppCompatActivity</span> &#123;<br>    TextView dName,textView1,textView2,textView3;<br>    ImageView dImage;<br>    Button button_r;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onCreate</span><span class="hljs-params">(Bundle savedInstanceState)</span> &#123;<br>        <span class="hljs-built_in">super</span>.onCreate(savedInstanceState);<br>        setContentView(R.layout.activity_txl_details);<br>        <span class="hljs-comment">//获取上一个Actvity传过来的intent</span><br>        Intent intent=getIntent();<br>        dName=findViewById(R.id.textDetail);<br>        dImage=findViewById((R.id.imageDetail));<br>        <span class="hljs-comment">//根据intent获取得到的数据设置item控件的值</span><br>        dImage.setImageResource(intent.getIntExtra(<span class="hljs-string">"image"</span>,R.drawable.find));<br>        dName.setText(intent.getStringExtra(<span class="hljs-string">"details"</span>));<br>        textView1=findViewById(R.id.phone);<br>        textView2=findViewById(R.id.region2);<br>        textView3=findViewById(R.id.wxtag2);<br>        textView1.setText(intent.getStringExtra(<span class="hljs-string">"phone"</span>));<br>        textView2.setText(intent.getStringExtra(<span class="hljs-string">"region"</span>));<br>        textView3.setText(intent.getStringExtra(<span class="hljs-string">"tag"</span>));<br>        button_r=findViewById(R.id.returnButton);<br>        button_r.setOnClickListener(<span class="hljs-keyword">new</span> <span class="hljs-title class_">View</span>.OnClickListener() &#123;<br>            <span class="hljs-meta">@Override</span><br>            <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onClick</span><span class="hljs-params">(View view)</span> &#123;<br>                Log.d(<span class="hljs-string">"fb"</span>,<span class="hljs-string">"button_r...."</span>);<br>                <span class="hljs-type">Intent</span> <span class="hljs-variable">intent</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Intent</span>();<br>                setResult(<span class="hljs-number">777</span>,intent);<br>                finish();<br>            &#125;<br>        &#125;);<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<h4 id="2-3-txlDetails"><a href="#2-3-txlDetails" class="headerlink" title="2.3 txlDetails"></a>2.3 txlDetails</h4><div class="code-container" data-rel="Java"><figure class="iseeu highlight java"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.mywork;<br><br><span class="hljs-keyword">import</span> androidx.appcompat.app.AppCompatActivity;<br><br><span class="hljs-keyword">import</span> android.content.Intent;<br><span class="hljs-keyword">import</span> android.os.Bundle;<br><span class="hljs-keyword">import</span> android.util.Log;<br><span class="hljs-keyword">import</span> android.view.View;<br><span class="hljs-keyword">import</span> android.widget.Button;<br><span class="hljs-keyword">import</span> android.widget.ImageView;<br><span class="hljs-keyword">import</span> android.widget.TextView;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">txlDetails</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">AppCompatActivity</span> &#123;<br>    TextView dName,textView1,textView2,textView3;<br>    ImageView dImage;<br>    Button button_r;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onCreate</span><span class="hljs-params">(Bundle savedInstanceState)</span> &#123;<br>        <span class="hljs-built_in">super</span>.onCreate(savedInstanceState);<br>        setContentView(R.layout.activity_txl_details);<br>        <span class="hljs-comment">//获取上一个Actvity传过来的intent</span><br>        Intent intent=getIntent();<br>        dName=findViewById(R.id.textDetail);<br>        dImage=findViewById((R.id.imageDetail));<br>        <span class="hljs-comment">//根据intent获取得到的数据设置item控件的值</span><br>        dImage.setImageResource(intent.getIntExtra(<span class="hljs-string">"image"</span>,R.drawable.find));<br>        dName.setText(intent.getStringExtra(<span class="hljs-string">"details"</span>));<br>        textView1=findViewById(R.id.phone);<br>        textView2=findViewById(R.id.region2);<br>        textView3=findViewById(R.id.wxtag2);<br>        textView1.setText(intent.getStringExtra(<span class="hljs-string">"phone"</span>));<br>        textView2.setText(intent.getStringExtra(<span class="hljs-string">"region"</span>));<br>        textView3.setText(intent.getStringExtra(<span class="hljs-string">"tag"</span>));<br>        button_r=findViewById(R.id.returnButton);<br>        button_r.setOnClickListener(<span class="hljs-keyword">new</span> <span class="hljs-title class_">View</span>.OnClickListener() &#123;<br>            <span class="hljs-meta">@Override</span><br>            <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">onClick</span><span class="hljs-params">(View view)</span> &#123;<br>                Log.d(<span class="hljs-string">"fb"</span>,<span class="hljs-string">"button_r...."</span>);<br>                <span class="hljs-type">Intent</span> <span class="hljs-variable">intent</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Intent</span>();<br>                setResult(<span class="hljs-number">777</span>,intent);<br>                finish();<br>            &#125;<br>        &#125;);<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>用于接受来自txlFragment传过来的数据并显示数据，设置了返回button用于返回至跳转前的Activity</p>
-<h2 id="结果展示"><a href="#结果展示" class="headerlink" title="结果展示"></a>结果展示</h2><p class='item-img' data-src='https://s2.loli.net/2023/11/07/CImD2GeQHcdvFsE.gif'><img src="https://s2.loli.net/2023/11/07/CImD2GeQHcdvFsE.gif" alt="4.gif"></p>
-<h2 id="代码仓库"><a href="#代码仓库" class="headerlink" title="代码仓库"></a>代码仓库</h2><p><a target="_blank" rel="noopener" href="https://github.com/Kylinxin/MyWork">https://github.com/Kylinxin/MyWork</a></p>
+<h2 id="结果展示"><a href="#结果展示" class="headerlink" title="结果展示"></a>结果展示</h2><p class='item-img' data-src='https://s2.loli.net/2023/11/07/CImD2GeQHcdvFsE.gif'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/07/CImD2GeQHcdvFsE.gif"
+                      alt="4.gif"
+                ><figcaption>4.gif</figcaption></figure></p>
+<h2 id="代码仓库"><a href="#代码仓库" class="headerlink" title="代码仓库"></a>代码仓库</h2><p><a class="link"  target="_blank" rel="noopener"  href="https://github.com/Kylinxin/MyWork" >https://github.com/Kylinxin/MyWork<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>​	本次实现我完成了RecyclerView的实现，明白了如何对recyclerView进行传参，设置每一项的具体样子。同时对Activity跳转有了更清晰的认识，startActivity(intent);通过intent设置了跳转对象，进行跳转，这种方法简单直观，但是没办法处理返回值，老版本的解决方法是采用方法startActivityForResult()进行解决，但是有许多弊端和RequestCode难以处理，新版本中采用了registerForActivityResult()方法通过在使用<code>registerForActivityResult()</code>方法注册ActivityResultContracts.StartActivityForResult时，处理启动Activity并获取返回结果的逻辑。ActivityResultCallback<activityresult>是一个接口，用于处理<code>ActivityResultLauncher</code>的结果回调。当启动的Activity结束并返回结果时，回调方法中的<code>ActivityResult</code>参数将包含返回的结果信息。总的来说思路非常清晰，但是我也发现了一个问题，那就是在myadater中无法使用这种方式进行跳转，后来查找原因，registerForActivityResult()只能在fragment或activity中才能使用。这次收获满满，加深了我对recyclerView的使用和activity间跳转的用法和差异。</activityresult></p>
 <p>—— 2023.11.7</p>
 
-    </div>
+		</div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C/" rel="tag"># 移动开发实验</a>
-          </div>
-
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> 移动开发实验2：RecycleView和Activity跳转</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2023-10-01 02:00:00</li>
         
+            <li>
+                <strong>更新于
+                    :</strong> 2023-10-01 02:00:00
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2023/10/01/移动开发实验2：RecycleView/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
 
-          <div class="post-nav">
-            <div class="post-nav-item">
-                <a href="/2023/09/24/%E7%AE%97%E6%B3%95%E4%B8%8E%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E5%AE%9E%E9%AA%8C/" rel="prev" title="算法与程序设计实验">
-                  <i class="fa fa-angle-left"></i> 算法与程序设计实验
-                </a>
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C/">#移动开发实验</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Fuzzing101系列 Exercise 1</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2023/09/24/%E7%AE%97%E6%B3%95%E4%B8%8E%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1%E5%AE%9E%E9%AA%8C/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">算法与程序设计实验</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">移动开发实验2：RecycleView和Activity跳转</div>
+		<ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#AS%E7%B1%BB%E5%BE%AE%E4%BF%A1%E7%95%8C%E9%9D%A2%E5%BC%80%E5%8F%91"><span class="nav-text">AS类微信界面开发</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82"><span class="nav-text">功能要求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E6%8A%80%E6%9C%AF"><span class="nav-text">开发技术</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E5%88%86%E6%9E%90"><span class="nav-text">思路分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1%E8%BF%87%E7%A8%8B"><span class="nav-text">设计过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E7%BC%96%E5%86%99layout"><span class="nav-text">1.  编写layout</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%A0%B8%E5%BF%83%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-text">2. 核心代码实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E6%9E%9C%E5%B1%95%E7%A4%BA"><span class="nav-text">结果展示</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E4%BB%93%E5%BA%93"><span class="nav-text">代码仓库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-text">总结</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
             </div>
-            <div class="post-nav-item">
-                <a href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/" rel="next" title="Fuzzing101系列 Exercise 1">
-                  Fuzzing101系列 Exercise 1 <i class="fa fa-angle-right"></i>
-                </a>
-            </div>
-          </div>
-    </footer>
-  </article>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-
-
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
-  </main>
+	
 
-  <footer class="footer">
-    <div class="footer-inner">
+</main>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
 
-    </div>
-  </footer>
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

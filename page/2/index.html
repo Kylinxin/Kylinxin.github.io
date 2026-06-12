@@ -1,1346 +1,1563 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="Kylinxin&#39;s Blog">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/page/2/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Kylinxin&#39;s Blog">
 <meta property="og:url" content="https://kylinxin.github.io/page/2/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="Kylinxin&#39;s Blog">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:author" content="Kylinxin">
+<meta property="article:tag" content="Kylinxin, security, Web3, Rust, pwn, CTF">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Kylinxin&#39;s Blog - Security, Web3, Systems, and Notes
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/page/2/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":true,"isPost":false,"lang":"zh-CN","comments":"","permalink":"","path":"page/2/index.html","title":""}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion home-linear-page">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
 
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <h1 class="site-title">Kylinxin's Blog</h1>
-      <i class="logo-line"></i>
-    </a>
-  </div>
+<main class="page-container" id="swup">
 
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<style>
+    .home-article-item,
+    .sidebar-links,
+    .sidebar-content,
+    a.page-number,
+    a.extend,
+    .sidebar-links .links:hover,
+    .right-bottom-tools,
+    footer.footer {
+        background-color: var(--background-color-transparent-80) !important;
+    }
+    .right-bottom-tools:hover,
+    a.page-number:hover,
+    a.extend:hover {
+        background-color: var(--primary-color) !important;
+    }
+    .site-info,
+    .home-article-sticky-label {
+        background-color: var(--background-color-transparent-15) !important;
+    }
+    .home-article-sticky-label {
+        backdrop-filter: none !important;
+    }
+    .home-banner-background {
+        filter: blur(15px);
+    }
+</style>
+
+<div class="home-banner-background transition-fade fixed top-0 left-0 w-screen h-screen scale-125 sm:scale-110 box-border will-change-transform bg-cover">
+    <img src="/images/wallhaven-wqery6-light.webp" alt="home-banner-background" class="w-full h-full object-cover dark:hidden">
+    <img src="/images/wallhaven-wqery6-dark.webp" alt="home-banner-background" class="w-full h-full object-cover hidden dark:block">
 </div>
 
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                <h1>
+                Kylinxin&#39;s Blog
+                </h1>
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="active"
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+			<div class="home-sidebar-container">
+    <div class="sticky-container sticky">
+        
+        
+            <div class="sidebar-content">
+                <div class="avatar flex justify-center">
+    <img src="/images/faction/1.png">
+</div>
+                <div class="author flex flex-col justify-center my-2.5 mx-0">
+    <div class="name">Kylinxin</div>
+    
+        <div class="label">Kylinxin</div>
+    
+</div>
+                <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+            </div>
+            
+                <div class="sidebar-links"   marginTop >
+                    <div class="site-info">
+                        <div class="site-name">Kylinxin&#39;s Blog</div>
+                        
+                            <div class="announcement">
+                                CTF / Pwn / Web3 / Rust / notes
+                            </div>
+                        
+                    </div>
+                    
+                        
+                            
+                                <a class="links" target="_blank" rel="noopener" href="https://github.com/Kylinxin">
+                                    
+                                        <i class="fa-brands fa-github icon-space"></i>
+                                    
+                                    <span class="link-name">GitHub</span>
+                                </a>
+                            
+                        
+                            
+                                <a class="links" href="/atom.xml">
+                                    
+                                        <i class="fa-solid fa-rss icon-space"></i>
+                                    
+                                    <span class="link-name">RSS</span>
+                                </a>
+                            
+                        
+                    
+                </div>
+            
         
 
     </div>
-
-    <div class="main-inner index posts-expand">
-
-
-  <nav class="home-topbar" aria-label="Home navigation">
-    <a class="home-brand" href="/">Kylinxin's Blog</a>
-    <div class="home-toplinks">
-      <a href="/archives/">ARCHIVE</a>
-      <a href="/categories/">CATEGORIES</a>
-      <a href="/tags/">TAGS</a>
-      <a class="home-dark-pill" href="#">DARK ON</a>
-    </div>
-  </nav>
-
-  <section class="home-hero" aria-label="Kylinxin's Blog">
-    <div class="home-kicker">ENGINEERING JOURNAL</div>
-    <h1>Kylinxin's Blog</h1>
-  </section>
-
-  <div class="home-dashboard">
-    <aside class="home-profile" aria-label="Profile">
-      <div class="home-monogram">KY</div>
-      <h2>Kylinxin</h2>
-      <div class="home-divider"></div>
-      <div class="home-label">SERIES</div>
-      <nav class="home-series" aria-label="Series">
-        <a class="is-active" href="/categories/heap/">Heap Exploitation</a>
-        <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>
-        <a href="/categories/Rust/">Rust</a>
-        <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>
-      </nav>
-      <div class="home-divider"></div>
-      <div class="home-label">STATUS</div>
-      <div class="home-status">
-        <span><i class="is-green"></i>site generated</span>
-        <span><i class="is-indigo"></i>dark mode active</span>
-      </div>
-    </aside>
-
-    <div class="home-timeline" aria-label="Recent posts">
-        
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/05/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2004%EF%BC%9ATelephone/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/05/05/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2004%EF%BC%9ATelephone/" class="post-title-link" itemprop="url">Ethernaut 靶场学习笔记 04：Telephone</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-05-05 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-05T09:00:00+08:00">2026-05-05</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">区块链安全</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/" itemprop="url" rel="index"><span itemprop="name">Ethernaut</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>529</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
-    </span>
 </div>
 
+			
+
+			<div class="main-content">
+				<div class="home-content-container">
+    <ul class="home-article-list">
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/05/05/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2004%EF%BC%9ATelephone/">
+                            Ethernaut 靶场学习笔记 04：Telephone
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            
+这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。
+
+
+关卡：Level 4 - Telephone
+
+本关目标利用 tx.origin 与 msg.sender 的差异接管 Telephone owner。
+考察知识点
+tx.origin 与 msg.sender 区别
+中间合约绕过
+钓鱼式授权风险
+
+题目源码1234567891011121314151617// SPDX-License-Identifier: MI...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Tue May 05 2026 09:00:00 GMT+0800">
+                
+                    2026-05-05
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/">区块链安全</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">智能合约安全</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/05/05/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2004%EF%BC%9ATelephone/">阅读全文<span class="seo-reader-text">Ethernaut 靶场学习笔记 04：Telephone</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/05/04/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9ACoin%20Flip/">
+                            Ethernaut 靶场学习笔记 03：Coin Flip
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            
+这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。
+
+
+关卡：Level 3 - Coin Flip
+
+本关目标连续猜中 10 次 CoinFlip 的结果。
+考察知识点
+伪随机数可预测
+区块哈希读取
+同交易复现目标计算
+
+题目源码123456789101112131415161718192021222324252627282930313233// SPDX-License-Identifier: MITpragma s...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Mon May 04 2026 09:00:00 GMT+0800">
+                
+                    2026-05-04
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/">区块链安全</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">智能合约安全</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/05/04/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9ACoin%20Flip/">阅读全文<span class="seo-reader-text">Ethernaut 靶场学习笔记 03：Coin Flip</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/05/03/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9AFallout/">
+                            Ethernaut 靶场学习笔记 02：Fallout
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            
+这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。
+
+
+关卡：Level 2 - Fallout
+
+本关目标利用构造函数拼写错误，获得 Fallout 合约 owner。
+考察知识点
+构造函数历史写法
+函数名拼写错误
+public 初始化函数风险
+
+题目源码12345678910111213141516171819202122232425262728293031323334353637383940414243// SPD...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun May 03 2026 09:00:00 GMT+0800">
+                
+                    2026-05-03
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/">区块链安全</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">智能合约安全</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/05/03/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9AFallout/">阅读全文<span class="seo-reader-text">Ethernaut 靶场学习笔记 02：Fallout</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/05/02/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2001%EF%BC%9AFallback/">
+                            Ethernaut 靶场学习笔记 01：Fallback
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            
+这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。
+
+
+关卡：Level 1 - Fallback
+
+本关目标成为 Fallback 合约 owner，并调用 withdraw() 把实例余额清空。
+考察知识点
+fallback&#x2F;receive 入口
+低金额 contribute 铺垫权限条件
+owner 接管后提款
+
+题目源码123456789101112131415161718192021222324252...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sat May 02 2026 09:00:00 GMT+0800">
+                
+                    2026-05-02
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/">区块链安全</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">智能合约安全</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/05/02/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2001%EF%BC%9AFallback/">阅读全文<span class="seo-reader-text">Ethernaut 靶场学习笔记 01：Fallback</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/">
+                            Ethernaut 靶场学习笔记 00：Hello Ethernaut
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            
+这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。
+
+
+关卡：Level 0 - Hello Ethernaut
+
+本关目标熟悉 Ethernaut 的基本操作：连接钱包、创建实例、在浏览器控制台调用合约、提交实例。
+考察知识点
+Ethernaut 实例生命周期
+浏览器控制台与异步合约调用
+公开变量 getter
+
+题目源码1234567891011121314151617181920212223242526272829...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Fri May 01 2026 09:00:00 GMT+0800">
+                
+                    2026-05-01
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/">区块链安全</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Ethernaut/">Ethernaut</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%99%BA%E8%83%BD%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">智能合约安全</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/">阅读全文<span class="seo-reader-text">Ethernaut 靶场学习笔记 00：Hello Ethernaut</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/">
+                            Rust学习笔记 16：异步编程 async-await
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/16_async_await.rs
+运行命令：
+1cargo run --bin lesson16_async_await
+
+学习目标异步编程用于在等待 IO、网络或定时器时不阻塞整个线程。Rust 使用 Future、async 和 .await 表达异步任务。
+本节示例保持无外部依赖，重点解释机制。真实项目通常会使用 Tokio 或 async-std 这样的异步运行时。
+
+理解 async fn 返回 Future。
+知道 .await 表示等待异步结果。
+理解 Futur...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Thu Apr 16 2026 09:00:00 GMT+0800">
+                
+                    2026-04-16
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/">异步编程</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/">阅读全文<span class="seo-reader-text">Rust学习笔记 16：异步编程 async-await</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">
+                            Rust学习笔记 15：常用标准库函数与实用宏
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/15_std_functions_macros.rs
+运行命令：
+1cargo run --bin lesson15_std_functions_macros
+
+学习目标本节整理日常 Rust 编程中常见的标准库函数、方法和宏。它们能显著提高代码表达力。
+宏看起来像函数，但以 ! 结尾，并在编译期展开。常见宏包括 println!、format!、vec!、dbg!。
+
+理解函数、方法和宏的基本区别。
+掌握格式化输出、调试输出和集合创建。
+会使用 Option、Result 的常...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Wed Apr 15 2026 09:00:00 GMT+0800">
+                
+                    2026-04-15
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%A0%87%E5%87%86%E5%BA%93/">标准库</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">阅读全文<span class="seo-reader-text">Rust学习笔记 15：常用标准库函数与实用宏</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+    </ul>
+
+    <div class="home-paginator px-7 py-5">
+        <div class="paginator">
+	<a class="extend prev" rel="prev" href="/"><i class="fa-regular fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/3/"><i class="fa-regular fa-angle-right"></i></a>
+</div>
+  
+    </div>
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
         </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <blockquote>
-<p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
-</blockquote>
-<ul>
-<li>关卡：Level 4 - Telephone</li>
-</ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>利用 <code>tx.origin</code> 与 <code>msg.sender</code> 的差异接管 Telephone owner。</p>
-<h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li><code>tx.origin</code> 与 <code>msg.sender</code> 区别</li>
-<li>中间合约绕过</li>
-<li>钓鱼式授权风险</li>
-</ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></span><br><span class="line">pragma solidity ^<span class="number">0.8</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">Telephone</span> &#123;</span><br><span class="line"></span><br><span class="line">  address public owner;</span><br><span class="line"></span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params"></span>) &#123;</span><br><span class="line">    owner = msg.<span class="property">sender</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">changeOwner</span>(<span class="params">address _owner</span>) public &#123;</span><br><span class="line">    <span class="keyword">if</span> (tx.<span class="property">origin</span> != msg.<span class="property">sender</span>) &#123;</span><br><span class="line">      owner = _owner;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li><code>tx.origin</code> 是整笔交易最初的外部账户，<code>msg.sender</code> 是当前这一层调用的直接调用者。</li>
-<li>如果玩家直接调用 <code>changeOwner</code>，两者相等，条件不成立。</li>
-<li>如果玩家先调用攻击合约，再由攻击合约调用 Telephone，那么 Telephone 中看到的 <code>tx.origin</code> 是玩家，<code>msg.sender</code> 是攻击合约，条件成立。</li>
-<li>这类模式在真实合约中很危险，因为用户可能被诱导调用恶意合约，恶意合约再拿用户的 <code>tx.origin</code> 去通过受害合约鉴权。</li>
-</ol>
-<h2 id="过程截图"><a href="#过程截图" class="headerlink" title="过程截图"></a>过程截图</h2><p><img src="/images/ethernaut/level04-telephone-owner.png" alt="通过中间合约调用后 owner 被替换的记录。"></p>
-<p>图注：通过中间合约调用后 owner 被替换的记录。</p>
-<h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>部署中间攻击合约。</li>
-<li>用钱包调用攻击合约；此时目标合约看到的 <code>msg.sender</code> 是攻击合约，<code>tx.origin</code> 是玩家。</li>
-<li>攻击合约再调用目标的 <code>changeOwner(player)</code>。</li>
-</ol>
-<h2 id="攻击合约-WP"><a href="#攻击合约-WP" class="headerlink" title="攻击合约 WP"></a>攻击合约 WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">interface <span class="title class_">ITelephone</span> &#123;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">changeOwner</span>(<span class="params">address newOwner</span>) external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">TelephoneAttack</span> &#123;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">attack</span>(<span class="params">address instance, address player</span>) external &#123;</span><br><span class="line">        <span class="title class_">ITelephone</span>(instance).<span class="title function_">changeOwner</span>(player);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>部署一个中间攻击合约。</li>
-<li>攻击合约中调用 <code>Telephone(instance).changeOwner(player)</code>。</li>
-<li>用玩家钱包调用攻击合约，而不是直接调用 Telephone。</li>
-<li>确认 <code>owner()</code> 变成玩家地址并提交。</li>
-</ol>
-<h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：<code>tx.origin</code> 用于鉴权会产生钓鱼攻击面。</li>
-<li>防御建议：权限判断使用 <code>msg.sender</code>，复杂授权使用签名、角色或明确的访问控制模块。</li>
-</ul>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/HkI4o9o46">https://hackmd.io/@0xbc000/HkI4o9o46</a></li>
-<li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
-<li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/04/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9ACoin%20Flip/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/05/04/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9ACoin%20Flip/" class="post-title-link" itemprop="url">Ethernaut 靶场学习笔记 03：Coin Flip</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-05-04 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-04T09:00:00+08:00">2026-05-04</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">区块链安全</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/" itemprop="url" rel="index"><span itemprop="name">Ethernaut</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>673</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
-    </span>
-</div>
-
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
         </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <blockquote>
-<p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
-</blockquote>
-<ul>
-<li>关卡：Level 3 - Coin Flip</li>
-</ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>连续猜中 10 次 CoinFlip 的结果。</p>
-<h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li>伪随机数可预测</li>
-<li>区块哈希读取</li>
-<li>同交易复现目标计算</li>
-</ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></span><br><span class="line">pragma solidity ^<span class="number">0.8</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">CoinFlip</span> &#123;</span><br><span class="line"></span><br><span class="line">  uint256 public consecutiveWins;</span><br><span class="line">  uint256 lastHash;</span><br><span class="line">  uint256 <span class="variable constant_">FACTOR</span> = <span class="number">57896044618658097711785492504343953926634992332820282019728792003956564819968</span>;</span><br><span class="line"></span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params"></span>) &#123;</span><br><span class="line">    consecutiveWins = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">flip</span>(<span class="params">bool _guess</span>) public <span class="title function_">returns</span> (bool) &#123;</span><br><span class="line">    uint256 blockValue = <span class="title function_">uint256</span>(<span class="title function_">blockhash</span>(block.<span class="property">number</span> - <span class="number">1</span>));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (lastHash == blockValue) &#123;</span><br><span class="line">      <span class="title function_">revert</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    lastHash = blockValue;</span><br><span class="line">    uint256 coinFlip = blockValue / <span class="variable constant_">FACTOR</span>;</span><br><span class="line">    bool side = coinFlip == <span class="number">1</span> ? <span class="literal">true</span> : <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (side == _guess) &#123;</span><br><span class="line">      consecutiveWins++;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      consecutiveWins = <span class="number">0</span>;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li>合约把 <code>blockhash(block.number - 1)</code> 转成整数，再除以固定 <code>FACTOR</code>，得到 0 或 1。这个结果对链上所有合约都是公开可计算的。</li>
-<li>攻击合约与目标合约在同一笔交易中读取同一个上一块区块哈希，因此可以先在攻击合约中复现同样公式，再把答案传给 <code>flip</code>。</li>
-<li><code>lastHash</code> 会阻止同一区块重复调用，所以不能在一个区块内循环刷 10 次；需要等待新区块后多次执行攻击函数。</li>
-<li>这关考察的是链上伪随机数问题：矿工、验证者、合约调用者都可能预测或影响简单链上随机源。</li>
-</ol>
-<h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>阅读合约可知结果由上一块区块哈希除以固定因子得到。</li>
-<li>部署攻击合约，在同一交易内复现目标合约的计算。</li>
-<li>把计算出的布尔值传给 <code>flip</code>，每个新区块调用一次，累计 10 次。</li>
-</ol>
-<h2 id="攻击合约-WP"><a href="#攻击合约-WP" class="headerlink" title="攻击合约 WP"></a>攻击合约 WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">interface <span class="title class_">ICoinFlip</span> &#123;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">flip</span>(<span class="params">bool guess</span>) external <span class="title function_">returns</span> (bool);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">CoinFlipAttack</span> &#123;</span><br><span class="line">    uint256 constant <span class="variable constant_">FACTOR</span> =</span><br><span class="line">        <span class="number">57896044618658097711785492504343953926634992332820282019728792003956564819968</span>;</span><br><span class="line">    <span class="title class_">ICoinFlip</span> target;</span><br><span class="line"></span><br><span class="line">    <span class="title function_">constructor</span>(<span class="params">address instance</span>) &#123;</span><br><span class="line">        target = <span class="title class_">ICoinFlip</span>(instance);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">attack</span>(<span class="params"></span>) external &#123;</span><br><span class="line">        uint256 v = <span class="title function_">uint256</span>(<span class="title function_">blockhash</span>(block.<span class="property">number</span> - <span class="number">1</span>)) / <span class="variable constant_">FACTOR</span>;</span><br><span class="line">        target.<span class="title function_">flip</span>(v == <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>部署攻击合约，保存目标实例地址。</li>
-<li>攻击函数中计算 <code>uint256(blockhash(block.number - 1)) / FACTOR</code>。</li>
-<li>把计算得到的布尔值传给目标 <code>flip(guess)</code>。</li>
-<li>跨 10 个新区块重复调用，直到 <code>consecutiveWins()</code> 为 10。</li>
-</ol>
-<h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：如果攻击合约和目标合约在同一交易中读取相同区块数据，攻击者就能得到同一个“随机”结果。</li>
-<li>防御建议：使用 commit-reveal、VRF 或可信随机数预言机；不要把可公开计算的链上数据当随机源。</li>
-<li>拓展：生产环境随机数可以考虑 commit-reveal、VRF 或可信随机数预言机，不能只取区块哈希。</li>
-</ul>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/SyLFCqoNp">https://hackmd.io/@0xbc000/SyLFCqoNp</a></li>
-<li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
-<li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/03/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9AFallout/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/05/03/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9AFallout/" class="post-title-link" itemprop="url">Ethernaut 靶场学习笔记 02：Fallout</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-05-03 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-03T09:00:00+08:00">2026-05-03</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">区块链安全</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/" itemprop="url" rel="index"><span itemprop="name">Ethernaut</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>552</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <blockquote>
-<p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
-</blockquote>
-<ul>
-<li>关卡：Level 2 - Fallout</li>
-</ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>利用构造函数拼写错误，获得 Fallout 合约 owner。</p>
-<h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li>构造函数历史写法</li>
-<li>函数名拼写错误</li>
-<li>public 初始化函数风险</li>
-</ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></span><br><span class="line">pragma solidity ^<span class="number">0.6</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&#x27;openzeppelin-contracts-06/math/SafeMath.sol&#x27;</span>;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">Fallout</span> &#123;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">using</span> <span class="title class_">SafeMath</span> <span class="keyword">for</span> uint256;</span><br><span class="line">  <span class="title function_">mapping</span> (<span class="function"><span class="params">address</span> =&gt;</span> uint) allocations;</span><br><span class="line">  address payable public owner;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  <span class="comment">/* constructor */</span></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">Fal1out</span>(<span class="params"></span>) public payable &#123;</span><br><span class="line">    owner = msg.<span class="property">sender</span>;</span><br><span class="line">    allocations[owner] = msg.<span class="property">value</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  modifier onlyOwner &#123;</span><br><span class="line">        <span class="built_in">require</span>(</span><br><span class="line">            msg.<span class="property">sender</span> == owner,</span><br><span class="line">            <span class="string">&quot;caller is not the owner&quot;</span></span><br><span class="line">        );</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">allocate</span>(<span class="params"></span>) public payable &#123;</span><br><span class="line">    allocations[msg.<span class="property">sender</span>] = allocations[msg.<span class="property">sender</span>].<span class="title function_">add</span>(msg.<span class="property">value</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">sendAllocation</span>(<span class="params">address payable allocator</span>) public &#123;</span><br><span class="line">    <span class="built_in">require</span>(allocations[allocator] &gt; <span class="number">0</span>);</span><br><span class="line">    allocator.<span class="title function_">transfer</span>(allocations[allocator]);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">collectAllocations</span>(<span class="params"></span>) public onlyOwner &#123;</span><br><span class="line">    msg.<span class="property">sender</span>.<span class="title function_">transfer</span>(<span class="title function_">address</span>(<span class="variable language_">this</span>).<span class="property">balance</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">allocatorBalance</span>(<span class="params">address allocator</span>) public view <span class="title function_">returns</span> (uint) &#123;</span><br><span class="line">    <span class="keyword">return</span> allocations[allocator];</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li>Solidity 0.6 已经支持 <code>constructor</code> 关键字，但这份代码保留了旧式注释 <code>/* constructor */</code>，函数名却写成 <code>Fal1out</code>。</li>
-<li><code>Fallout</code> 中第二个字符应该是字母 <code>l</code>，源码里 <code>Fal1out</code> 使用了数字 <code>1</code>，因此它不是构造函数，而是一个普通的 <code>public payable</code> 函数。</li>
-<li>普通外部用户可以直接调用这个函数，函数内部把 <code>owner = msg.sender</code>，所以 owner 会被调用者接管。</li>
-</ol>
-<h2 id="过程截图"><a href="#过程截图" class="headerlink" title="过程截图"></a>过程截图</h2><p><img src="/images/ethernaut/level02-fallout-owner.png" alt="调用误写初始化函数后 owner 变化的记录。"></p>
-<p>图注：调用误写初始化函数后 owner 变化的记录。</p>
-<h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>观察源码中 <code>Fal1out</code> 使用数字 1，而不是合约名里的字母 l。</li>
-<li>该函数是 public，任何地址都能调用。</li>
-<li>发送一笔很小金额调用 <code>Fal1out()</code>，触发 owner 赋值。</li>
-</ol>
-<h2 id="Console-WP"><a href="#Console-WP" class="headerlink" title="Console WP"></a>Console WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">await</span> contract.<span class="title function_">owner</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title class_">Fal1</span>out(&#123; <span class="attr">value</span>: <span class="title function_">toWei</span>(<span class="string">&quot;0.000001&quot;</span>) &#125;)</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">owner</span>()</span><br></pre></td></tr></table></figure>
-
-<h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>调用前先查看 <code>owner()</code>。</li>
-<li>调用 <code>Fal1out(&#123;value: toWei(&quot;0.000001&quot;)&#125;)</code>。</li>
-<li>再次查看 <code>owner()</code>，确认已经变成自己的地址。</li>
-<li>提交实例。</li>
-</ol>
-<h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：Solidity 0.4.22 之后推荐 <code>constructor</code> 关键字，就是为避免这类拼写事故。</li>
-<li>防御建议：使用现代编译器；初始化函数必须加访问控制和一次性初始化保护。</li>
-</ul>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/SkJgDcs4T">https://hackmd.io/@0xbc000/SkJgDcs4T</a></li>
-<li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
-<li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/02/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2001%EF%BC%9AFallback/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/05/02/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2001%EF%BC%9AFallback/" class="post-title-link" itemprop="url">Ethernaut 靶场学习笔记 01：Fallback</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-05-02 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-02T09:00:00+08:00">2026-05-02</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">区块链安全</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/" itemprop="url" rel="index"><span itemprop="name">Ethernaut</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>594</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>2 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <blockquote>
-<p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
-</blockquote>
-<ul>
-<li>关卡：Level 1 - Fallback</li>
-</ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>成为 Fallback 合约 owner，并调用 <code>withdraw()</code> 把实例余额清空。</p>
-<h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li>fallback&#x2F;receive 入口</li>
-<li>低金额 contribute 铺垫权限条件</li>
-<li>owner 接管后提款</li>
-</ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></span><br><span class="line">pragma solidity ^<span class="number">0.8</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">Fallback</span> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="title function_">mapping</span>(<span class="function"><span class="params">address</span> =&gt;</span> uint) public contributions;</span><br><span class="line">  address public owner;</span><br><span class="line"></span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params"></span>) &#123;</span><br><span class="line">    owner = msg.<span class="property">sender</span>;</span><br><span class="line">    contributions[msg.<span class="property">sender</span>] = <span class="number">1000</span> * (<span class="number">1</span> ether);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  modifier onlyOwner &#123;</span><br><span class="line">        <span class="built_in">require</span>(</span><br><span class="line">            msg.<span class="property">sender</span> == owner,</span><br><span class="line">            <span class="string">&quot;caller is not the owner&quot;</span></span><br><span class="line">        );</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">contribute</span>(<span class="params"></span>) public payable &#123;</span><br><span class="line">    <span class="built_in">require</span>(msg.<span class="property">value</span> &lt; <span class="number">0.001</span> ether);</span><br><span class="line">    contributions[msg.<span class="property">sender</span>] += msg.<span class="property">value</span>;</span><br><span class="line">    <span class="keyword">if</span>(contributions[msg.<span class="property">sender</span>] &gt; contributions[owner]) &#123;</span><br><span class="line">      owner = msg.<span class="property">sender</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">getContribution</span>(<span class="params"></span>) public view <span class="title function_">returns</span> (uint) &#123;</span><br><span class="line">    <span class="keyword">return</span> contributions[msg.<span class="property">sender</span>];</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">withdraw</span>(<span class="params"></span>) public onlyOwner &#123;</span><br><span class="line">    <span class="title function_">payable</span>(owner).<span class="title function_">transfer</span>(<span class="title function_">address</span>(<span class="variable language_">this</span>).<span class="property">balance</span>);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="title function_">receive</span>() external payable &#123;</span><br><span class="line">    <span class="built_in">require</span>(msg.<span class="property">value</span> &gt; <span class="number">0</span> &amp;&amp; contributions[msg.<span class="property">sender</span>] &gt; <span class="number">0</span>);</span><br><span class="line">    owner = msg.<span class="property">sender</span>;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li><code>withdraw()</code> 被 <code>onlyOwner</code> 保护，因此真正目标是改写 <code>owner</code>。</li>
-<li><code>contribute()</code> 看似可以改 owner，但初始 owner 的贡献额是 <code>1000 ether</code>，正常玩家不可能用小额贡献超过它。</li>
-<li>真正入口在 <code>receive()</code>：只要直接给合约转 ETH，且 <code>msg.value &gt; 0</code>、<code>contributions[msg.sender] &gt; 0</code>，合约就会把 <code>owner</code> 改成 <code>msg.sender</code>。</li>
-<li>所以攻击必须分两步：先 <code>contribute</code> 一笔小于 <code>0.001 ether</code> 的金额建立贡献记录，再发送一笔普通 ETH 转账触发 <code>receive()</code>。</li>
-</ol>
-<h2 id="过程截图"><a href="#过程截图" class="headerlink" title="过程截图"></a>过程截图</h2><p><img src="/images/ethernaut/level01-fallback-owner.png" alt="接管 owner 后再执行 withdraw 的过程记录。"></p>
-<p>图注：接管 owner 后再执行 withdraw 的过程记录。</p>
-<h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>先调用 <code>contribute</code>，发送一笔很小的 ETH，让 <code>contributions[msg.sender] &gt; 0</code>。</li>
-<li>再向实例地址直接转账，calldata 为空会进入 <code>receive()</code>。</li>
-<li><code>receive()</code> 检查通过后把 <code>owner</code> 改成调用者。</li>
-<li>调用 <code>withdraw()</code> 清空合约余额。</li>
-</ol>
-<h2 id="Console-WP"><a href="#Console-WP" class="headerlink" title="Console WP"></a>Console WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">await</span> contract.<span class="title function_">contribute</span>(&#123; <span class="attr">value</span>: <span class="title function_">toWei</span>(<span class="string">&quot;0.000001&quot;</span>) &#125;)</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">sendTransaction</span>(&#123; <span class="attr">value</span>: <span class="title function_">toWei</span>(<span class="string">&quot;0.000001&quot;</span>) &#125;)</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">owner</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">withdraw</span>()</span><br></pre></td></tr></table></figure>
-
-<h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>先调用 <code>contribute(&#123;value: toWei(&quot;0.000001&quot;)&#125;)</code>，让自己的 contribution 大于 0。</li>
-<li>再用 <code>sendTransaction</code> 给实例地址转一笔小额 ETH，calldata 为空，所以进入 <code>receive()</code>。</li>
-<li>确认 <code>owner()</code> 已变成玩家地址。</li>
-<li>调用 <code>withdraw()</code> 提走余额，提交实例。</li>
-</ol>
-<h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：不要只审查显式函数；<code>receive</code>&#x2F;<code>fallback</code> 也是外部入口。</li>
-<li>防御建议：授权逻辑不要放在收款回调里；收款逻辑尽量保持无状态，关键权限只能通过明确的管理流程变更。</li>
-</ul>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/rJy5LtoN6">https://hackmd.io/@0xbc000/rJy5LtoN6</a></li>
-<li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
-<li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/05/01/Ethernaut%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2000%EF%BC%9AHello%20Ethernaut/" class="post-title-link" itemprop="url">Ethernaut 靶场学习笔记 00：Hello Ethernaut</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-05-01 09:00:00" itemprop="dateCreated datePublished" datetime="2026-05-01T09:00:00+08:00">2026-05-01</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">区块链安全</span></a>
-        </span>
-          ，
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/" itemprop="url" rel="index"><span itemprop="name">Ethernaut</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>690</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>3 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <blockquote>
-<p>这是我的 Ethernaut 靶场个人学习笔记，用来记录每一关的题目目标、漏洞原理、利用过程和复盘要点，方便后续按关卡重新练习和查漏补缺。</p>
-</blockquote>
-<ul>
-<li>关卡：Level 0 - Hello Ethernaut</li>
-</ul>
-<h2 id="本关目标"><a href="#本关目标" class="headerlink" title="本关目标"></a>本关目标</h2><p>熟悉 Ethernaut 的基本操作：连接钱包、创建实例、在浏览器控制台调用合约、提交实例。</p>
-<h2 id="考察知识点"><a href="#考察知识点" class="headerlink" title="考察知识点"></a>考察知识点</h2><ul>
-<li>Ethernaut 实例生命周期</li>
-<li>浏览器控制台与异步合约调用</li>
-<li>公开变量 getter</li>
-</ul>
-<h2 id="题目源码"><a href="#题目源码" class="headerlink" title="题目源码"></a>题目源码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SPDX-License-Identifier: MIT</span></span><br><span class="line">pragma solidity ^<span class="number">0.8</span><span class="number">.0</span>;</span><br><span class="line"></span><br><span class="line">contract <span class="title class_">Instance</span> &#123;</span><br><span class="line"></span><br><span class="line">  string public password;</span><br><span class="line">  uint8 public infoNum = <span class="number">42</span>;</span><br><span class="line">  string public theMethodName = <span class="string">&#x27;The method name is method7123949.&#x27;</span>;</span><br><span class="line">  bool private cleared = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// constructor</span></span><br><span class="line">  <span class="title function_">constructor</span>(<span class="params">string memory _password</span>) &#123;</span><br><span class="line">    password = _password;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">info</span>(<span class="params"></span>) public pure <span class="title function_">returns</span> (string memory) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;You will find what you need in info1().&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">info1</span>(<span class="params"></span>) public pure <span class="title function_">returns</span> (string memory) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Try info2(), but with &quot;hello&quot; as a parameter.&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">info2</span>(<span class="params">string memory param</span>) public pure <span class="title function_">returns</span> (string memory) &#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_">keccak256</span>(abi.<span class="title function_">encodePacked</span>(param)) == <span class="title function_">keccak256</span>(abi.<span class="title function_">encodePacked</span>(<span class="string">&#x27;hello&#x27;</span>))) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="string">&#x27;The property infoNum holds the number of the next info method to call.&#x27;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;Wrong parameter.&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">info42</span>(<span class="params"></span>) public pure <span class="title function_">returns</span> (string memory) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;theMethodName is the name of the next method.&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">method7123949</span>(<span class="params"></span>) public pure <span class="title function_">returns</span> (string memory) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;If you know the password, submit it to authenticate().&#x27;</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">authenticate</span>(<span class="params">string memory passkey</span>) public &#123;</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_">keccak256</span>(abi.<span class="title function_">encodePacked</span>(passkey)) == <span class="title function_">keccak256</span>(abi.<span class="title function_">encodePacked</span>(password))) &#123;</span><br><span class="line">      cleared = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">getCleared</span>(<span class="params"></span>) public view <span class="title function_">returns</span> (bool) &#123;</span><br><span class="line">    <span class="keyword">return</span> cleared;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="源码与漏洞解析"><a href="#源码与漏洞解析" class="headerlink" title="源码与漏洞解析"></a>源码与漏洞解析</h2><ol>
-<li>本关没有复杂漏洞，重点是建立操作习惯。Ethernaut 页面创建实例后，会在控制台暴露 <code>contract</code>、<code>player</code>、<code>instance</code> 等变量，<code>contract</code> 就是当前实例的 ABI 封装对象。</li>
-<li>源码中 <code>password</code> 是 <code>public</code>，Solidity 会自动生成 <code>password()</code> getter，所以控制台可以直接读到口令。<code>cleared</code> 虽然是 <code>private</code>，但这里只需要通过 <code>authenticate</code> 改它。</li>
-<li><code>info2</code> 用 <code>keccak256(abi.encodePacked(param))</code> 比较字符串，所以参数必须是精确的 <code>hello</code>。后续 <code>infoNum</code>、<code>theMethodName</code> 都是在训练如何根据返回值继续找下一个函数。</li>
-</ol>
-<h2 id="解题过程"><a href="#解题过程" class="headerlink" title="解题过程"></a>解题过程</h2><ol>
-<li>连接钱包并选择测试网，创建本关实例。</li>
-<li>在浏览器 DevTools Console 中逐个调用 <code>info</code> 系列函数。</li>
-<li>读取公开变量 <code>password</code>，把得到的口令传入 <code>authenticate</code>。</li>
-<li>回到页面提交实例。</li>
-</ol>
-<h2 id="Console-WP"><a href="#Console-WP" class="headerlink" title="Console WP"></a>Console WP</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info1</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">info2</span>(<span class="string">&quot;hello&quot;</span>)</span><br><span class="line"><span class="keyword">const</span> n = <span class="keyword">await</span> contract.<span class="title function_">infoNum</span>()</span><br><span class="line"><span class="keyword">await</span> contract[<span class="string">&quot;info&quot;</span> + n]()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">theMethodName</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">method7123949</span>()</span><br><span class="line"><span class="keyword">const</span> pass = <span class="keyword">await</span> contract.<span class="title function_">password</span>()</span><br><span class="line"><span class="keyword">await</span> contract.<span class="title function_">authenticate</span>(pass)</span><br></pre></td></tr></table></figure>
-
-<h2 id="最终-WP"><a href="#最终-WP" class="headerlink" title="最终 WP"></a>最终 WP</h2><ol>
-<li>创建实例后打开浏览器 DevTools Console。</li>
-<li>按提示链式调用 <code>info -&gt; info1 -&gt; info2(&quot;hello&quot;) -&gt; infoNum -&gt; info42 -&gt; theMethodName -&gt; method7123949</code>。</li>
-<li>读取 <code>password()</code> 得到口令，调用 <code>authenticate(password)</code>。</li>
-<li>回到页面提交实例。</li>
-</ol>
-<h2 id="复盘与拓展"><a href="#复盘与拓展" class="headerlink" title="复盘与拓展"></a>复盘与拓展</h2><ul>
-<li>易错点：这是环境教学关，重点不是漏洞，而是理解 Ethernaut 的 <code>contract</code> 变量就是当前实例的 Web3 合约对象。</li>
-<li>防御建议：生产合约不要把敏感口令放在链上公开变量里；即使变量标成 <code>private</code>，链上存储也能被读取。</li>
-</ul>
-<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
-<li>相关资料：<a target="_blank" rel="noopener" href="https://hackmd.io/@0xbc000/ryToeKj4a">https://hackmd.io/@0xbc000/ryToeKj4a</a></li>
-<li>Ethernaut 官方仓库：<a target="_blank" rel="noopener" href="https://github.com/OpenZeppelin/ethernaut">https://github.com/OpenZeppelin/ethernaut</a></li>
-<li>Solidity 文档：<a target="_blank" rel="noopener" href="https://docs.soliditylang.org/">https://docs.soliditylang.org/</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/" class="post-title-link" itemprop="url">Rust学习笔记 16：异步编程 async-await</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-16 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-16T09:00:00+08:00">2026-04-16</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.3k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>5 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/16_async_await.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson16_async_await</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>异步编程用于在等待 IO、网络或定时器时不阻塞整个线程。Rust 使用 <code>Future</code>、<code>async</code> 和 <code>.await</code> 表达异步任务。</p>
-<p>本节示例保持无外部依赖，重点解释机制。真实项目通常会使用 Tokio 或 async-std 这样的异步运行时。</p>
-<ul>
-<li>理解 <code>async fn</code> 返回 Future。</li>
-<li>知道 <code>.await</code> 表示等待异步结果。</li>
-<li>理解 Future 需要运行时或执行器推动。</li>
-<li>区分并发 concurrent 和并行 parallel。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>async</td>
-<td>声明异步块或异步函数。</td>
-<td><code>async fn load()</code> 不会立即执行完所有逻辑，而是返回 Future。</td>
-</tr>
-<tr>
-<td>await</td>
-<td>等待 Future 完成并取出结果。</td>
-<td>只能在 async 上下文中使用。</td>
-</tr>
-<tr>
-<td>Future</td>
-<td>代表一个未来可能完成的计算。</td>
-<td>需要被 poll 推动。</td>
-</tr>
-<tr>
-<td>执行器 executor</td>
-<td>负责轮询 Future 的运行组件。</td>
-<td>Tokio 就提供成熟执行器。</td>
-</tr>
-<tr>
-<td>运行时 runtime</td>
-<td>提供执行器、定时器、IO 驱动等能力。</td>
-<td>网络异步通常离不开运行时。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::future::Future;</span><br><span class="line"><span class="keyword">use</span> std::pin::Pin;</span><br><span class="line"><span class="keyword">use</span> std::sync::Arc;</span><br><span class="line"><span class="keyword">use</span> std::task::&#123;Context, Poll, Wake, Waker&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">NoopWaker</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Wake</span> <span class="keyword">for</span> <span class="title class_">NoopWaker</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">wake</span>(<span class="keyword">self</span>: Arc&lt;<span class="keyword">Self</span>&gt;) &#123;</span><br><span class="line">        <span class="comment">// 这个演示用的 Future 会立即完成，所以不需要真正唤醒任务。</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">block_on_ready</span>&lt;F: Future&gt;(future: F) <span class="punctuation">-&gt;</span> F::Output &#123;</span><br><span class="line">    <span class="comment">// 真实项目通常使用 Tokio 或 async-std 这样的运行时。</span></span><br><span class="line">    <span class="comment">// 这里不用外部依赖，只演示 Future 如何被 poll。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">waker</span> = Waker::<span class="title function_ invoke__">from</span>(Arc::<span class="title function_ invoke__">new</span>(NoopWaker));</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">context</span> = Context::<span class="title function_ invoke__">from_waker</span>(&amp;waker);</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">future</span> = <span class="type">Box</span>::<span class="title function_ invoke__">pin</span>(future);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> Future::<span class="title function_ invoke__">poll</span>(Pin::<span class="title function_ invoke__">as_mut</span>(&amp;<span class="keyword">mut</span> future), &amp;<span class="keyword">mut</span> context) &#123;</span><br><span class="line">        Poll::<span class="title function_ invoke__">Ready</span>(value) =&gt; value,</span><br><span class="line">        Poll::Pending =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;这个简单演示只支持立即完成的 Future&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">fetch_number</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="comment">// async fn 返回一个实现 Future 的值；函数体不会立刻执行到完成。</span></span><br><span class="line">    <span class="number">42</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">double_number</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="comment">// await 会等待另一个 Future 完成，并取出结果。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">number</span> = <span class="title function_ invoke__">fetch_number</span>().<span class="keyword">await</span>;</span><br><span class="line">    number * <span class="number">2</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">block_on_ready</span>(<span class="title function_ invoke__">double_number</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;异步计算结果: &#123;result&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;实际网络、文件、定时器异步任务通常需要 Tokio 或 async-std 运行时。&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson16_async_await</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="async-fn"><a href="#async-fn" class="headerlink" title="async fn"></a>async fn</h3><p>异步函数调用后得到 Future，不是马上得到最终值。</p>
-<h3 id="await"><a href="#await" class="headerlink" title=".await"></a>.await</h3><p>在异步上下文中等待另一个 Future 完成。</p>
-<h3 id="无依赖示例"><a href="#无依赖示例" class="headerlink" title="无依赖示例"></a>无依赖示例</h3><p>本节用标准库展示 Future 被手动推动的基本过程。</p>
-<h3 id="真实项目"><a href="#真实项目" class="headerlink" title="真实项目"></a>真实项目</h3><p>实际网络、文件和定时器异步通常使用 Tokio 等运行时。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="async"><a href="#async" class="headerlink" title="async"></a>async</h3><p>声明异步块或异步函数。</p>
-<p><code>async fn load()</code> 不会立即执行完所有逻辑，而是返回 Future。</p>
-<h3 id="await-1"><a href="#await-1" class="headerlink" title="await"></a>await</h3><p>等待 Future 完成并取出结果。</p>
-<p>只能在 async 上下文中使用。</p>
-<h3 id="Future"><a href="#Future" class="headerlink" title="Future"></a>Future</h3><p>代表一个未来可能完成的计算。</p>
-<p>需要被 poll 推动。</p>
-<h3 id="执行器-executor"><a href="#执行器-executor" class="headerlink" title="执行器 executor"></a>执行器 executor</h3><p>负责轮询 Future 的运行组件。</p>
-<p>Tokio 就提供成熟执行器。</p>
-<h3 id="运行时-runtime"><a href="#运行时-runtime" class="headerlink" title="运行时 runtime"></a>运行时 runtime</h3><p>提供执行器、定时器、IO 驱动等能力。</p>
-<p>网络异步通常离不开运行时。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>异步不是自动开新线程。它主要让等待中的任务让出执行权。</p>
-<p>并发表示多个任务在时间上交错推进；并行表示多个任务真的在多个 CPU 核心同时运行。</p>
-<p><code>async fn</code> 的返回类型可理解为 <code>impl Future&lt;Output = T&gt;</code>。</p>
-<p>没有 <code>.await</code> 或执行器推动，Future 可能只是一个尚未运行完成的状态机。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要以为调用 <code>async fn</code> 就会立即执行网络请求。它返回的是 Future。</li>
-<li>不要在异步任务里随意执行长时间阻塞操作，否则会卡住运行时线程。</li>
-<li>标准库没有内置完整异步运行时，所以真实应用通常需要外部 crate。</li>
-<li>异步能提升等待型任务吞吐量，不一定让 CPU 密集计算更快。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：理解-async-返回值"><a href="#练习-1：理解-async-返回值" class="headerlink" title="练习 1：理解 async 返回值"></a>练习 1：理解 async 返回值</h3><p>要求：写一个返回数字的 <code>async fn</code>，并说明调用结果是什么。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">answer</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="number">42</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">future</span> = <span class="title function_ invoke__">answer</span>();</span><br><span class="line">    <span class="title function_ invoke__">drop</span>(future);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>answer()</code> 返回 Future。没有执行器或 <code>.await</code>，这里不会直接得到 <code>42</code>。</p>
-<h3 id="练习-2：组合-async-函数"><a href="#练习-2：组合-async-函数" class="headerlink" title="练习 2：组合 async 函数"></a>练习 2：组合 async 函数</h3><p>要求：写两个 async 函数，在第三个 async 函数中 await 它们。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">left</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123; <span class="number">20</span> &#125;</span><br><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">right</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123; <span class="number">22</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">async</span> <span class="keyword">fn</span> <span class="title function_">sum</span>() <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">    <span class="title function_ invoke__">left</span>().<span class="keyword">await</span> + <span class="title function_ invoke__">right</span>().<span class="keyword">await</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>await</code> 只能写在 async 函数或 async 块里。</p>
-<h3 id="练习-3：区分并发和并行"><a href="#练习-3：区分并发和并行" class="headerlink" title="练习 3：区分并发和并行"></a>练习 3：区分并发和并行</h3><p>要求：用文字说明异步适合什么任务。</p>
-<p>参考答案：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">异步适合网络请求、文件 IO、数据库访问等等待型任务。它让一个线程在等待某个任务时继续推进其他任务。CPU 密集计算通常需要线程池或并行计算库。</span><br></pre></td></tr></table></figure>
-
-<p>解释：这道题没有固定代码答案，重点是理解异步的使用边界。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">Rust学习笔记 15：常用标准库函数与实用宏</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
         
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
 
+	
 
-<div class="post-block">
-  
-  
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
 
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
 
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/" class="post-title-link" itemprop="url">Rust学习笔记 15：常用标准库函数与实用宏</a>
-        </h2>
+		
 
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
 
-      <time title="创建时间：2026-04-15 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-15T09:00:00+08:00">2026-04-15</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.1k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
 </div>
+	</div>
 
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/15_std_functions_macros.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson15_std_functions_macros</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>本节整理日常 Rust 编程中常见的标准库函数、方法和宏。它们能显著提高代码表达力。</p>
-<p>宏看起来像函数，但以 <code>!</code> 结尾，并在编译期展开。常见宏包括 <code>println!</code>、<code>format!</code>、<code>vec!</code>、<code>dbg!</code>。</p>
-<ul>
-<li>理解函数、方法和宏的基本区别。</li>
-<li>掌握格式化输出、调试输出和集合创建。</li>
-<li>会使用 <code>Option</code>、<code>Result</code> 的常用方法。</li>
-<li>知道 <code>dbg!</code>、<code>assert!</code>、<code>panic!</code> 的适用场景。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>标准库 std</td>
-<td>Rust 自带的基础功能库。</td>
-<td>包括集合、字符串、IO、线程、时间等。</td>
-</tr>
-<tr>
-<td>宏 macro</td>
-<td>编译期展开的代码生成机制。</td>
-<td>以 <code>!</code> 结尾，如 <code>println!</code>。</td>
-</tr>
-<tr>
-<td>format!</td>
-<td>生成格式化字符串但不直接打印。</td>
-<td>常用于拼接可读文本。</td>
-</tr>
-<tr>
-<td>dbg!</td>
-<td>打印表达式和位置，返回表达式值。</td>
-<td>适合临时调试。</td>
-</tr>
-<tr>
-<td>assert!</td>
-<td>断言条件必须为真。</td>
-<td>常用于测试或检查程序假设。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// vec! 创建可增长的 Vec；后续 push 体现它和固定数组的区别。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">6</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// iter/map/filter/collect 是标准库中常用的迭代器组合。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">even_squares</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers</span><br><span class="line">        .<span class="title function_ invoke__">iter</span>()</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(|n| n * n)</span><br><span class="line">        .<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">        .<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;偶数平方: &#123;even_squares:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Option 常用 map、unwrap_or 等方法处理可能不存在的值。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_name</span> = <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">display_name</span> = maybe_name</span><br><span class="line">        .<span class="title function_ invoke__">map</span>(<span class="type">str</span>::to_uppercase)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap_or</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;UNKNOWN&quot;</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;名称: &#123;display_name&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dbg! 会打印表达式和结果，适合临时调试。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">total</span>: <span class="type">i32</span> = numbers.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">    dbg!(total);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// format! 生成 String，println! 输出到终端，vec! 创建 Vec。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message</span> = <span class="built_in">format!</span>(<span class="string">&quot;一共有 &#123;&#125; 个数字&quot;</span>, numbers.<span class="title function_ invoke__">len</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;message&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// assert_eq! 常用于测试或运行时检查。</span></span><br><span class="line">    <span class="built_in">assert_eq!</span>(numbers.<span class="title function_ invoke__">first</span>(), <span class="title function_ invoke__">Some</span>(&amp;<span class="number">1</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson15_std_functions_macros</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="println"><a href="#println" class="headerlink" title="println!"></a>println!</h3><p>用于向终端打印文本，支持 <code>&#123;&#125;</code>、<code>&#123;:?&#125;</code> 等格式占位。</p>
-<h3 id="format"><a href="#format" class="headerlink" title="format!"></a>format!</h3><p>返回 <code>String</code>，适合构造后续要保存或返回的文本。</p>
-<h3 id="vec"><a href="#vec" class="headerlink" title="vec!"></a>vec!</h3><p>快速创建 <code>Vec</code>，如 <code>vec![1, 2, 3]</code>。</p>
-<h3 id="Option-方法"><a href="#Option-方法" class="headerlink" title="Option 方法"></a>Option 方法</h3><p><code>unwrap_or</code> 可以在 <code>None</code> 时提供默认值。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="标准库-std"><a href="#标准库-std" class="headerlink" title="标准库 std"></a>标准库 std</h3><p>Rust 自带的基础功能库。</p>
-<p>包括集合、字符串、IO、线程、时间等。</p>
-<h3 id="宏-macro"><a href="#宏-macro" class="headerlink" title="宏 macro"></a>宏 macro</h3><p>编译期展开的代码生成机制。</p>
-<p>以 <code>!</code> 结尾，如 <code>println!</code>。</p>
-<h3 id="format-1"><a href="#format-1" class="headerlink" title="format!"></a>format!</h3><p>生成格式化字符串但不直接打印。</p>
-<p>常用于拼接可读文本。</p>
-<h3 id="dbg"><a href="#dbg" class="headerlink" title="dbg!"></a>dbg!</h3><p>打印表达式和位置，返回表达式值。</p>
-<p>适合临时调试。</p>
-<h3 id="assert"><a href="#assert" class="headerlink" title="assert!"></a>assert!</h3><p>断言条件必须为真。</p>
-<p>常用于测试或检查程序假设。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>println!</code> 是宏，因为它需要支持可变数量参数和格式字符串检查。</p>
-<p><code>dbg!</code> 会取得表达式所有权并返回它。调试非 Copy 值时要注意是否发生移动。</p>
-<p><code>assert_eq!</code> 比 <code>assert!(a == b)</code> 的失败信息更清楚。</p>
-<p>标准库方法通常比手写循环更简洁，但初学时应该先理解它们背后的所有权和迭代器行为。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要把 <code>format!</code> 和 <code>println!</code> 混淆。前者返回字符串，后者打印到终端。</li>
-<li><code>unwrap_or(default)</code> 会立即计算默认值。默认值计算昂贵时考虑 <code>unwrap_or_else</code>。</li>
-<li>不要把 <code>dbg!</code> 长期留在正式输出里。</li>
-<li>宏不是普通函数，错误信息有时会指向展开后的代码，需要回到宏调用位置理解。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：格式化用户信息"><a href="#练习-1：格式化用户信息" class="headerlink" title="练习 1：格式化用户信息"></a>练习 1：格式化用户信息</h3><p>要求：用 <code>format!</code> 生成用户描述字符串。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">name</span> = <span class="string">&quot;Kylin&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">age</span> = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="built_in">format!</span>(<span class="string">&quot;用户 &#123;name&#125;, 年龄 &#123;age&#125;&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;text&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>format!</code> 返回 <code>String</code>，后续可以保存或传给函数。</p>
-<h3 id="练习-2：Option-默认值"><a href="#练习-2：Option-默认值" class="headerlink" title="练习 2：Option 默认值"></a>练习 2：Option 默认值</h3><p>要求：读取可选分数，没有分数时使用 0。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">score</span>: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt; = <span class="literal">None</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = score.<span class="title function_ invoke__">unwrap_or</span>(<span class="number">0</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;value&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>unwrap_or</code> 是处理 <code>None</code> 的常用方法。</p>
-<h3 id="练习-3：断言检查"><a href="#练习-3：断言检查" class="headerlink" title="练习 3：断言检查"></a>练习 3：断言检查</h3><p>要求：检查数组长度是否为 3。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">values</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    <span class="built_in">assert_eq!</span>(values.<span class="title function_ invoke__">len</span>(), <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;检查通过&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>assert_eq!</code> 在左右不相等时给出清晰失败信息。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust学习笔记 14：生命周期</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/16/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-16-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20async-await/">Rust学习笔记 16：异步编程 async-await</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-  <nav class="pagination">
-    <a class="extend prev" rel="prev" title="上一页" aria-label="上一页" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/3/"><i class="fa fa-angle-right"></i></a>
-  </nav>
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
+	
 
-    <aside class="home-console" aria-label="Console preview">
-      <div class="home-label">ACTIVE NOTE</div>
-      <h2>Console</h2>
-      <div class="home-terminal" aria-hidden="true">
-        <span class="is-mint">pwndbg&gt; tele $rsp</span>
-        <span>00: 0x7ffff7e1b500</span>
-        <span class="is-muted"># pivot into fake frame</span>
-        <span>rax = SYS_read</span>
-        <span class="is-indigo">rip -&gt; setcontext+53</span>
-      </div>
-      <h3>Tags</h3>
-      <div class="home-tags" aria-label="Tags">
-        <a href="/tags/how2heap/">heap</a>
-        <a href="/tags/orw/">orw</a>
-        <a href="/tags/Rust/">Rust</a>
-        <a class="is-active" href="/tags/Solidity/">Solidity</a>
-      </div>
-    </aside>
-  </div>
+</main>
 
 
-</div>
-  </main>
 
-  <footer class="footer">
-    <div class="footer-inner">
+<script src="/js/build/libs/Swup.min.js"></script>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
 
-    </div>
-  </footer>
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

@@ -1,7 +1,7 @@
 title: Kylinxin's Blog
 subtitle:
 description: Kylinxin's Blog
-keywords:
+keywords: Kylinxin, security, Web3, Rust, pwn, CTF
 author: Kylinxin
 language: zh-CN
 timezone: Asia/Shanghai
@@ -82,7 +82,7 @@ search:
   content: true
   format: html
 
-theme: next
+theme: redefine
 
 deploy:
   type: ''

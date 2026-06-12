@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcePosts = path.join(root, 'source', '_posts');
 const publicDir = path.join(root, 'public');
-const themeDir = path.join(root, 'themes', 'next');
+const themePackage = path.join(root, 'node_modules', 'hexo-theme-redefine', 'package.json');
+const themeConfig = path.join(root, '_config.redefine.yml');
 const expectedCount = 32;
 
 function fail(message) {
@@ -38,13 +39,12 @@ function frontMatter(file) {
 const posts = postFiles();
 if (posts.length < expectedCount) fail(`expected at least ${expectedCount} source posts, found ${posts.length}`);
 
-const themePackage = path.join(themeDir, 'package.json');
 if (!fs.existsSync(themePackage)) {
-  fail('missing local NexT theme at themes/next; clone or copy next-theme/hexo-theme-next there');
+  fail('missing hexo-theme-redefine package; run npm install');
 } else {
   const themeMeta = JSON.parse(read(themePackage));
-  if (themeMeta.name !== 'hexo-theme-next') fail(`themes/next is ${themeMeta.name}, expected hexo-theme-next`);
-  if (!fs.existsSync(path.join(themeDir, '_config.yml'))) fail('themes/next is missing NexT _config.yml');
+  if (themeMeta.name !== 'hexo-theme-redefine') fail(`theme package is ${themeMeta.name}, expected hexo-theme-redefine`);
+  if (!fs.existsSync(themeConfig)) fail('missing root _config.redefine.yml theme override file');
 }
 
 const dated = posts.map(file => ({ file, meta: frontMatter(file) })).filter(item => item.meta.date);
@@ -65,10 +65,12 @@ for (const rel of ['index.html', 'archives/index.html', 'categories/index.html',
 }
 
 const index = fs.existsSync(path.join(publicDir, 'index.html')) ? read(path.join(publicDir, 'index.html')) : '';
-if (!index.includes('theme-next') && !index.includes('/css/main.css')) fail('generated home page does not look like NexT output');
+if (!index.includes('hexo-theme-redefine') && !index.includes('Redefine')) fail('generated home page does not look like Redefine output');
 if (index.includes('arknights.css')) fail('generated home page still references Arknights theme CSS');
+if (!index.includes('Kylinxin')) fail('generated home page does not include site identity');
+if (!index.includes('search.xml')) fail('generated home page does not expose local search data');
 
 const sitemap = fs.existsSync(path.join(publicDir, 'sitemap.xml')) ? read(path.join(publicDir, 'sitemap.xml')) : '';
 if (!sitemap.includes('/2023/11/12/')) fail('sitemap does not include final weekly post path');
 
-if (!process.exitCode) console.log(`CHECK PASSED: ${existing.length} recovered posts, NexT output, feed, sitemap, archives, categories, and tags verified.`);
+if (!process.exitCode) console.log(`CHECK PASSED: ${existing.length} recovered posts, Redefine output, feed, sitemap, archives, categories, tags, and search verified.`);

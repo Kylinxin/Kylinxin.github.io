@@ -1,0 +1,222 @@
+# Site-specific overrides for hexo-theme-redefine.
+# Theme defaults stay in node_modules/hexo-theme-redefine/_config.yml.
+
+info:
+  title: Kylinxin's Blog
+  subtitle: Security, Web3, Systems, and Notes
+  author: Kylinxin
+  url: https://kylinxin.github.io
+
+defaults:
+  favicon: /favicon.ico
+  logo:
+  avatar: /images/faction/1.png
+
+colors:
+  primary: "#A31F34"
+  secondary: "#2F4858"
+  default_mode: light
+
+global:
+  content_max_width: 1120px
+  sidebar_width: 240px
+  hover:
+    shadow: true
+    scale: true
+  scroll_progress:
+    bar: true
+    percentage: true
+  website_counter:
+    enable: false
+    site_pv: false
+    site_uv: false
+    post_pv: false
+  single_page: true
+  preloader:
+    enable: false
+  side_tools:
+    gear_rotation: true
+    auto_expand: false
+  open_graph:
+    enable: true
+    image: /images/faction/1.png
+    description: Kylinxin's notes on security, Web3, systems, and programming.
+  google_analytics:
+    enable: false
+
+home_banner:
+  enable: true
+  style: fixed
+  image:
+    light: /images/wallhaven-wqery6-light.webp
+    dark: /images/wallhaven-wqery6-dark.webp
+  title: Kylinxin's Blog
+  subtitle:
+    text:
+      - Security notes, exploit writeups, and engineering traces.
+      - Web3, Rust, systems, and learning records.
+      - Write, break, rebuild, and document.
+    hitokoto:
+      enable: false
+      show_author: false
+      api: https://v1.hitokoto.cn
+    typing_speed: 70
+    backing_speed: 45
+    starting_delay: 350
+    backing_delay: 1800
+    loop: true
+    smart_backspace: true
+  text_color:
+    light: "#ffffff"
+    dark: "#f4efe7"
+  text_style:
+    title_size: 3rem
+    subtitle_size: 1.25rem
+    line_height: 1.25
+  social_links:
+    enable: true
+    style: center
+    links:
+      - icon: github
+        url: https://github.com/Kylinxin
+      - icon: fa-solid fa-rss
+        url: /atom.xml
+      - icon: fa-solid fa-at
+        url:
+      - icon: telegram
+        url:
+      - icon: /images/custom-icon.svg
+        url:
+
+navbar:
+  auto_hide: false
+  color:
+    left: "#141821"
+    right: "#A31F34"
+    transparency: 28
+  width:
+    home: 1200px
+    pages: 1000px
+  links:
+    Home:
+      path: /
+      icon: fa-regular fa-house
+    Archives:
+      path: /archives/
+      icon: fa-regular fa-archive
+    Categories:
+      path: /categories/
+      icon: fa-regular fa-folder-open
+    Tags:
+      path: /tags/
+      icon: fa-regular fa-tags
+    Friends:
+      path: /friends/
+      icon: fa-regular fa-link
+    About:
+      path: /about/
+      icon: fa-regular fa-user
+  search:
+    enable: true
+    preload: true
+
+home:
+  sidebar:
+    enable: true
+    position: left
+    first_item: info
+    announcement: "CTF / Pwn / Web3 / Rust / notes"
+    show_on_mobile: true
+    links:
+      GitHub:
+        path: https://github.com/Kylinxin
+        icon: fa-brands fa-github
+      RSS:
+        path: /atom.xml
+        icon: fa-solid fa-rss
+  article_date_format: YYYY-MM-DD
+  excerpt_length: 260
+  categories:
+    enable: true
+    limit: 4
+  tags:
+    enable: true
+    limit: 5
+
+articles:
+  style:
+    font_size: 16px
+    line_height: 1.75
+    image_border_radius: 10px
+    image_alignment: center
+    image_caption: true
+    link_icon: true
+    delete_mask: false
+    title_alignment: left
+    headings_top_spacing:
+      h1: 3rem
+      h2: 2.4rem
+      h3: 1.9rem
+      h4: 1.5rem
+      h5: 1.25rem
+      h6: 1.1rem
+  word_count:
+    enable: true
+    count: true
+    min2read: true
+  author_label:
+    enable: true
+    auto: false
+    list:
+      - Kylinxin
+  code_block:
+    copy: true
+    style: mac
+    highlight_theme:
+      light: github
+      dark: tokyo-night-dark
+    font:
+      enable: false
+  toc:
+    enable: true
+    max_depth: 3
+    number: false
+    expand: true
+    init_open: true
+  copyright:
+    enable: true
+    default: cc_by_nc_sa
+  lazyload: true
+  pangu_js: true
+  recommendation:
+    enable: false
+
+comment:
+  enable: false
+
+footer:
+  runtime: true
+  icon: '<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>'
+  start: 2023/4/9 00:00:00
+  statistics: true
+  customize: "Built with Hexo and Redefine."
+  icp:
+    enable: false
+
+plugins:
+  feed:
+    enable: true
+  aplayer:
+    enable: false
+  mermaid:
+    enable: false
+
+page_templates:
+  friends_column: 3
+  tags_style: blur
+  masonry:
+    batch_size: 12
+    initial_batch_size: 24
+
+cdn:
+  enable: false

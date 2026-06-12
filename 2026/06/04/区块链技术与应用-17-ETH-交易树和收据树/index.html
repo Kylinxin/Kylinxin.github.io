@@ -1,34 +1,98 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="ETH 交易树和收据树学习笔记1. 交易树和收据树在区块中的位置以太坊每个区块可以分为区块头和区块体。区块头中保存若干个根哈希，其中和本节内容相关的主要有： 123stateRoottransactionsRootreceiptsRoot  它们分别对应： 123stateRoot        → 状态树根，表示当前区块执行完成后的全局状态transactionsRoot → 交易树根，表示当前">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2026/06/04/区块链技术与应用-17-eth-交易树和收据树/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="区块链技术与应用 17：ETH-交易树和收据树">
 <meta property="og:url" content="https://kylinxin.github.io/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="ETH 交易树和收据树学习笔记1. 交易树和收据树在区块中的位置以太坊每个区块可以分为区块头和区块体。区块头中保存若干个根哈希，其中和本节内容相关的主要有： 123stateRoottransactionsRootreceiptsRoot  它们分别对应： 123stateRoot        → 状态树根，表示当前区块执行完成后的全局状态transactionsRoot → 交易树根，表示当前">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://kylinxin.github.io/images/blockchain-course/eth-tx-receipt-tree-1.png">
-<meta property="og:image" content="https://kylinxin.github.io/images/blockchain-course/eth-tx-receipt-tree-2.png">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:published_time" content="2026-06-04T01:17:00.000Z">
 <meta property="article:modified_time" content="2026-06-04T01:17:00.000Z">
 <meta property="article:author" content="Kylinxin">
@@ -37,281 +101,557 @@
 <meta property="article:tag" content="ETH">
 <meta property="article:tag" content="以太坊">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://kylinxin.github.io/images/blockchain-course/eth-tx-receipt-tree-1.png">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            区块链技术与应用 17：ETH-交易树和收据树 | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/","path":"2026/06/04/区块链技术与应用-17-ETH-交易树和收据树/","title":"区块链技术与应用 17：ETH-交易树和收据树"}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>区块链技术与应用 17：ETH-交易树和收据树 | Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
-
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <p class="site-title">Kylinxin's Blog</p>
-      <i class="logo-line"></i>
-    </a>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
 </div>
 
+<main class="page-container" id="swup">
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
-        
-  
-  <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
 
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0"><span class="nav-number">1.</span> <span class="nav-text">ETH 交易树和收据树学习笔记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E5%9C%A8%E5%8C%BA%E5%9D%97%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">1. 交易树和收据树在区块中的位置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BA%A4%E6%98%93%E6%A0%91-Transaction-Trie"><span class="nav-number">3.</span> <span class="nav-text">2. 交易树 Transaction Trie</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%94%B6%E6%8D%AE%E6%A0%91-Receipt-Trie"><span class="nav-number">4.</span> <span class="nav-text">3. 收据树 Receipt Trie</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B9%9F%E4%BD%BF%E7%94%A8-MPT"><span class="nav-number">5.</span> <span class="nav-text">4. 交易树和收据树为什么也使用 MPT</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BA%A4%E6%98%93%E6%A0%91%E3%80%81%E6%94%B6%E6%8D%AE%E6%A0%91%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A0%91%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">6.</span> <span class="nav-text">5. 交易树、收据树与状态树的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E6%94%B6%E6%8D%AE%E4%B8%AD%E7%9A%84%E6%97%A5%E5%BF%97%E4%B8%8E%E4%BA%8B%E4%BB%B6"><span class="nav-number">7.</span> <span class="nav-text">6. 收据中的日志与事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Bloom-Filter-%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">8.</span> <span class="nav-text">7. Bloom Filter 布隆过滤器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-Bloom-Filter-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%80%E8%88%AC%E4%B8%8D%E6%94%AF%E6%8C%81%E5%88%A0%E9%99%A4"><span class="nav-number">9.</span> <span class="nav-text">8. Bloom Filter 为什么一般不支持删除</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-%E4%BB%A5%E5%A4%AA%E5%9D%8A%E6%98%AF%E4%BA%A4%E6%98%93%E9%A9%B1%E5%8A%A8%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">10.</span> <span class="nav-text">9. 以太坊是交易驱动的状态机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-%E4%BB%80%E4%B9%88%E5%8F%AB%E7%8A%B6%E6%80%81%E8%BD%AC%E7%A7%BB%E7%A1%AE%E5%AE%9A%E6%80%A7"><span class="nav-number">11.</span> <span class="nav-text">10. 什么叫状态转移确定性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-BTC-%E4%B9%9F%E5%8F%AF%E4%BB%A5%E7%9C%8B%E4%BD%9C%E7%8A%B6%E6%80%81%E6%9C%BA%E5%90%97"><span class="nav-number">12.</span> <span class="nav-text">11. BTC 也可以看作状态机吗</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12-%E9%97%AE%E9%A2%98%EF%BC%9A%E6%AF%8F%E4%B8%AA%E5%8C%BA%E5%9D%97%E5%8F%AA%E7%BB%B4%E6%8A%A4%E5%BD%93%E5%89%8D%E5%8C%BA%E5%9D%97%E7%94%A8%E5%88%B0%E7%9A%84%E4%BA%A4%E6%98%93%E8%B4%A6%E6%88%B7%E7%8A%B6%E6%80%81%E6%98%AF%E5%90%A6%E5%8F%AF%E8%A1%8C"><span class="nav-number">13.</span> <span class="nav-text">12. 问题：每个区块只维护当前区块用到的交易账户状态是否可行</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#13-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AA%E4%BF%9D%E5%AD%98%E5%B1%80%E9%83%A8%E7%8A%B6%E6%80%81%E4%BC%9A%E5%AF%BC%E8%87%B4%E6%9F%A5%E8%AF%A2%E5%9B%B0%E9%9A%BE"><span class="nav-number">14.</span> <span class="nav-text">13. 为什么只保存局部状态会导致查询困难</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-%E4%B8%8D%E5%AD%98%E5%9C%A8%E8%B4%A6%E6%88%B7%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">15.</span> <span class="nav-text">14. 不存在账户的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#15-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E8%83%BD%E5%8F%AA%E4%BF%9D%E5%AD%98%E2%80%9C%E4%BA%A4%E6%98%93%E6%B6%89%E5%8F%8A%E8%B4%A6%E6%88%B7%E7%9A%84%E7%8A%B6%E6%80%81%E5%B7%AE%E5%88%86%E2%80%9D"><span class="nav-number">16.</span> <span class="nav-text">15. 为什么不能只保存“交易涉及账户的状态差分”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#16-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BB%A5%E5%A4%AA%E5%9D%8A%E7%8A%B6%E6%80%81%E6%A0%91%E5%BF%85%E9%A1%BB%E6%98%AF%E5%85%A8%E5%B1%80%E7%9A%84"><span class="nav-number">17.</span> <span class="nav-text">16. 为什么以太坊状态树必须是全局的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#17-%E4%B8%89%E6%A3%B5%E6%A0%91%E7%9A%84%E6%95%B4%E4%BD%93%E5%85%B3%E7%B3%BB"><span class="nav-number">18.</span> <span class="nav-text">17. 三棵树的整体关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#18-%E6%80%BB%E7%BB%93"><span class="nav-number">19.</span> <span class="nav-text">18. 总结</span></a></li></ol></div>
-        </div>
-        <!--/noindex-->
+		</div>
 
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">60</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">14</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">44</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
+		<div class="main-content-body transition-fade-up">
+			
 
-        </div>
-      </div>
-    </div>
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
 
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">区块链技术与应用 17：ETH-交易树和收据树</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/faction/1.png">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-06-04 09:17</span>
+        <span class="mobile">2026-06-04 09:17</span>
+        <span class="hover-info">创建</span>
+    </span>
     
-  </aside>
-
-
-    </div>
-
-    <div class="main-inner post posts-expand">
-
-
-  
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="区块链技术与应用 17：ETH-交易树和收据树 | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          区块链技术与应用 17：ETH-交易树和收据树
-        </h1>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-06-04 09:17:00" itemprop="dateCreated datePublished" datetime="2026-06-04T09:17:00+08:00">2026-06-04</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8/" itemprop="url" rel="index"><span itemprop="name">区块链技术与应用</span></a>
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-06-04 09:17</span>
+            <span class="mobile">2026-06-04 09:17</span>
+            <span class="hover-info">更新</span>
         </span>
-    </span>
+    
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>4.9k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>18 分钟</span>
-    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8/">区块链技术与应用</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Ethereum/">Ethereum</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/ETH/">ETH</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BB%A5%E5%A4%AA%E5%9D%8A/">以太坊</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>4.8k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>17 分钟</span>
+        </span>
+    
+    
 </div>
 
-        </div>
-      </header>
+				</div>
+			</div>
+		</div>
+		
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody"><h2 id="ETH-交易树和收据树学习笔记"><a href="#ETH-交易树和收据树学习笔记" class="headerlink" title="ETH 交易树和收据树学习笔记"></a>ETH 交易树和收据树学习笔记</h2><h2 id="1-交易树和收据树在区块中的位置"><a href="#1-交易树和收据树在区块中的位置" class="headerlink" title="1. 交易树和收据树在区块中的位置"></a>1. 交易树和收据树在区块中的位置</h2><p><img src="/images/blockchain-course/eth-tx-receipt-tree-1.png" alt="ETH 交易树和收据树示意图 1"><br><img src="/images/blockchain-course/eth-tx-receipt-tree-2.png" alt="ETH 交易树和收据树示意图 2"><br>以太坊每个区块可以分为区块头和区块体。区块头中保存若干个根哈希，其中和本节内容相关的主要有：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">stateRoot</span><br><span class="line">transactionsRoot</span><br><span class="line">receiptsRoot</span><br></pre></td></tr></table></figure>
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="ETH-交易树和收据树学习笔记"><a href="#ETH-交易树和收据树学习笔记" class="headerlink" title="ETH 交易树和收据树学习笔记"></a>ETH 交易树和收据树学习笔记</h2><h2 id="1-交易树和收据树在区块中的位置"><a href="#1-交易树和收据树在区块中的位置" class="headerlink" title="1. 交易树和收据树在区块中的位置"></a>1. 交易树和收据树在区块中的位置</h2><p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/blockchain-course/eth-tx-receipt-tree-1.png"
+                      alt="ETH 交易树和收据树示意图 1"
+                ><figcaption>ETH 交易树和收据树示意图 1</figcaption></figure><br><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/blockchain-course/eth-tx-receipt-tree-2.png"
+                      alt="ETH 交易树和收据树示意图 2"
+                ><figcaption>ETH 交易树和收据树示意图 2</figcaption></figure><br>以太坊每个区块可以分为区块头和区块体。区块头中保存若干个根哈希，其中和本节内容相关的主要有：</p>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">stateRoot</span><br><span class="line">transactionsRoot</span><br><span class="line">receiptsRoot</span><br></pre></td></tr></table></figure></div>
 
 <p>它们分别对应：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">stateRoot        → 状态树根，表示当前区块执行完成后的全局状态</span><br><span class="line">transactionsRoot → 交易树根，表示当前区块包含的所有交易</span><br><span class="line">receiptsRoot     → 收据树根，表示当前区块中所有交易执行后的结果</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">stateRoot        → 状态树根，表示当前区块执行完成后的全局状态</span><br><span class="line">transactionsRoot → 交易树根，表示当前区块包含的所有交易</span><br><span class="line">receiptsRoot     → 收据树根，表示当前区块中所有交易执行后的结果</span><br></pre></td></tr></table></figure></div>
 
 <p>可以这样理解：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Block Header</span><br><span class="line">├── stateRoot</span><br><span class="line">├── transactionsRoot</span><br><span class="line">└── receiptsRoot</span><br><span class="line"></span><br><span class="line">Block Body</span><br><span class="line">└── Transactions</span><br><span class="line">    ├── Tx0</span><br><span class="line">    ├── Tx1</span><br><span class="line">    ├── Tx2</span><br><span class="line">    └── ...</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Block Header</span><br><span class="line">├── stateRoot</span><br><span class="line">├── transactionsRoot</span><br><span class="line">└── receiptsRoot</span><br><span class="line"></span><br><span class="line">Block Body</span><br><span class="line">└── Transactions</span><br><span class="line">    ├── Tx0</span><br><span class="line">    ├── Tx1</span><br><span class="line">    ├── Tx2</span><br><span class="line">    └── ...</span><br></pre></td></tr></table></figure></div>
 
 <p>每个区块中有一组交易，交易被执行后会产生对应的收据。因此：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">一笔交易 → 一个收据</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">一笔交易 → 一个收据</span><br></pre></td></tr></table></figure></div>
 
 <p>如果当前区块中有三笔交易：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Tx0</span><br><span class="line">Tx1</span><br><span class="line">Tx2</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Tx0</span><br><span class="line">Tx1</span><br><span class="line">Tx2</span><br></pre></td></tr></table></figure></div>
 
 <p>那么执行后也会有三个收据：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Receipt0</span><br><span class="line">Receipt1</span><br><span class="line">Receipt2</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Receipt0</span><br><span class="line">Receipt1</span><br><span class="line">Receipt2</span><br></pre></td></tr></table></figure></div>
 
 <p>交易树和收据树之间是一一对应关系：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Tx0 → Receipt0</span><br><span class="line">Tx1 → Receipt1</span><br><span class="line">Tx2 → Receipt2</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Tx0 → Receipt0</span><br><span class="line">Tx1 → Receipt1</span><br><span class="line">Tx2 → Receipt2</span><br></pre></td></tr></table></figure></div>
 
 <hr>
 <h2 id="2-交易树-Transaction-Trie"><a href="#2-交易树-Transaction-Trie" class="headerlink" title="2. 交易树 Transaction Trie"></a>2. 交易树 Transaction Trie</h2><p>交易树用于组织当前区块中的所有交易。它对应区块头中的：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot</span><br></pre></td></tr></table></figure></div>
 
 <p>交易树的作用是：</p>
 <blockquote>
@@ -319,43 +659,43 @@
 </blockquote>
 <p>以太坊交易树的 key 不是交易哈希，而是交易在当前区块中的序号，也就是 transaction index。</p>
 <p>逻辑上可以理解为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">key   = RLP(transactionIndex)</span><br><span class="line">value = RLP(transaction)</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">key   = RLP(transactionIndex)</span><br><span class="line">value = RLP(transaction)</span><br></pre></td></tr></table></figure></div>
 
 <p>例如某个区块中有三笔交易：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0 → Tx0</span><br><span class="line">1 → Tx1</span><br><span class="line">2 → Tx2</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0 → Tx0</span><br><span class="line">1 → Tx1</span><br><span class="line">2 → Tx2</span><br></pre></td></tr></table></figure></div>
 
 <p>构建交易树后，区块头中保存：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot = root(Transaction Trie)</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot = root(Transaction Trie)</span><br></pre></td></tr></table></figure></div>
 
 <p>这样一来，只要区块中的任意一笔交易发生变化，或者交易顺序发生变化，最终得到的 <code>transactionsRoot</code> 都会改变。</p>
 <p>这保证了两点：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 区块中的交易内容不能被篡改</span><br><span class="line">2. 区块中的交易顺序不能被随意改变</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 区块中的交易内容不能被篡改</span><br><span class="line">2. 区块中的交易顺序不能被随意改变</span><br></pre></td></tr></table></figure></div>
 
 <p>交易顺序很重要，因为以太坊是状态机模型。交易执行顺序不同，可能导致最终状态不同。例如：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Tx0：Alice 给 Bob 转 5 ETH</span><br><span class="line">Tx1：Alice 调用某个合约</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Tx0：Alice 给 Bob 转 5 ETH</span><br><span class="line">Tx1：Alice 调用某个合约</span><br></pre></td></tr></table></figure></div>
 
 <p>如果交换顺序，Alice 的余额、nonce、合约执行结果都可能不同。因此，交易树不仅承诺交易内容，也间接承诺了当前区块的交易执行顺序。</p>
 <hr>
 <h2 id="3-收据树-Receipt-Trie"><a href="#3-收据树-Receipt-Trie" class="headerlink" title="3. 收据树 Receipt Trie"></a>3. 收据树 Receipt Trie</h2><p>收据树用于组织当前区块中所有交易执行后的结果。它对应区块头中的：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">receiptsRoot</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">receiptsRoot</span><br></pre></td></tr></table></figure></div>
 
 <p>一笔交易执行完成后，会产生一个收据 Receipt。收据中通常包含：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">交易执行状态</span><br><span class="line">累计 gas 使用量</span><br><span class="line">日志 Bloom Filter</span><br><span class="line">事件日志 logs</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">交易执行状态</span><br><span class="line">累计 gas 使用量</span><br><span class="line">日志 Bloom Filter</span><br><span class="line">事件日志 logs</span><br></pre></td></tr></table></figure></div>
 
 <p>简化结构如下：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Receipt</span><br><span class="line">├── status</span><br><span class="line">├── cumulativeGasUsed</span><br><span class="line">├── logsBloom</span><br><span class="line">└── logs</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Receipt</span><br><span class="line">├── status</span><br><span class="line">├── cumulativeGasUsed</span><br><span class="line">├── logsBloom</span><br><span class="line">└── logs</span><br></pre></td></tr></table></figure></div>
 
 <p>其中：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">status             → 交易是否成功，通常 1 表示成功，0 表示失败</span><br><span class="line">cumulativeGasUsed  → 当前区块中执行到这笔交易为止累计使用的 gas</span><br><span class="line">logsBloom          → 当前交易日志的布隆过滤器</span><br><span class="line">logs               → 交易执行过程中产生的事件日志</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">status             → 交易是否成功，通常 1 表示成功，0 表示失败</span><br><span class="line">cumulativeGasUsed  → 当前区块中执行到这笔交易为止累计使用的 gas</span><br><span class="line">logsBloom          → 当前交易日志的布隆过滤器</span><br><span class="line">logs               → 交易执行过程中产生的事件日志</span><br></pre></td></tr></table></figure></div>
 
 <p>收据树的 key 和交易树类似，也是交易在区块中的序号：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">key   = RLP(transactionIndex)</span><br><span class="line">value = RLP(receipt)</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">key   = RLP(transactionIndex)</span><br><span class="line">value = RLP(receipt)</span><br></pre></td></tr></table></figure></div>
 
 <p>例如：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0 → Receipt0</span><br><span class="line">1 → Receipt1</span><br><span class="line">2 → Receipt2</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0 → Receipt0</span><br><span class="line">1 → Receipt1</span><br><span class="line">2 → Receipt2</span><br></pre></td></tr></table></figure></div>
 
 <p>对应：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">receiptsRoot = root(Receipt Trie)</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">receiptsRoot = root(Receipt Trie)</span><br></pre></td></tr></table></figure></div>
 
 <p>收据树的作用是：</p>
 <blockquote>
@@ -366,20 +706,20 @@
 <h2 id="4-交易树和收据树为什么也使用-MPT"><a href="#4-交易树和收据树为什么也使用-MPT" class="headerlink" title="4. 交易树和收据树为什么也使用 MPT"></a>4. 交易树和收据树为什么也使用 MPT</h2><p>以太坊中的状态树、交易树、收据树都可以用 MPT，即 Merkle Patricia Trie 来组织。</p>
 <p>不过它们的使用场景不完全相同。</p>
 <p>状态树是全局的、长期存在的、动态更新的结构。它维护的是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">address → account state</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">address → account state</span><br></pre></td></tr></table></figure></div>
 
 <p>状态树需要支持大规模账户的查找、更新、证明、回滚等操作，因此使用 MPT 非常必要。</p>
 <p>交易树和收据树则不同。它们都是针对单个区块构建的临时性数据结构：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Transaction Trie：只组织当前区块中的交易</span><br><span class="line">Receipt Trie：只组织当前区块中的收据</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Transaction Trie：只组织当前区块中的交易</span><br><span class="line">Receipt Trie：只组织当前区块中的收据</span><br></pre></td></tr></table></figure></div>
 
 <p>由于每个区块中的交易数量有限，而且 key 是连续的交易序号，所以从理论上说，交易树和收据树并不一定必须使用 MPT。它们也可以使用普通 Merkle Tree 来完成承诺和证明功能。</p>
 <p>例如对于交易树来说：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tx0, Tx1, Tx2, Tx3</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Tx0, Tx1, Tx2, Tx3</span><br></pre></td></tr></table></figure></div>
 
 <p>直接构建普通 Merkle Tree 也可以得到一个交易根，用于证明某笔交易属于当前区块。</p>
 <p>但是以太坊统一使用 Trie&#x2F;MPT 风格的数据结构，有利于工程实现和项目管理。这样状态、交易、收据都可以使用类似的 trie 数据结构、编码方式和根哈希计算方式。</p>
 <p>因此可以总结为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">状态树使用 MPT：非常必要，因为它是全局动态键值状态</span><br><span class="line">交易树使用 MPT：工程统一，理论上也可以用普通 Merkle Tree</span><br><span class="line">收据树使用 MPT：工程统一，理论上也可以用普通 Merkle Tree</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">状态树使用 MPT：非常必要，因为它是全局动态键值状态</span><br><span class="line">交易树使用 MPT：工程统一，理论上也可以用普通 Merkle Tree</span><br><span class="line">收据树使用 MPT：工程统一，理论上也可以用普通 Merkle Tree</span><br></pre></td></tr></table></figure></div>
 
 <hr>
 <h2 id="5-交易树、收据树与状态树的区别"><a href="#5-交易树、收据树与状态树的区别" class="headerlink" title="5. 交易树、收据树与状态树的区别"></a>5. 交易树、收据树与状态树的区别</h2><p>这三棵树虽然都和区块头中的根哈希有关，但含义不同。</p>
@@ -420,24 +760,24 @@
 </tr>
 </tbody></table>
 <p>状态树反映的是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前整个以太坊执行后的世界状态</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前整个以太坊执行后的世界状态</span><br></pre></td></tr></table></figure></div>
 
 <p>交易树反映的是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前区块里有哪些交易，以及交易顺序是什么</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前区块里有哪些交易，以及交易顺序是什么</span><br></pre></td></tr></table></figure></div>
 
 <p>收据树反映的是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前区块里这些交易执行后产生了什么结果</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前区块里这些交易执行后产生了什么结果</span><br></pre></td></tr></table></figure></div>
 
 <p>交易树和收据树只属于当前区块，不是跨区块不断更新的全局结构。状态树则不同，它表示区块执行完成后的全局状态版本。</p>
 <hr>
 <h2 id="6-收据中的日志与事件"><a href="#6-收据中的日志与事件" class="headerlink" title="6. 收据中的日志与事件"></a>6. 收据中的日志与事件</h2><p>智能合约执行过程中可以产生事件日志。例如 ERC-20 转账时通常会产生：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">event Transfer(address indexed from, address indexed to, uint256 value);</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">event Transfer(address indexed from, address indexed to, uint256 value);</span><br></pre></td></tr></table></figure></div>
 
 <p>当用户进行一次 USDT 转账后，合约可能会产生一条 <code>Transfer</code> 日志。日志一般包括：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Address：产生日志的合约地址</span><br><span class="line">Topics：事件主题，通常包括事件签名和 indexed 参数</span><br><span class="line">Data：非 indexed 参数数据</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Address：产生日志的合约地址</span><br><span class="line">Topics：事件主题，通常包括事件签名和 indexed 参数</span><br><span class="line">Data：非 indexed 参数数据</span><br></pre></td></tr></table></figure></div>
 
 <p>可以理解为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Log</span><br><span class="line">├── address = USDT 合约地址</span><br><span class="line">├── topics</span><br><span class="line">│   ├── Transfer 事件签名哈希</span><br><span class="line">│   ├── from 地址</span><br><span class="line">│   └── to 地址</span><br><span class="line">└── data = value</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Log</span><br><span class="line">├── address = USDT 合约地址</span><br><span class="line">├── topics</span><br><span class="line">│   ├── Transfer 事件签名哈希</span><br><span class="line">│   ├── from 地址</span><br><span class="line">│   └── to 地址</span><br><span class="line">└── data = value</span><br></pre></td></tr></table></figure></div>
 
 <p>这些日志会被放入对应交易的 Receipt 中。也就是说，用户在区块浏览器里看到的 ERC-20 转账记录，很多时候就是通过交易收据中的 logs 解析出来的。</p>
 <p>因此，收据树不仅证明交易执行是否成功，还能证明某些事件日志确实由某笔交易产生，并被记录在某个区块中。</p>
@@ -445,17 +785,17 @@
 <h2 id="7-Bloom-Filter-布隆过滤器"><a href="#7-Bloom-Filter-布隆过滤器" class="headerlink" title="7. Bloom Filter 布隆过滤器"></a>7. Bloom Filter 布隆过滤器</h2><p>以太坊引入 Bloom Filter，主要是为了提高日志查询效率。</p>
 <p>如果没有 Bloom Filter，当用户想查询某个合约地址或某个事件时，节点可能需要遍历大量区块和交易收据，逐个检查 logs。这样效率很低。</p>
 <p>Bloom Filter 是一种空间效率很高的概率型数据结构，用于快速判断：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">某个元素是否可能存在于集合中</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">某个元素是否可能存在于集合中</span><br></pre></td></tr></table></figure></div>
 
 <p>它的特点是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">如果判断为不存在，则一定不存在</span><br><span class="line">如果判断为存在，则可能存在</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">如果判断为不存在，则一定不存在</span><br><span class="line">如果判断为存在，则可能存在</span><br></pre></td></tr></table></figure></div>
 
 <p>也就是说，Bloom Filter 可能出现 false positive，即假阳性。</p>
 <p>例如查询某个事件是否出现在某个区块中：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Bloom Filter 返回不存在 → 该事件一定不在这个区块</span><br><span class="line">Bloom Filter 返回可能存在 → 需要进一步检查具体 logs</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Bloom Filter 返回不存在 → 该事件一定不在这个区块</span><br><span class="line">Bloom Filter 返回可能存在 → 需要进一步检查具体 logs</span><br></pre></td></tr></table></figure></div>
 
 <p>假阳性表示：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Bloom Filter 说可能存在，但实际检查 logs 后发现不存在</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Bloom Filter 说可能存在，但实际检查 logs 后发现不存在</span><br></pre></td></tr></table></figure></div>
 
 <p>但是 Bloom Filter 不会出现 false negative。也就是说，如果某个元素真的存在，Bloom Filter 不会说它不存在。</p>
 <p>以太坊中 Bloom Filter 的意义是：</p>
@@ -466,34 +806,34 @@
 <hr>
 <h2 id="8-Bloom-Filter-为什么一般不支持删除"><a href="#8-Bloom-Filter-为什么一般不支持删除" class="headerlink" title="8. Bloom Filter 为什么一般不支持删除"></a>8. Bloom Filter 为什么一般不支持删除</h2><p>普通 Bloom Filter 的底层通常是一个 bit array。插入元素时，会通过多个哈希函数计算出多个位置，并把这些位置置为 1。</p>
 <p>例如插入元素 A：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hash1(A) → 位置 3</span><br><span class="line">hash2(A) → 位置 8</span><br><span class="line">hash3(A) → 位置 15</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hash1(A) → 位置 3</span><br><span class="line">hash2(A) → 位置 8</span><br><span class="line">hash3(A) → 位置 15</span><br></pre></td></tr></table></figure></div>
 
 <p>于是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bit[3] = 1</span><br><span class="line">bit[8] = 1</span><br><span class="line">bit[15] = 1</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bit[3] = 1</span><br><span class="line">bit[8] = 1</span><br><span class="line">bit[15] = 1</span><br></pre></td></tr></table></figure></div>
 
 <p>但是多个元素可能会共享某些 bit 位。</p>
 <p>例如元素 B 也可能设置：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bit[8] = 1</span><br><span class="line">bit[20] = 1</span><br><span class="line">bit[31] = 1</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bit[8] = 1</span><br><span class="line">bit[20] = 1</span><br><span class="line">bit[31] = 1</span><br></pre></td></tr></table></figure></div>
 
 <p>如果现在要删除 A，不能直接把 bit[8] 置为 0，因为这个位置可能也是 B 需要的。如果直接清零，就会导致 B 被误判为不存在，从而出现 false negative。</p>
 <p>所以普通 Bloom Filter 不支持安全删除。</p>
 <p>如果需要支持删除，可以使用 Counting Bloom Filter。它不是用 bit，而是用计数器：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">插入元素 → 对应计数器 +1</span><br><span class="line">删除元素 → 对应计数器 -1</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">插入元素 → 对应计数器 +1</span><br><span class="line">删除元素 → 对应计数器 -1</span><br></pre></td></tr></table></figure></div>
 
 <p>但这样会增加存储成本和实现复杂度。</p>
 <hr>
 <h2 id="9-以太坊是交易驱动的状态机"><a href="#9-以太坊是交易驱动的状态机" class="headerlink" title="9. 以太坊是交易驱动的状态机"></a>9. 以太坊是交易驱动的状态机</h2><p>以太坊可以看作一个交易驱动的状态机。</p>
 <p>它的基本模型是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">旧状态 + 交易 → 新状态</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">旧状态 + 交易 → 新状态</span><br></pre></td></tr></table></figure></div>
 
 <p>更具体地说：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">State_N + Block_N 中的交易序列 → State_N+1</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">State_N + Block_N 中的交易序列 → State_N+1</span><br></pre></td></tr></table></figure></div>
 
 <p>每个区块中的交易按照确定顺序执行。执行完成后，得到新的全局状态树根：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stateRoot</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">stateRoot</span><br></pre></td></tr></table></figure></div>
 
 <p>可以表示为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">S_&#123;t+1&#125; = Apply(Tx_1, Tx_2, ..., Tx_n, S_t)</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">S_&#123;t+1&#125; = Apply(Tx_1, Tx_2, ..., Tx_n, S_t)</span><br></pre></td></tr></table></figure></div>
 
 <p>这意味着，只要所有节点从相同的前置状态开始，并按照相同顺序执行相同交易，就必须得到完全相同的新状态和相同的 <code>stateRoot</code>。</p>
 <p>这要求状态转移必须是确定性的。</p>
@@ -505,32 +845,32 @@
 </blockquote>
 <p>如果交易执行依赖不确定因素，就会导致不同节点计算结果不同，进而无法达成共识。</p>
 <p>例如，智能合约不能直接调用普通互联网 API：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">获取当前天气</span><br><span class="line">读取某个中心化网站价格</span><br><span class="line">调用链下随机数</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">获取当前天气</span><br><span class="line">读取某个中心化网站价格</span><br><span class="line">调用链下随机数</span><br></pre></td></tr></table></figure></div>
 
 <p>因为不同节点在不同时间、不同网络环境下可能得到不同结果。</p>
 <p>以太坊中合约能访问的是链上确定性数据，例如：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">账户余额</span><br><span class="line">合约存储</span><br><span class="line">交易参数</span><br><span class="line">区块高度</span><br><span class="line">区块时间戳</span><br><span class="line">msg.sender</span><br><span class="line">msg.value</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">账户余额</span><br><span class="line">合约存储</span><br><span class="line">交易参数</span><br><span class="line">区块高度</span><br><span class="line">区块时间戳</span><br><span class="line">msg.sender</span><br><span class="line">msg.value</span><br></pre></td></tr></table></figure></div>
 
 <p>即使是区块时间戳，也必须由区块生产者写入并被其他节点验证，而不是每个节点自己取本地系统时间。</p>
 <p>因此，以太坊状态机的核心原则是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">相同输入</span><br><span class="line">相同前置状态</span><br><span class="line">相同执行规则</span><br><span class="line">必然得到相同输出状态</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">相同输入</span><br><span class="line">相同前置状态</span><br><span class="line">相同执行规则</span><br><span class="line">必然得到相同输出状态</span><br></pre></td></tr></table></figure></div>
 
 <hr>
 <h2 id="11-BTC-也可以看作状态机吗"><a href="#11-BTC-也可以看作状态机吗" class="headerlink" title="11. BTC 也可以看作状态机吗"></a>11. BTC 也可以看作状态机吗</h2><p>可以。</p>
 <p>虽然比特币通常被描述为 UTXO 模型，但它也可以被抽象为状态机。</p>
 <p>比特币的状态可以理解为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前所有未花费交易输出集合，即 UTXO Set</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前所有未花费交易输出集合，即 UTXO Set</span><br></pre></td></tr></table></figure></div>
 
 <p>每一笔交易都会消耗一些旧 UTXO，并生成一些新 UTXO。</p>
 <p>例如：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">旧状态：</span><br><span class="line">UTXO_A = 1 BTC</span><br><span class="line"></span><br><span class="line">交易：</span><br><span class="line">花费 UTXO_A，输出 0.6 BTC 给 Bob，0.399 BTC 找零给 Alice，0.001 BTC 手续费</span><br><span class="line"></span><br><span class="line">新状态：</span><br><span class="line">删除 UTXO_A</span><br><span class="line">新增 UTXO_Bob = 0.6 BTC</span><br><span class="line">新增 UTXO_Alice_change = 0.399 BTC</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">旧状态：</span><br><span class="line">UTXO_A = 1 BTC</span><br><span class="line"></span><br><span class="line">交易：</span><br><span class="line">花费 UTXO_A，输出 0.6 BTC 给 Bob，0.399 BTC 找零给 Alice，0.001 BTC 手续费</span><br><span class="line"></span><br><span class="line">新状态：</span><br><span class="line">删除 UTXO_A</span><br><span class="line">新增 UTXO_Bob = 0.6 BTC</span><br><span class="line">新增 UTXO_Alice_change = 0.399 BTC</span><br></pre></td></tr></table></figure></div>
 
 <p>所以 BTC 也可以表示为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UTXO Set_old + Transaction → UTXO Set_new</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">UTXO Set_old + Transaction → UTXO Set_new</span><br></pre></td></tr></table></figure></div>
 
 <p>只不过比特币的状态主要是 UTXO 集合，而以太坊的状态更复杂，包括账户余额、nonce、合约代码和合约存储。</p>
 <p>因此：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BTC 是 UTXO 状态机</span><br><span class="line">ETH 是账户与合约状态机</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">BTC 是 UTXO 状态机</span><br><span class="line">ETH 是账户与合约状态机</span><br></pre></td></tr></table></figure></div>
 
 <hr>
 <h2 id="12-问题：每个区块只维护当前区块用到的交易账户状态是否可行"><a href="#12-问题：每个区块只维护当前区块用到的交易账户状态是否可行" class="headerlink" title="12. 问题：每个区块只维护当前区块用到的交易账户状态是否可行"></a>12. 问题：每个区块只维护当前区块用到的交易账户状态是否可行</h2><p>这个想法可以描述为：</p>
@@ -538,18 +878,18 @@
 <p>不维护一个全局状态树，而是在每个区块中只保存当前区块交易涉及到的账户状态。</p>
 </blockquote>
 <p>例如某个区块中只涉及 Alice、Bob 和 USDT 合约，那么这个区块只保存：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Alice state</span><br><span class="line">Bob state</span><br><span class="line">USDT Contract state</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Alice state</span><br><span class="line">Bob state</span><br><span class="line">USDT Contract state</span><br></pre></td></tr></table></figure></div>
 
 <p>表面看这样可以节省空间，因为每个区块不用保存完整状态树。但是这个方案在以太坊中不可行，或者至少非常低效。</p>
 <p>主要问题是：查找账户当前状态会变得非常困难。</p>
 <hr>
 <h2 id="13-为什么只保存局部状态会导致查询困难"><a href="#13-为什么只保存局部状态会导致查询困难" class="headerlink" title="13. 为什么只保存局部状态会导致查询困难"></a>13. 为什么只保存局部状态会导致查询困难</h2><p>假设你想查询 Alice 当前余额。如果每个区块只保存当前区块用到的账户状态，那么你需要从最新区块开始向前找：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Block 1000：是否包含 Alice 状态？</span><br><span class="line">Block 999：是否包含 Alice 状态？</span><br><span class="line">Block 998：是否包含 Alice 状态？</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Block 1000：是否包含 Alice 状态？</span><br><span class="line">Block 999：是否包含 Alice 状态？</span><br><span class="line">Block 998：是否包含 Alice 状态？</span><br><span class="line">...</span><br></pre></td></tr></table></figure></div>
 
 <p>如果 Alice 很久没有交易，就可能要追溯很多区块，甚至一直追溯到创世区块。</p>
 <p>这种查询成本非常高。</p>
 <p>而以太坊的状态树设计是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">每个区块的 stateRoot 都承诺该区块执行后的完整全局状态</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">每个区块的 stateRoot 都承诺该区块执行后的完整全局状态</span><br></pre></td></tr></table></figure></div>
 
 <p>因此，只要拿到某个区块对应的状态树，就可以直接查询任意账户在该区块后的状态。</p>
 <p>这就是全局状态树的意义。</p>
@@ -560,7 +900,7 @@
 </blockquote>
 <p>这里可以进一步解释。</p>
 <p>如果每个区块只保存局部状态，当我们想判断某个账户是否存在时，就不能只看当前区块。因为当前区块没有出现该账户，可能有两种情况：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 这个账户真的不存在</span><br><span class="line">2. 这个账户存在，但当前区块没有用到它</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1. 这个账户真的不存在</span><br><span class="line">2. 这个账户存在，但当前区块没有用到它</span><br></pre></td></tr></table></figure></div>
 
 <p>为了区分这两种情况，节点必须一直向前追溯，寻找这个账户最后一次出现的位置。如果一直追溯到创世区块都没有出现，才能确认它不存在。</p>
 <p>这显然非常低效。</p>
@@ -568,33 +908,33 @@
 <hr>
 <h2 id="15-为什么不能只保存“交易涉及账户的状态差分”"><a href="#15-为什么不能只保存“交易涉及账户的状态差分”" class="headerlink" title="15. 为什么不能只保存“交易涉及账户的状态差分”"></a>15. 为什么不能只保存“交易涉及账户的状态差分”</h2><p>另一种想法是：每个区块只保存状态差分，也就是只保存变化的账户状态。</p>
 <p>例如：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Block N</span><br><span class="line">├── Alice.balance: 5 ETH → 4 ETH</span><br><span class="line">├── Bob.balance: 2 ETH → 3 ETH</span><br><span class="line">└── Alice.nonce: 10 → 11</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Block N</span><br><span class="line">├── Alice.balance: 5 ETH → 4 ETH</span><br><span class="line">├── Bob.balance: 2 ETH → 3 ETH</span><br><span class="line">└── Alice.nonce: 10 → 11</span><br></pre></td></tr></table></figure></div>
 
 <p>这种方式可以用于辅助回滚或历史追踪，但不能替代全局状态树。</p>
 <p>原因是状态差分只能告诉你当前区块改了什么，却不能直接告诉你某个账户的当前完整状态。如果要查询一个很久没有变化的账户，仍然需要向前追溯它最后一次变化的位置。</p>
 <p>而以太坊需要节点能够高效验证交易。例如，Alice 发起一笔交易时，节点必须快速检查：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Alice 是否存在</span><br><span class="line">Alice 的 nonce 是否正确</span><br><span class="line">Alice 的余额是否足够支付 value + gas</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Alice 是否存在</span><br><span class="line">Alice 的 nonce 是否正确</span><br><span class="line">Alice 的余额是否足够支付 value + gas</span><br></pre></td></tr></table></figure></div>
 
 <p>如果没有全局状态树，就无法高效完成这些验证。</p>
 <hr>
 <h2 id="16-为什么以太坊状态树必须是全局的"><a href="#16-为什么以太坊状态树必须是全局的" class="headerlink" title="16. 为什么以太坊状态树必须是全局的"></a>16. 为什么以太坊状态树必须是全局的</h2><p>以太坊状态树的设计目标是：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">任意时刻都能根据 stateRoot 表示完整世界状态</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">任意时刻都能根据 stateRoot 表示完整世界状态</span><br></pre></td></tr></table></figure></div>
 
 <p>这有几个重要作用：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">1. 快速验证新交易</span><br><span class="line">2. 快速查询任意账户状态</span><br><span class="line">3. 支持 Merkle Proof</span><br><span class="line">4. 支持账户存在性和不存在性证明</span><br><span class="line">5. 支持临时分叉下的状态回滚</span><br><span class="line">6. 保证所有节点执行后得到一致的 stateRoot</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">1. 快速验证新交易</span><br><span class="line">2. 快速查询任意账户状态</span><br><span class="line">3. 支持 Merkle Proof</span><br><span class="line">4. 支持账户存在性和不存在性证明</span><br><span class="line">5. 支持临时分叉下的状态回滚</span><br><span class="line">6. 保证所有节点执行后得到一致的 stateRoot</span><br></pre></td></tr></table></figure></div>
 
 <p>如果只保存局部状态，这些能力都会受到影响。</p>
 <p>因此，每个区块中的 <code>stateRoot</code> 不是只承诺当前区块涉及的账户，而是承诺当前区块执行完成后的完整全局状态。</p>
 <p>注意，这并不意味着每个区块都完整复制一份状态树。以太坊状态树是持久化结构，新旧状态树可以共享大部分未变化节点。只有发生变化的路径需要更新。</p>
 <hr>
 <h2 id="17-三棵树的整体关系"><a href="#17-三棵树的整体关系" class="headerlink" title="17. 三棵树的整体关系"></a>17. 三棵树的整体关系</h2><p>可以把以太坊区块理解为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Block N</span><br><span class="line">├── Header</span><br><span class="line">│   ├── parentHash</span><br><span class="line">│   ├── stateRoot</span><br><span class="line">│   ├── transactionsRoot</span><br><span class="line">│   └── receiptsRoot</span><br><span class="line">│</span><br><span class="line">└── Body</span><br><span class="line">    └── Transactions</span><br><span class="line">        ├── Tx0</span><br><span class="line">        ├── Tx1</span><br><span class="line">        └── ...</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Block N</span><br><span class="line">├── Header</span><br><span class="line">│   ├── parentHash</span><br><span class="line">│   ├── stateRoot</span><br><span class="line">│   ├── transactionsRoot</span><br><span class="line">│   └── receiptsRoot</span><br><span class="line">│</span><br><span class="line">└── Body</span><br><span class="line">    └── Transactions</span><br><span class="line">        ├── Tx0</span><br><span class="line">        ├── Tx1</span><br><span class="line">        └── ...</span><br></pre></td></tr></table></figure></div>
 
 <p>其中：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot</span><br><span class="line">└── Transaction Trie</span><br><span class="line">    ├── 0 → Tx0</span><br><span class="line">    ├── 1 → Tx1</span><br><span class="line">    └── ...</span><br><span class="line"></span><br><span class="line">receiptsRoot</span><br><span class="line">└── Receipt Trie</span><br><span class="line">    ├── 0 → Receipt0</span><br><span class="line">    ├── 1 → Receipt1</span><br><span class="line">    └── ...</span><br><span class="line"></span><br><span class="line">stateRoot</span><br><span class="line">└── State Trie</span><br><span class="line">    ├── Alice → Account State</span><br><span class="line">    ├── Bob → Account State</span><br><span class="line">    ├── USDT Contract → Account State</span><br><span class="line">    └── ...</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">transactionsRoot</span><br><span class="line">└── Transaction Trie</span><br><span class="line">    ├── 0 → Tx0</span><br><span class="line">    ├── 1 → Tx1</span><br><span class="line">    └── ...</span><br><span class="line"></span><br><span class="line">receiptsRoot</span><br><span class="line">└── Receipt Trie</span><br><span class="line">    ├── 0 → Receipt0</span><br><span class="line">    ├── 1 → Receipt1</span><br><span class="line">    └── ...</span><br><span class="line"></span><br><span class="line">stateRoot</span><br><span class="line">└── State Trie</span><br><span class="line">    ├── Alice → Account State</span><br><span class="line">    ├── Bob → Account State</span><br><span class="line">    ├── USDT Contract → Account State</span><br><span class="line">    └── ...</span><br></pre></td></tr></table></figure></div>
 
 <p>交易执行过程可以理解为：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 节点读取区块中的交易列表</span><br><span class="line">2. 按交易序号依次执行</span><br><span class="line">3. 每执行一笔交易，产生一个收据</span><br><span class="line">4. 所有交易形成 Transaction Trie</span><br><span class="line">5. 所有收据形成 Receipt Trie</span><br><span class="line">6. 执行后的全局状态形成新的 State Trie</span><br><span class="line">7. 三个根哈希写入区块头</span><br></pre></td></tr></table></figure>
+<div class="code-container" data-rel="Text"><figure class="iseeu highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 节点读取区块中的交易列表</span><br><span class="line">2. 按交易序号依次执行</span><br><span class="line">3. 每执行一笔交易，产生一个收据</span><br><span class="line">4. 所有交易形成 Transaction Trie</span><br><span class="line">5. 所有收据形成 Receipt Trie</span><br><span class="line">6. 执行后的全局状态形成新的 State Trie</span><br><span class="line">7. 三个根哈希写入区块头</span><br></pre></td></tr></table></figure></div>
 
 <hr>
 <h2 id="18-总结"><a href="#18-总结" class="headerlink" title="18. 总结"></a>18. 总结</h2><p>交易树和收据树都是针对当前区块构建的数据结构。交易树用来承诺当前区块中的交易内容和顺序，收据树用来承诺这些交易执行后的结果。每一笔交易都会产生一个对应的收据，因此交易树和收据树在索引上是一一对应的。</p>
@@ -603,91 +943,378 @@
 <p>以太坊可以看作交易驱动的状态机。每个区块中的交易按确定顺序执行，从旧状态转移到新状态。所有节点必须在相同输入、相同前置状态和相同执行规则下得到相同结果，否则无法达成共识。比特币也可以被抽象为状态机，只不过它的状态是 UTXO Set，而以太坊的状态是账户、合约代码和合约存储组成的世界状态。</p>
 <p>“每个区块只保存当前区块用到的账户状态”这个方案并不可行。它会导致账户查询、余额验证和不存在性证明都变得困难。如果某个账户很久没有交易，节点可能需要一直向前追溯到创世区块才能确认它的状态。以太坊使用全局状态树，就是为了让每个区块的 <code>stateRoot</code> 都能承诺当前完整世界状态，同时通过 MPT 的节点共享机制避免完整复制整棵状态树。</p>
 
-    </div>
+		</div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/" rel="tag"># 区块链</a>
-              <a href="/tags/Ethereum/" rel="tag"># Ethereum</a>
-              <a href="/tags/ETH/" rel="tag"># ETH</a>
-              <a href="/tags/%E4%BB%A5%E5%A4%AA%E5%9D%8A/" rel="tag"># 以太坊</a>
-          </div>
-
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> 区块链技术与应用 17：ETH-交易树和收据树</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2026-06-04 09:17:00</li>
         
+            <li>
+                <strong>更新于
+                    :</strong> 2026-06-04 09:17:00
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2026/06/04/区块链技术与应用-17-ETH-交易树和收据树/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
 
-          <div class="post-nav">
-            <div class="post-nav-item">
-                <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-16-ETH-%E7%8A%B6%E6%80%81%E6%A0%91/" rel="prev" title="区块链技术与应用 16：ETH-状态树">
-                  <i class="fa fa-angle-left"></i> 区块链技术与应用 16：ETH-状态树
-                </a>
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">#区块链</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Ethereum/">#Ethereum</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/ETH/">#ETH</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BB%A5%E5%A4%AA%E5%9D%8A/">#以太坊</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-16-ETH-%E7%8A%B6%E6%80%81%E6%A0%91/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">区块链技术与应用 16：ETH-状态树</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">区块链技术与应用 17：ETH-交易树和收据树</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0"><span class="nav-text">ETH 交易树和收据树学习笔记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E5%9C%A8%E5%8C%BA%E5%9D%97%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-text">1. 交易树和收据树在区块中的位置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BA%A4%E6%98%93%E6%A0%91-Transaction-Trie"><span class="nav-text">2. 交易树 Transaction Trie</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%94%B6%E6%8D%AE%E6%A0%91-Receipt-Trie"><span class="nav-text">3. 收据树 Receipt Trie</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B9%9F%E4%BD%BF%E7%94%A8-MPT"><span class="nav-text">4. 交易树和收据树为什么也使用 MPT</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%BA%A4%E6%98%93%E6%A0%91%E3%80%81%E6%94%B6%E6%8D%AE%E6%A0%91%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A0%91%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-text">5. 交易树、收据树与状态树的区别</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E6%94%B6%E6%8D%AE%E4%B8%AD%E7%9A%84%E6%97%A5%E5%BF%97%E4%B8%8E%E4%BA%8B%E4%BB%B6"><span class="nav-text">6. 收据中的日志与事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Bloom-Filter-%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-text">7. Bloom Filter 布隆过滤器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-Bloom-Filter-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%80%E8%88%AC%E4%B8%8D%E6%94%AF%E6%8C%81%E5%88%A0%E9%99%A4"><span class="nav-text">8. Bloom Filter 为什么一般不支持删除</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-%E4%BB%A5%E5%A4%AA%E5%9D%8A%E6%98%AF%E4%BA%A4%E6%98%93%E9%A9%B1%E5%8A%A8%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-text">9. 以太坊是交易驱动的状态机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-%E4%BB%80%E4%B9%88%E5%8F%AB%E7%8A%B6%E6%80%81%E8%BD%AC%E7%A7%BB%E7%A1%AE%E5%AE%9A%E6%80%A7"><span class="nav-text">10. 什么叫状态转移确定性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-BTC-%E4%B9%9F%E5%8F%AF%E4%BB%A5%E7%9C%8B%E4%BD%9C%E7%8A%B6%E6%80%81%E6%9C%BA%E5%90%97"><span class="nav-text">11. BTC 也可以看作状态机吗</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12-%E9%97%AE%E9%A2%98%EF%BC%9A%E6%AF%8F%E4%B8%AA%E5%8C%BA%E5%9D%97%E5%8F%AA%E7%BB%B4%E6%8A%A4%E5%BD%93%E5%89%8D%E5%8C%BA%E5%9D%97%E7%94%A8%E5%88%B0%E7%9A%84%E4%BA%A4%E6%98%93%E8%B4%A6%E6%88%B7%E7%8A%B6%E6%80%81%E6%98%AF%E5%90%A6%E5%8F%AF%E8%A1%8C"><span class="nav-text">12. 问题：每个区块只维护当前区块用到的交易账户状态是否可行</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#13-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AA%E4%BF%9D%E5%AD%98%E5%B1%80%E9%83%A8%E7%8A%B6%E6%80%81%E4%BC%9A%E5%AF%BC%E8%87%B4%E6%9F%A5%E8%AF%A2%E5%9B%B0%E9%9A%BE"><span class="nav-text">13. 为什么只保存局部状态会导致查询困难</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-%E4%B8%8D%E5%AD%98%E5%9C%A8%E8%B4%A6%E6%88%B7%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-text">14. 不存在账户的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#15-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E8%83%BD%E5%8F%AA%E4%BF%9D%E5%AD%98%E2%80%9C%E4%BA%A4%E6%98%93%E6%B6%89%E5%8F%8A%E8%B4%A6%E6%88%B7%E7%9A%84%E7%8A%B6%E6%80%81%E5%B7%AE%E5%88%86%E2%80%9D"><span class="nav-text">15. 为什么不能只保存“交易涉及账户的状态差分”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#16-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BB%A5%E5%A4%AA%E5%9D%8A%E7%8A%B6%E6%80%81%E6%A0%91%E5%BF%85%E9%A1%BB%E6%98%AF%E5%85%A8%E5%B1%80%E7%9A%84"><span class="nav-text">16. 为什么以太坊状态树必须是全局的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#17-%E4%B8%89%E6%A3%B5%E6%A0%91%E7%9A%84%E6%95%B4%E4%BD%93%E5%85%B3%E7%B3%BB"><span class="nav-text">17. 三棵树的整体关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#18-%E6%80%BB%E7%BB%93"><span class="nav-text">18. 总结</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
             </div>
-            <div class="post-nav-item">
-            </div>
-          </div>
-    </footer>
-  </article>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-
-
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
-  </main>
+	
 
-  <footer class="footer">
-    <div class="footer-inner">
+</main>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
 
-    </div>
-  </footer>
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

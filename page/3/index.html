@@ -1,1615 +1,1516 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="Kylinxin&#39;s Blog">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/page/3/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Kylinxin&#39;s Blog">
 <meta property="og:url" content="https://kylinxin.github.io/page/3/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="Kylinxin&#39;s Blog">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:author" content="Kylinxin">
+<meta property="article:tag" content="Kylinxin, security, Web3, Rust, pwn, CTF">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Kylinxin&#39;s Blog - Security, Web3, Systems, and Notes
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/page/3/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":true,"isPost":false,"lang":"zh-CN","comments":"","permalink":"","path":"page/3/index.html","title":""}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion home-linear-page">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
 
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <h1 class="site-title">Kylinxin's Blog</h1>
-      <i class="logo-line"></i>
-    </a>
-  </div>
+<main class="page-container" id="swup">
 
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<style>
+    .home-article-item,
+    .sidebar-links,
+    .sidebar-content,
+    a.page-number,
+    a.extend,
+    .sidebar-links .links:hover,
+    .right-bottom-tools,
+    footer.footer {
+        background-color: var(--background-color-transparent-80) !important;
+    }
+    .right-bottom-tools:hover,
+    a.page-number:hover,
+    a.extend:hover {
+        background-color: var(--primary-color) !important;
+    }
+    .site-info,
+    .home-article-sticky-label {
+        background-color: var(--background-color-transparent-15) !important;
+    }
+    .home-article-sticky-label {
+        backdrop-filter: none !important;
+    }
+    .home-banner-background {
+        filter: blur(15px);
+    }
+</style>
+
+<div class="home-banner-background transition-fade fixed top-0 left-0 w-screen h-screen scale-125 sm:scale-110 box-border will-change-transform bg-cover">
+    <img src="/images/wallhaven-wqery6-light.webp" alt="home-banner-background" class="w-full h-full object-cover dark:hidden">
+    <img src="/images/wallhaven-wqery6-dark.webp" alt="home-banner-background" class="w-full h-full object-cover hidden dark:block">
 </div>
 
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                <h1>
+                Kylinxin&#39;s Blog
+                </h1>
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="active"
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+			<div class="home-sidebar-container">
+    <div class="sticky-container sticky">
+        
+        
+            <div class="sidebar-content">
+                <div class="avatar flex justify-center">
+    <img src="/images/faction/1.png">
+</div>
+                <div class="author flex flex-col justify-center my-2.5 mx-0">
+    <div class="name">Kylinxin</div>
+    
+        <div class="label">Kylinxin</div>
+    
+</div>
+                <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+            </div>
+            
+                <div class="sidebar-links"   marginTop >
+                    <div class="site-info">
+                        <div class="site-name">Kylinxin&#39;s Blog</div>
+                        
+                            <div class="announcement">
+                                CTF / Pwn / Web3 / Rust / notes
+                            </div>
+                        
+                    </div>
+                    
+                        
+                            
+                                <a class="links" target="_blank" rel="noopener" href="https://github.com/Kylinxin">
+                                    
+                                        <i class="fa-brands fa-github icon-space"></i>
+                                    
+                                    <span class="link-name">GitHub</span>
+                                </a>
+                            
+                        
+                            
+                                <a class="links" href="/atom.xml">
+                                    
+                                        <i class="fa-solid fa-rss icon-space"></i>
+                                    
+                                    <span class="link-name">RSS</span>
+                                </a>
+                            
+                        
+                    
+                </div>
+            
         
 
     </div>
+</div>
 
-    <div class="main-inner index posts-expand">
+			
 
-
-  <nav class="home-topbar" aria-label="Home navigation">
-    <a class="home-brand" href="/">Kylinxin's Blog</a>
-    <div class="home-toplinks">
-      <a href="/archives/">ARCHIVE</a>
-      <a href="/categories/">CATEGORIES</a>
-      <a href="/tags/">TAGS</a>
-      <a class="home-dark-pill" href="#">DARK ON</a>
-    </div>
-  </nav>
-
-  <section class="home-hero" aria-label="Kylinxin's Blog">
-    <div class="home-kicker">ENGINEERING JOURNAL</div>
-    <h1>Kylinxin's Blog</h1>
-  </section>
-
-  <div class="home-dashboard">
-    <aside class="home-profile" aria-label="Profile">
-      <div class="home-monogram">KY</div>
-      <h2>Kylinxin</h2>
-      <div class="home-divider"></div>
-      <div class="home-label">SERIES</div>
-      <nav class="home-series" aria-label="Series">
-        <a class="is-active" href="/categories/heap/">Heap Exploitation</a>
-        <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%AE%89%E5%85%A8/Ethernaut/">Ethernaut</a>
-        <a href="/categories/Rust/">Rust</a>
-        <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>
-      </nav>
-      <div class="home-divider"></div>
-      <div class="home-label">STATUS</div>
-      <div class="home-status">
-        <span><i class="is-green"></i>site generated</span>
-        <span><i class="is-indigo"></i>dark mode active</span>
-      </div>
-    </aside>
-
-    <div class="home-timeline" aria-label="Recent posts">
+			<div class="main-content">
+				<div class="home-content-container">
+    <ul class="home-article-list">
         
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+                            Rust学习笔记 14：生命周期
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/14_lifetimes.rs
+运行命令：
+1cargo run --bin lesson14_lifetimes
+
+学习目标生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。
+初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。
+
+理解生命周期用于防止悬垂引用。
+知道很多生命周期可以由编译器自动省略。
+会读懂简单的 &#39;a 标注。
+理解结构体中保存引用时为什么需要生命周期参数。
+
+核心概念速查
 
 
-<div class="post-block">
-  
-  
+术语
+基本意思
+本节用途
 
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
+生命...
+                        
+                    </div>
 
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" class="post-title-link" itemprop="url">Rust学习笔记 14：生命周期</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-14 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-14T09:00:00+08:00">2026-04-14</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Tue Apr 14 2026 09:00:00 GMT+0800">
+                
+                    2026-04-14
+                
+            </span>
         </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.3k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>5 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/14_lifetimes.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson14_lifetimes</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>生命周期描述引用有效的范围。它让编译器确认引用不会指向已经释放的数据。</p>
-<p>初学时不要把生命周期理解成手动控制内存。它只是对引用关系的标注和检查。</p>
-<ul>
-<li>理解生命周期用于防止悬垂引用。</li>
-<li>知道很多生命周期可以由编译器自动省略。</li>
-<li>会读懂简单的 <code>&#39;a</code> 标注。</li>
-<li>理解结构体中保存引用时为什么需要生命周期参数。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>生命周期 lifetime</td>
-<td>引用保持有效的代码范围。</td>
-<td><code>&#39;a</code> 是生命周期参数名。</td>
-</tr>
-<tr>
-<td>悬垂引用 dangling reference</td>
-<td>指向已经无效数据的引用。</td>
-<td>Rust 编译器会阻止它。</td>
-</tr>
-<tr>
-<td>生命周期标注</td>
-<td>显式说明多个引用之间的有效期关系。</td>
-<td><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</td>
-</tr>
-<tr>
-<td>生命周期省略</td>
-<td>编译器按规则自动推断常见生命周期。</td>
-<td>很多函数不需要手写 <code>&#39;a</code>。</td>
-</tr>
-<tr>
-<td>‘static</td>
-<td>能存活整个程序运行期间的生命周期。</td>
-<td>字符串字面量通常是 <code>&amp;&#39;static str</code>。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="comment">// 生命周期标注说明：返回引用的有效期不超过两个输入引用中较短的那个。</span></span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123;</span><br><span class="line">        left</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        right</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">ImportantExcerpt</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="comment">// 结构体保存引用时，需要说明引用必须活得和结构体一样久。</span></span><br><span class="line">    part: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;<span class="symbol">&#x27;a</span>&gt; ImportantExcerpt&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">announce_and_return_part</span>(&amp;<span class="keyword">self</span>, announcement: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="type">str</span> &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;announcement&#125;&quot;</span>);</span><br><span class="line">        <span class="keyword">self</span>.part</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;short&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">second</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;a longer string&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = <span class="title function_ invoke__">longest</span>(&amp;first, &amp;second);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;更长的是: &#123;result&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">novel</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust is safe. Rust is fast.&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">first_sentence</span> = novel.<span class="title function_ invoke__">split</span>(<span class="string">&#x27;.&#x27;</span>).<span class="title function_ invoke__">next</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">excerpt</span> = ImportantExcerpt &#123;</span><br><span class="line">        part: first_sentence,</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘录: &#123;&#125;&quot;</span>, excerpt.<span class="title function_ invoke__">announce_and_return_part</span>(<span class="string">&quot;开始阅读&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson14_lifetimes</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="返回引用"><a href="#返回引用" class="headerlink" title="返回引用"></a>返回引用</h3><p>函数返回引用时，编译器必须知道它来自哪个输入。</p>
-<h3 id="longest"><a href="#longest" class="headerlink" title="longest"></a>longest</h3><p><code>longest&lt;&#39;a&gt;</code> 表示返回值不会比两个输入引用中较短者活得更久。</p>
-<h3 id="结构体引用字段"><a href="#结构体引用字段" class="headerlink" title="结构体引用字段"></a>结构体引用字段</h3><p>结构体保存引用时，要在类型上标注生命周期。</p>
-<h3 id="字符串字面量"><a href="#字符串字面量" class="headerlink" title="字符串字面量"></a>字符串字面量</h3><p>字面量存放在程序二进制中，常具有 <code>&#39;static</code> 生命周期。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="生命周期-lifetime"><a href="#生命周期-lifetime" class="headerlink" title="生命周期 lifetime"></a>生命周期 lifetime</h3><p>引用保持有效的代码范围。</p>
-<p><code>&#39;a</code> 是生命周期参数名。</p>
-<h3 id="悬垂引用-dangling-reference"><a href="#悬垂引用-dangling-reference" class="headerlink" title="悬垂引用 dangling reference"></a>悬垂引用 dangling reference</h3><p>指向已经无效数据的引用。</p>
-<p>Rust 编译器会阻止它。</p>
-<h3 id="生命周期标注"><a href="#生命周期标注" class="headerlink" title="生命周期标注"></a>生命周期标注</h3><p>显式说明多个引用之间的有效期关系。</p>
-<p><code>fn longest&lt;&#39;a&gt;(x: &amp;&#39;a str, y: &amp;&#39;a str) -&gt; &amp;&#39;a str</code>。</p>
-<h3 id="生命周期省略"><a href="#生命周期省略" class="headerlink" title="生命周期省略"></a>生命周期省略</h3><p>编译器按规则自动推断常见生命周期。</p>
-<p>很多函数不需要手写 <code>&#39;a</code>。</p>
-<h3 id="‘static"><a href="#‘static" class="headerlink" title="‘static"></a>‘static</h3><p>能存活整个程序运行期间的生命周期。</p>
-<p>字符串字面量通常是 <code>&amp;&#39;static str</code>。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>生命周期标注不会延长任何值的生命。它只是描述已有的有效范围。</p>
-<p><code>&#39;a</code> 的名字没有特殊含义，可以叫 <code>&#39;text</code>，但简单示例常用 <code>&#39;a</code>。</p>
-<p>返回引用时，返回值必须来自输入引用或其他足够长寿的数据，不能返回局部变量引用。</p>
-<p>生命周期和所有权配合工作。拥有值的数据离开作用域后，指向它的引用不能继续存在。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要试图用生命周期标注修复真正的所有权错误。</li>
-<li>不要返回函数内部创建的局部 <code>String</code> 的引用。</li>
-<li><code>&#39;static</code> 不等于“永远不释放所有数据”，它表示引用目标在整个程序期间有效。</li>
-<li>生命周期报错通常说明引用关系不清楚，先画出数据拥有者和借用者。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：实现-longest"><a href="#练习-1：实现-longest" class="headerlink" title="练习 1：实现 longest"></a>练习 1：实现 longest</h3><p>要求：返回两个字符串切片中更长的一个。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">longest</span>&lt;<span class="symbol">&#x27;a</span>&gt;(left: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>, right: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>) <span class="punctuation">-&gt;</span> &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> left.<span class="title function_ invoke__">len</span>() &gt;= right.<span class="title function_ invoke__">len</span>() &#123; left &#125; <span class="keyword">else</span> &#123; right &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">longest</span>(<span class="string">&quot;Rust&quot;</span>, <span class="string">&quot;language&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：返回值可能来自任一输入，所以要用同一个生命周期参数描述关系。</p>
-<h3 id="练习-2：结构体保存引用"><a href="#练习-2：结构体保存引用" class="headerlink" title="练习 2：结构体保存引用"></a>练习 2：结构体保存引用</h3><p>要求：定义保存标题引用的结构体。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Title</span>&lt;<span class="symbol">&#x27;a</span>&gt; &#123;</span><br><span class="line">    text: &amp;<span class="symbol">&#x27;a</span> <span class="type">str</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">raw</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = Title &#123; text: &amp;raw &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, title.text);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：结构体不能比它内部引用的字符串活得更久。</p>
-<h3 id="练习-3：避免返回局部引用"><a href="#练习-3：避免返回局部引用" class="headerlink" title="练习 3：避免返回局部引用"></a>练习 3：避免返回局部引用</h3><p>要求：修复返回局部字符串引用的错误。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">make_title</span>() <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">title</span> = <span class="title function_ invoke__">make_title</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;title&#125;&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：函数内部创建的数据应返回所有权，而不是返回指向局部变量的引用。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">Rust学习笔记 13：Trait 与 Trait Bound</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/15/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-15-%E5%B8%B8%E7%94%A8%E6%A0%87%E5%87%86%E5%BA%93%E5%87%BD%E6%95%B0%E4%B8%8E%E5%AE%9E%E7%94%A8%E5%AE%8F/">Rust学习笔记 15：常用标准库函数与实用宏</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/" class="post-title-link" itemprop="url">Rust学习笔记 13：Trait 与 Trait Bound</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-13 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-13T09:00:00+08:00">2026-04-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
         </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.1k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/13_traits_trait_bounds.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson13_traits_trait_bounds</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。</p>
-<p>如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。</p>
-<ul>
-<li>理解 trait 是行为接口。</li>
-<li>会为自定义类型实现 trait。</li>
-<li>会用 <code>impl Trait</code> 和 <code>&lt;T: Trait&gt;</code> 写参数。</li>
-<li>知道标准库常见 trait，如 <code>Debug</code>、<code>Display</code>、<code>Clone</code>、<code>Copy</code>。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Trait</td>
-<td>一组方法签名或默认实现。</td>
-<td>类似“能力契约”，但不是类继承。</td>
-</tr>
-<tr>
-<td>实现 impl</td>
-<td>为某个类型提供 trait 要求的方法。</td>
-<td><code>impl Summary for Article</code>。</td>
-</tr>
-<tr>
-<td>Trait Bound</td>
-<td>泛型参数必须满足的 trait 约束。</td>
-<td><code>T: Summary</code> 表示 T 必须能摘要。</td>
-</tr>
-<tr>
-<td>impl Trait</td>
-<td>参数或返回值位置的简写形式。</td>
-<td><code>fn print(item: &amp;impl Summary)</code>。</td>
-</tr>
-<tr>
-<td>默认实现</td>
-<td>trait 中直接提供方法体。</td>
-<td>实现者可以使用默认逻辑，也可以覆盖。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// trait 可以提供默认实现。</span></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;unknown&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">    author: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125; by &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title, <span class="keyword">self</span>.author)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">source</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;blog&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="comment">// T: Summary 是 trait bound，表示 T 必须实现 Summary。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;摘要: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;来源: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">source</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">notify</span>(item: &amp;<span class="keyword">impl</span> <span class="title class_">Summary</span>) &#123;</span><br><span class="line">    <span class="comment">// impl Trait 是更简洁的参数写法。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;通知: &#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123;</span><br><span class="line">        title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Learning Rust&quot;</span>),</span><br><span class="line">        author: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Kylin&quot;</span>),</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="title function_ invoke__">print_summary</span>(&amp;article);</span><br><span class="line">    <span class="title function_ invoke__">notify</span>(&amp;article);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson13_traits_trait_bounds</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义-trait"><a href="#定义-trait" class="headerlink" title="定义 trait"></a>定义 trait</h3><p><code>trait Summary</code> 声明 <code>summarize</code> 行为。</p>
-<h3 id="实现-trait"><a href="#实现-trait" class="headerlink" title="实现 trait"></a>实现 trait</h3><p>不同结构体可以各自实现 <code>Summary</code>。</p>
-<h3 id="Trait-bound"><a href="#Trait-bound" class="headerlink" title="Trait bound"></a>Trait bound</h3><p><code>fn notify&lt;T: Summary&gt;(item: &amp;T)</code> 接收任何能摘要的类型。</p>
-<h3 id="默认方法"><a href="#默认方法" class="headerlink" title="默认方法"></a>默认方法</h3><p>trait 可以提供默认方法，减少重复实现。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Trait"><a href="#Trait" class="headerlink" title="Trait"></a>Trait</h3><p>一组方法签名或默认实现。</p>
-<p>类似“能力契约”，但不是类继承。</p>
-<h3 id="实现-impl"><a href="#实现-impl" class="headerlink" title="实现 impl"></a>实现 impl</h3><p>为某个类型提供 trait 要求的方法。</p>
-<p><code>impl Summary for Article</code>。</p>
-<h3 id="Trait-Bound"><a href="#Trait-Bound" class="headerlink" title="Trait Bound"></a>Trait Bound</h3><p>泛型参数必须满足的 trait 约束。</p>
-<p><code>T: Summary</code> 表示 T 必须能摘要。</p>
-<h3 id="impl-Trait"><a href="#impl-Trait" class="headerlink" title="impl Trait"></a>impl Trait</h3><p>参数或返回值位置的简写形式。</p>
-<p><code>fn print(item: &amp;impl Summary)</code>。</p>
-<h3 id="默认实现"><a href="#默认实现" class="headerlink" title="默认实现"></a>默认实现</h3><p>trait 中直接提供方法体。</p>
-<p>实现者可以使用默认逻辑，也可以覆盖。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>Trait 表达共享行为，不表达共享字段。不同类型可以用完全不同的数据实现同一个行为。</p>
-<p><code>impl Trait</code> 简洁，适合简单参数。显式泛型 <code>&lt;T: Trait&gt;</code> 适合多个参数需要表达同一类型或多个约束。</p>
-<p>一个类型可以实现多个 trait。一个函数也可以要求 <code>T: Summary + Clone</code>。</p>
-<p>Rust 的 trait 遵循孤儿规则：通常只能为本地类型实现外部 trait，或为外部类型实现本地 trait。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要把 trait 当作父类。Trait 不保存实例字段。</li>
-<li>泛型函数里调用 trait 方法前，必须写 trait bound。</li>
-<li><code>Debug</code> 用于开发调试，<code>Display</code> 用于用户友好输出，两者不同。</li>
-<li><code>Copy</code> 继承自 <code>Clone</code> 的语义，但只有轻量、按位复制安全的类型才应实现。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义-Summary"><a href="#练习-1：定义-Summary" class="headerlink" title="练习 1：定义 Summary"></a>练习 1：定义 Summary</h3><p>要求：给文章类型实现摘要能力。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">trait</span> <span class="title class_">Summary</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    title: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Summary</span> <span class="keyword">for</span> <span class="title class_">Article</span> &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">summarize</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="built_in">format!</span>(<span class="string">&quot;文章: &#123;&#125;&quot;</span>, <span class="keyword">self</span>.title)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">article</span> = Article &#123; title: <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>) &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, article.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：trait 只规定行为，具体格式由实现者决定。</p>
-<h3 id="练习-2：使用-trait-bound"><a href="#练习-2：使用-trait-bound" class="headerlink" title="练习 2：使用 trait bound"></a>练习 2：使用 trait bound</h3><p>要求：写函数打印任何可摘要对象。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">print_summary</span>&lt;T: Summary&gt;(item: &amp;T) &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, item.<span class="title function_ invoke__">summarize</span>());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>T: Summary</code> 让函数内部可以安全调用 <code>summarize</code>。</p>
-<h3 id="练习-3：多个约束"><a href="#练习-3：多个约束" class="headerlink" title="练习 3：多个约束"></a>练习 3：多个约束</h3><p>要求：写函数要求参数既能摘要又能克隆。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">duplicate_summary</span>&lt;T&gt;(item: &amp;T) <span class="punctuation">-&gt;</span> <span class="type">String</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    T: Summary + <span class="built_in">Clone</span>,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">copied</span> = item.<span class="title function_ invoke__">clone</span>();</span><br><span class="line">    copied.<span class="title function_ invoke__">summarize</span>()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>where</code> 子句适合约束较多时提高可读性。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">Rust学习笔记 12：泛型</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">Rust学习笔记 14：生命周期</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/" class="post-title-link" itemprop="url">Rust学习笔记 12：泛型</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-12 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-12T09:00:00+08:00">2026-04-12</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.2k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/12_generics.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson12_generics</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>泛型让同一段代码适用于多种类型。它能减少重复，同时保持静态类型检查。</p>
-<p>Rust 的泛型在编译期单态化，常见情况下不会带来运行时动态分发开销。</p>
-<ul>
-<li>理解泛型参数 <code>T</code> 的含义。</li>
-<li>会定义泛型函数和泛型结构体。</li>
-<li>知道泛型需要 trait bound 才能使用特定能力。</li>
-<li>理解 <code>Option&lt;T&gt;</code>、<code>Result&lt;T, E&gt;</code> 也是泛型类型。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>泛型 generic</td>
-<td>把具体类型抽象成类型参数。</td>
-<td><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 可接收多种类型。</td>
-</tr>
-<tr>
-<td>类型参数 T</td>
-<td>泛型中的占位类型名。</td>
-<td><code>T</code> 不是固定名字，只是惯例。</td>
-</tr>
-<tr>
-<td>单态化 monomorphization</td>
-<td>编译器为实际类型生成具体版本。</td>
-<td>这是 Rust 泛型高性能的原因之一。</td>
-</tr>
-<tr>
-<td>泛型结构体</td>
-<td>字段类型带类型参数的结构体。</td>
-<td><code>Point&lt;T&gt;</code> 可表示整数点或浮点点。</td>
-</tr>
-<tr>
-<td>trait bound</td>
-<td>限制泛型类型必须具备某些能力。</td>
-<td>下一节会详细讲。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">largest</span>&lt;T: <span class="built_in">PartialOrd</span> + <span class="built_in">Copy</span>&gt;(items: &amp;[T]) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">largest</span> = items[<span class="number">0</span>];</span><br><span class="line">    <span class="keyword">for</span> &amp;item <span class="keyword">in</span> items &#123;</span><br><span class="line">        <span class="keyword">if</span> item &gt; largest &#123;</span><br><span class="line">            largest = item;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    largest</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: T,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span>&lt;T&gt; Point&lt;T&gt; &#123;</span><br><span class="line">    <span class="keyword">fn</span> <span class="title function_">x</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> &amp;T &#123;</span><br><span class="line">        &amp;<span class="keyword">self</span>.x</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = [<span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>, <span class="number">10</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大数字: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;numbers));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">chars</span> = [<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;z&#x27;</span>, <span class="string">&#x27;m&#x27;</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;最大字符: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">largest</span>(&amp;chars));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">integer_point</span> = Point &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">float_point</span> = Point &#123; x: <span class="number">1.2</span>, y: <span class="number">3.4</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;整数点: &#123;integer_point:?&#125;, x=&#123;&#125;&quot;</span>, integer_point.<span class="title function_ invoke__">x</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;浮点点: &#123;float_point:?&#125;, y=&#123;&#125;&quot;</span>, float_point.y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson12_generics</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="泛型函数"><a href="#泛型函数" class="headerlink" title="泛型函数"></a>泛型函数</h3><p><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 接收什么类型就返回什么类型。</p>
-<h3 id="泛型结构体"><a href="#泛型结构体" class="headerlink" title="泛型结构体"></a>泛型结构体</h3><p><code>struct Pair&lt;T&gt;</code> 用同一种 <code>T</code> 保存两个值。</p>
-<h3 id="多个泛型参数"><a href="#多个泛型参数" class="headerlink" title="多个泛型参数"></a>多个泛型参数</h3><p><code>Result&lt;T, E&gt;</code> 同时有成功值类型和错误类型。</p>
-<h3 id="约束需求"><a href="#约束需求" class="headerlink" title="约束需求"></a>约束需求</h3><p>如果要比较、打印或相加泛型值，就必须添加相应 trait bound。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="泛型-generic"><a href="#泛型-generic" class="headerlink" title="泛型 generic"></a>泛型 generic</h3><p>把具体类型抽象成类型参数。</p>
-<p><code>fn identity&lt;T&gt;(value: T) -&gt; T</code> 可接收多种类型。</p>
-<h3 id="类型参数-T"><a href="#类型参数-T" class="headerlink" title="类型参数 T"></a>类型参数 T</h3><p>泛型中的占位类型名。</p>
-<p><code>T</code> 不是固定名字，只是惯例。</p>
-<h3 id="单态化-monomorphization"><a href="#单态化-monomorphization" class="headerlink" title="单态化 monomorphization"></a>单态化 monomorphization</h3><p>编译器为实际类型生成具体版本。</p>
-<p>这是 Rust 泛型高性能的原因之一。</p>
-<h3 id="泛型结构体-1"><a href="#泛型结构体-1" class="headerlink" title="泛型结构体"></a>泛型结构体</h3><p>字段类型带类型参数的结构体。</p>
-<p><code>Point&lt;T&gt;</code> 可表示整数点或浮点点。</p>
-<h3 id="trait-bound"><a href="#trait-bound" class="headerlink" title="trait bound"></a>trait bound</h3><p>限制泛型类型必须具备某些能力。</p>
-<p>下一节会详细讲。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>泛型不是“任意类型随便用”。没有约束时，你只能移动、返回或保存它，不能随便比较或打印。</p>
-<p><code>T</code>、<code>U</code>、<code>E</code> 只是类型参数名字。<code>E</code> 常用来表示 error 类型。</p>
-<p>泛型能把“算法结构”从“具体数据类型”中分离出来。</p>
-<p>当两个字段都写 <code>T</code> 时，它们必须是同一具体类型。需要不同类型时写 <code>T, U</code>。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要以为泛型函数内部自动知道 <code>T</code> 能打印。打印需要 <code>T: Debug</code> 或 <code>T: Display</code>。</li>
-<li>如果结构体字段一个是整数、一个是浮点数，就不要都写成同一个 <code>T</code>。</li>
-<li>泛型参数过多会降低可读性。初学阶段先保持简单。</li>
-<li>泛型解决重复类型逻辑，不适合掩盖完全不同的业务概念。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：identity-函数"><a href="#练习-1：identity-函数" class="headerlink" title="练习 1：identity 函数"></a>练习 1：identity 函数</h3><p>要求：写一个返回原值的泛型函数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">identity</span>&lt;T&gt;(value: T) <span class="punctuation">-&gt;</span> T &#123;</span><br><span class="line">    value</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">identity</span>(<span class="number">10</span>));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">identity</span>(<span class="string">&quot;Rust&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>T</code> 由调用时传入的值推断出来。</p>
-<h3 id="练习-2：泛型结构体"><a href="#练习-2：泛型结构体" class="headerlink" title="练习 2：泛型结构体"></a>练习 2：泛型结构体</h3><p>要求：定义 <code>Point&lt;T&gt;</code> 并创建整数点和浮点点。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Point</span>&lt;T&gt; &#123;</span><br><span class="line">    x: T,</span><br><span class="line">    y: T,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">int_point</span> = Point &#123; x: <span class="number">1</span>, y: <span class="number">2</span> &#125;;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">float_point</span> = Point &#123; x: <span class="number">1.0</span>, y: <span class="number">2.0</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, int_point.x, float_point.y);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：同一个结构体模板可以生成不同具体类型。</p>
-<h3 id="练习-3：两个类型参数"><a href="#练习-3：两个类型参数" class="headerlink" title="练习 3：两个类型参数"></a>练习 3：两个类型参数</h3><p>要求：定义 <code>Pair&lt;T, U&gt;</code> 保存不同类型。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Pair</span>&lt;T, U&gt; &#123;</span><br><span class="line">    left: T,</span><br><span class="line">    right: U,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">pair</span> = Pair &#123; left: <span class="string">&quot;age&quot;</span>, right: <span class="number">20</span> &#125;;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125; &#123;&#125;&quot;</span>, pair.left, pair.right);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>T</code> 和 <code>U</code> 允许两个字段拥有不同类型。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">Rust学习笔记 11：错误处理</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">Rust学习笔记 13：Trait 与 Trait Bound</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/" class="post-title-link" itemprop="url">Rust学习笔记 11：错误处理</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-11 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-11T09:00:00+08:00">2026-04-11</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.2k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/11_error_handling.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson11_error_handling</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>Rust 把错误分成可恢复错误和不可恢复错误。可恢复错误通常用 <code>Result</code> 表达。</p>
-<p>错误处理是 Rust 代码可读性的重要部分。你需要明确说明失败时程序应该如何反应。</p>
-<ul>
-<li>理解 <code>Result&lt;T, E&gt;</code> 的含义。</li>
-<li>会用 <code>match</code> 处理成功和失败。</li>
-<li>掌握 <code>unwrap</code>、<code>expect</code> 的风险和适用场景。</li>
-<li>理解 <code>?</code> 运算符如何传播错误。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Result</td>
-<td>表示成功或失败的枚举。</td>
-<td><code>Ok(T)</code> 是成功，<code>Err(E)</code> 是错误。</td>
-</tr>
-<tr>
-<td>panic</td>
-<td>不可恢复错误，程序通常终止当前线程。</td>
-<td>适合违反程序假设的严重问题。</td>
-</tr>
-<tr>
-<td>unwrap</td>
-<td>取出 <code>Ok</code> 或 <code>Some</code> 的值，失败时 panic。</td>
-<td>初学和测试可用，生产代码要谨慎。</td>
-</tr>
-<tr>
-<td>expect</td>
-<td>类似 unwrap，但可以提供 panic 信息。</td>
-<td>比 <code>unwrap</code> 更容易定位原因。</td>
-</tr>
-<tr>
-<td>? 运算符</td>
-<td>成功时取值，失败时提前返回错误。</td>
-<td>用于简化错误传播。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::fs;</span><br><span class="line"><span class="keyword">use</span> std::io;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">parse_number</span>(text: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="type">i32</span>, std::num::ParseIntError&gt; &#123;</span><br><span class="line">    <span class="comment">// ? 会在错误时提前返回 Err，在成功时取出 Ok 内的值。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = text.<span class="title function_ invoke__">trim</span>().parse::&lt;<span class="type">i32</span>&gt;()?;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(value)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">read_config</span>() <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="type">String</span>, io::Error&gt; &#123;</span><br><span class="line">    <span class="comment">// 这里故意读取一个可能不存在的文件，用于演示错误传播。</span></span><br><span class="line">    fs::<span class="title function_ invoke__">read_to_string</span>(<span class="string">&quot;config.txt&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">match</span> <span class="title function_ invoke__">parse_number</span>(<span class="string">&quot;42&quot;</span>) &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(value) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;解析成功: &#123;value&#125;&quot;</span>),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(error) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;解析失败: &#123;error&#125;&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> <span class="title function_ invoke__">parse_number</span>(<span class="string">&quot;not a number&quot;</span>) &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(value) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;解析成功: &#123;value&#125;&quot;</span>),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(error) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;解析失败: &#123;error&#125;&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">match</span> <span class="title function_ invoke__">read_config</span>() &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(content) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;配置内容: &#123;content&#125;&quot;</span>),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(error) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;读取配置失败，但程序继续运行: &#123;error&#125;&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// panic! 用于不可恢复错误；普通业务错误更推荐 Result。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;可恢复错误用 Result，不可恢复错误才考虑 panic!。&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson11_error_handling</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="返回-Result"><a href="#返回-Result" class="headerlink" title="返回 Result"></a>返回 Result</h3><p>示例函数用 <code>Result&lt;i32, String&gt;</code> 表示可能成功也可能失败。</p>
-<h3 id="match-处理"><a href="#match-处理" class="headerlink" title="match 处理"></a>match 处理</h3><p><code>match result</code> 分别处理 <code>Ok(value)</code> 和 <code>Err(message)</code>。</p>
-<h3 id="expect"><a href="#expect" class="headerlink" title="expect"></a>expect</h3><p>用于明确表达“这里失败就说明输入不符合预期”。</p>
-<h3 id="传播"><a href="#传播" class="headerlink" title="? 传播"></a>? 传播</h3><p>在返回 Result 的函数中，<code>?</code> 可以减少嵌套匹配。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Result"><a href="#Result" class="headerlink" title="Result"></a>Result</h3><p>表示成功或失败的枚举。</p>
-<p><code>Ok(T)</code> 是成功，<code>Err(E)</code> 是错误。</p>
-<h3 id="panic"><a href="#panic" class="headerlink" title="panic"></a>panic</h3><p>不可恢复错误，程序通常终止当前线程。</p>
-<p>适合违反程序假设的严重问题。</p>
-<h3 id="unwrap"><a href="#unwrap" class="headerlink" title="unwrap"></a>unwrap</h3><p>取出 <code>Ok</code> 或 <code>Some</code> 的值，失败时 panic。</p>
-<p>初学和测试可用，生产代码要谨慎。</p>
-<h3 id="expect-1"><a href="#expect-1" class="headerlink" title="expect"></a>expect</h3><p>类似 unwrap，但可以提供 panic 信息。</p>
-<p>比 <code>unwrap</code> 更容易定位原因。</p>
-<h3 id="运算符"><a href="#运算符" class="headerlink" title="? 运算符"></a>? 运算符</h3><p>成功时取值，失败时提前返回错误。</p>
-<p>用于简化错误传播。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>Rust 没有异常机制作为主路径。失败是类型的一部分，调用方必须面对。</p>
-<p><code>Result&lt;T, E&gt;</code> 中 <code>T</code> 是成功值类型，<code>E</code> 是错误值类型。</p>
-<p><code>?</code> 只能用于返回兼容错误类型的函数。它不是忽略错误，而是把错误交给上层。</p>
-<p>库代码通常返回 <code>Result</code>，应用入口可以选择打印错误、重试或退出。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要在所有地方使用 <code>unwrap()</code>。它会让程序在错误输入时直接崩溃。</li>
-<li><code>expect()</code> 的信息应该说明你假设了什么，而不是写空泛的 <code>error</code>。</li>
-<li>使用 <code>?</code> 前确认当前函数返回 <code>Result</code> 或兼容类型。</li>
-<li>不要吞掉错误。至少应该记录、返回或明确处理。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：安全除法"><a href="#练习-1：安全除法" class="headerlink" title="练习 1：安全除法"></a>练习 1：安全除法</h3><p>要求：写函数处理除以零错误。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">divide</span>(a: <span class="type">i32</span>, b: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="type">i32</span>, <span class="type">String</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> b == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;不能除以零&quot;</span>))</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(a / b)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">match</span> <span class="title function_ invoke__">divide</span>(<span class="number">10</span>, <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(value) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;&#123;value&#125;&quot;</span>),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(error) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;错误: &#123;error&#125;&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：除数为 0 是可预期错误，用 <code>Result</code> 返回给调用方。</p>
-<h3 id="练习-2：用-传播错误"><a href="#练习-2：用-传播错误" class="headerlink" title="练习 2：用 ? 传播错误"></a>练习 2：用 ? 传播错误</h3><p>要求：解析两个字符串并相加。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">parse_sum</span>(a: &amp;<span class="type">str</span>, b: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;<span class="type">i32</span>, std::num::ParseIntError&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">left</span>: <span class="type">i32</span> = a.<span class="title function_ invoke__">parse</span>()?;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">right</span>: <span class="type">i32</span> = b.<span class="title function_ invoke__">parse</span>()?;</span><br><span class="line">    <span class="title function_ invoke__">Ok</span>(left + right)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">parse_sum</span>(<span class="string">&quot;40&quot;</span>, <span class="string">&quot;2&quot;</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>?</code> 在解析失败时直接返回 <code>Err</code>，成功时取出数字。</p>
-<h3 id="练习-3：替换-unwrap"><a href="#练习-3：替换-unwrap" class="headerlink" title="练习 3：替换 unwrap"></a>练习 3：替换 unwrap</h3><p>要求：把 <code>unwrap</code> 改成 <code>match</code> 处理。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">raw</span> = <span class="string">&quot;abc&quot;</span>;</span><br><span class="line">    <span class="keyword">match</span> raw.parse::&lt;<span class="type">i32</span>&gt;() &#123;</span><br><span class="line">        <span class="title function_ invoke__">Ok</span>(value) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;&#123;value&#125;&quot;</span>),</span><br><span class="line">        <span class="title function_ invoke__">Err</span>(error) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;解析失败: &#123;error&#125;&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>match</code> 让失败路径也被明确写出来。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">Rust学习笔记 10：模块系统和包管理</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">Rust学习笔记 12：泛型</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">生命周期</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">Rust学习笔记 10：模块系统和包管理</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-10 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-10T09:00:00+08:00">2026-04-10</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
-        </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.1k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/10_modules_packages.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson10_modules_packages</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。</p>
-<p>本项目把每节课放在 <code>src/bin</code> 下，并在 <code>Cargo.toml</code> 中声明多个 bin target。</p>
-<ul>
-<li>理解 package、crate、module 的基本区别。</li>
-<li>掌握 <code>mod</code>、<code>pub</code>、<code>use</code> 的用途。</li>
-<li>知道如何通过 Cargo 运行指定二进制示例。</li>
-<li>理解路径中的 <code>crate</code>、<code>self</code>、<code>super</code> 含义。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>package</td>
-<td>一个 Cargo 管理的项目。</td>
-<td>通常由一个 <code>Cargo.toml</code> 描述。</td>
-</tr>
-<tr>
-<td>crate</td>
-<td>Rust 编译单元。</td>
-<td>可以是库 crate，也可以是二进制 crate。</td>
-</tr>
-<tr>
-<td>module</td>
-<td>crate 内部的代码组织单元。</td>
-<td><code>mod math</code> 定义一个模块。</td>
-</tr>
-<tr>
-<td>pub</td>
-<td>公开可见性关键字。</td>
-<td>没有 <code>pub</code> 的项默认只在当前模块及子模块内可见。</td>
-</tr>
-<tr>
-<td>use</td>
-<td>把路径引入当前作用域。</td>
-<td>让长路径写起来更短。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 一个文件内也可以定义模块，便于把相关代码分组。</span></span><br><span class="line"><span class="keyword">mod</span> math &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">add</span>(a: <span class="type">i32</span>, b: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        a + b</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">mod</span> stats &#123;</span><br><span class="line">        <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">average</span>(values: &amp;[<span class="type">f64</span>]) <span class="punctuation">-&gt;</span> <span class="type">f64</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">sum</span>: <span class="type">f64</span> = values.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">sum</span>();</span><br><span class="line">            sum / values.<span class="title function_ invoke__">len</span>() <span class="keyword">as</span> <span class="type">f64</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// use 可以把路径引入当前作用域，减少重复书写。</span></span><br><span class="line"><span class="keyword">use</span> math::stats::average;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">sum</span> = math::<span class="title function_ invoke__">add</span>(<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;模块函数 add: &#123;sum&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">data</span> = [<span class="number">80.0</span>, <span class="number">90.0</span>, <span class="number">100.0</span>];</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;平均值: &#123;&#125;&quot;</span>, <span class="title function_ invoke__">average</span>(&amp;data));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在真实项目中，Cargo.toml 描述 package，src/lib.rs 和 src/bin/*.rs 组织 crate。</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;本文件用内联 mod 演示模块，保持示例自包含。&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson10_modules_packages</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="内部模块"><a href="#内部模块" class="headerlink" title="内部模块"></a>内部模块</h3><p>示例用 <code>mod math</code> 在单文件中定义模块，保持本节自包含。</p>
-<h3 id="公开函数"><a href="#公开函数" class="headerlink" title="公开函数"></a>公开函数</h3><p><code>pub fn add</code> 允许模块外部调用。</p>
-<h3 id="路径调用"><a href="#路径调用" class="headerlink" title="路径调用"></a>路径调用</h3><p><code>math::add(2, 3)</code> 通过模块路径访问函数。</p>
-<h3 id="use-简化路径"><a href="#use-简化路径" class="headerlink" title="use 简化路径"></a>use 简化路径</h3><p><code>use crate::math::add;</code> 后可以直接调用 <code>add()</code>。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="package"><a href="#package" class="headerlink" title="package"></a>package</h3><p>一个 Cargo 管理的项目。</p>
-<p>通常由一个 <code>Cargo.toml</code> 描述。</p>
-<h3 id="crate"><a href="#crate" class="headerlink" title="crate"></a>crate</h3><p>Rust 编译单元。</p>
-<p>可以是库 crate，也可以是二进制 crate。</p>
-<h3 id="module"><a href="#module" class="headerlink" title="module"></a>module</h3><p>crate 内部的代码组织单元。</p>
-<p><code>mod math</code> 定义一个模块。</p>
-<h3 id="pub"><a href="#pub" class="headerlink" title="pub"></a>pub</h3><p>公开可见性关键字。</p>
-<p>没有 <code>pub</code> 的项默认只在当前模块及子模块内可见。</p>
-<h3 id="use"><a href="#use" class="headerlink" title="use"></a>use</h3><p>把路径引入当前作用域。</p>
-<p>让长路径写起来更短。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p>一个 package 可以包含多个二进制 crate。本项目每个 <code>src/bin/*.rs</code> 都是一个独立二进制。</p>
-<p><code>mod</code> 是声明模块。模块代码可以写在同一文件，也可以拆到独立文件。</p>
-<p><code>pub</code> 只公开当前项。结构体公开后，字段仍然默认私有，字段也要单独 <code>pub</code>。</p>
-<p><code>use</code> 不会改变所有权，也不会复制代码。它只是让路径在当前作用域更方便。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要把 package、crate、module 混为一谈。它们处在不同组织层级。</li>
-<li>函数写了 <code>pub</code>，所在模块如果不可见，外部仍然访问不到。</li>
-<li><code>use</code> 引入同名项时可能冲突，需要使用别名 <code>as</code>。</li>
-<li>多个 <code>src/bin</code> 文件彼此独立，不能直接共享私有函数。共享代码通常放到库模块。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义工具模块"><a href="#练习-1：定义工具模块" class="headerlink" title="练习 1：定义工具模块"></a>练习 1：定义工具模块</h3><p>要求：定义 <code>utils</code> 模块，公开 <code>double</code> 函数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> utils &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">double</span>(value: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        value * <span class="number">2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, utils::<span class="title function_ invoke__">double</span>(<span class="number">21</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>pub</code> 让模块外的 <code>main</code> 能调用 <code>double</code>。</p>
-<h3 id="练习-2：使用-use"><a href="#练习-2：使用-use" class="headerlink" title="练习 2：使用 use"></a>练习 2：使用 use</h3><p>要求：用 <code>use</code> 简化上题的调用路径。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">mod</span> utils &#123;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">double</span>(value: <span class="type">i32</span>) <span class="punctuation">-&gt;</span> <span class="type">i32</span> &#123;</span><br><span class="line">        value * <span class="number">2</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> utils::double;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">double</span>(<span class="number">21</span>));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>use utils::double</code> 后，当前作用域可以直接写函数名。</p>
-<h3 id="练习-3：Cargo-运行指定目标"><a href="#练习-3：Cargo-运行指定目标" class="headerlink" title="练习 3：Cargo 运行指定目标"></a>练习 3：Cargo 运行指定目标</h3><p>要求：写出运行第 10 节的命令。</p>
-<p>参考答案：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson10_modules_packages</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>--bin</code> 后面跟的是 <code>Cargo.toml</code> 中声明的 bin 名，不是文件名。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">Rust学习笔记 09：常见集合类型</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">Rust学习笔记 11：错误处理</a></li>
-</ul>
-
-      
     </div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
+    <a href="/2026/04/14/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-14-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">阅读全文<span class="seo-reader-text">Rust学习笔记 14：生命周期</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
 </div>
 
-
-
-
+                </div>
+            </li>
         
+            <li class="home-article-item">
 
+                
 
-<div class="post-block">
-  
-  
+                
 
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">
+                            Rust学习笔记 13：Trait 与 Trait Bound
+                        </a>
+                    </h3>
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/13_traits_trait_bounds.rs
+运行命令：
+1cargo run --bin lesson13_traits_trait_bounds
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
+学习目标Trait 定义类型可以具备的行为。Trait bound 则约束泛型类型必须实现某些行为。
+如果说泛型回答“我可以接收哪些类型”，trait bound 就回答“这些类型至少要会做什么”。
 
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/" class="post-title-link" itemprop="url">Rust学习笔记 09：常见集合类型</a>
-        </h2>
+理解 trait 是行为接口。
+会为自定义类型实现 trait。
+会用 impl Trait 和 &lt;T: Trait&...
+                        
+                    </div>
 
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-09 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-09T09:00:00+08:00">2026-04-09</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Mon Apr 13 2026 09:00:00 GMT+0800">
+                
+                    2026-04-13
+                
+            </span>
         </span>
-    </span>
-
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.1k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/09_collections.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson09_collections</span><br></pre></td></tr></table></figure>
-
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>集合用于保存运行时数量可变的数据。本节重点是 <code>Vec</code>、<code>String</code> 和 <code>HashMap</code>。</p>
-<p>集合通常把数据放在堆上，因此遍历、插入、借用时都会涉及所有权规则。</p>
-<ul>
-<li>掌握 <code>Vec&lt;T&gt;</code> 的创建、追加和遍历。</li>
-<li>理解 <code>String</code> 是可增长、拥有所有权的 UTF-8 字符串。</li>
-<li>掌握 <code>HashMap&lt;K, V&gt;</code> 的插入、读取和更新。</li>
-<li>知道集合遍历时 move、borrow、mutable borrow 的区别。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Vec</td>
-<td>可增长数组，元素类型相同。</td>
-<td>适合保存运行时长度变化的数据。</td>
-</tr>
-<tr>
-<td>String</td>
-<td>拥有所有权、可增长的 UTF-8 字符串。</td>
-<td>适合拼接、修改和保存输入文本。</td>
-</tr>
-<tr>
-<td>HashMap</td>
-<td>键值对集合。</td>
-<td>适合通过键快速查找值。</td>
-</tr>
-<tr>
-<td>迭代器 iterator</td>
-<td>逐个产生元素的对象。</td>
-<td><code>for</code> 循环背后就是迭代器。</td>
-</tr>
-<tr>
-<td>entry API</td>
-<td>HashMap 的按键插入或更新接口。</td>
-<td><code>entry(key).or_insert(value)</code> 常用于计数。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="comment">// Vec&lt;T&gt; 是可变长度数组，适合保存同类型列表。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    numbers.<span class="title function_ invoke__">push</span>(<span class="number">4</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Vec: &#123;numbers:?&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> <span class="variable">number</span> <span class="keyword">in</span> &amp;numbers &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;遍历 Vec: &#123;number&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// String 是 UTF-8 字符串，适合动态拼接文本。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">text</span> = <span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Rust&quot;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push</span>(<span class="string">&#x27; &#x27;</span>);</span><br><span class="line">    text.<span class="title function_ invoke__">push_str</span>(<span class="string">&quot;collections&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;String: &#123;text&#125;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// HashMap&lt;K, V&gt; 保存键值对。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">scores</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>), <span class="number">90</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">insert</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Bob&quot;</span>), <span class="number">85</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// entry 常用于“有则使用，无则插入”的逻辑。</span></span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Alice&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">100</span>);</span><br><span class="line">    scores.<span class="title function_ invoke__">entry</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;Carol&quot;</span>)).<span class="title function_ invoke__">or_insert</span>(<span class="number">88</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (name, score) <span class="keyword">in</span> &amp;scores &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;&#123;name&#125;: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson09_collections</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="Vec-操作"><a href="#Vec-操作" class="headerlink" title="Vec 操作"></a>Vec 操作</h3><p>示例创建 <code>Vec</code>，用 <code>push</code> 追加数字，再遍历打印。</p>
-<h3 id="借用遍历"><a href="#借用遍历" class="headerlink" title="借用遍历"></a>借用遍历</h3><p><code>for number in &amp;numbers</code> 不移动 Vec，循环后仍能继续使用。</p>
-<h3 id="String-拼接"><a href="#String-拼接" class="headerlink" title="String 拼接"></a>String 拼接</h3><p><code>push_str</code> 追加字符串切片，修改原 <code>String</code>。</p>
-<h3 id="HashMap"><a href="#HashMap" class="headerlink" title="HashMap"></a>HashMap</h3><p><code>scores.insert(name, score)</code> 插入键值对，<code>get</code> 返回 <code>Option&lt;&amp;V&gt;</code>。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="Vec"><a href="#Vec" class="headerlink" title="Vec"></a>Vec</h3><p>可增长数组，元素类型相同。</p>
-<p>适合保存运行时长度变化的数据。</p>
-<h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p>拥有所有权、可增长的 UTF-8 字符串。</p>
-<p>适合拼接、修改和保存输入文本。</p>
-<h3 id="HashMap-1"><a href="#HashMap-1" class="headerlink" title="HashMap"></a>HashMap</h3><p>键值对集合。</p>
-<p>适合通过键快速查找值。</p>
-<h3 id="迭代器-iterator"><a href="#迭代器-iterator" class="headerlink" title="迭代器 iterator"></a>迭代器 iterator</h3><p>逐个产生元素的对象。</p>
-<p><code>for</code> 循环背后就是迭代器。</p>
-<h3 id="entry-API"><a href="#entry-API" class="headerlink" title="entry API"></a>entry API</h3><p>HashMap 的按键插入或更新接口。</p>
-<p><code>entry(key).or_insert(value)</code> 常用于计数。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>Vec&lt;T&gt;</code> 中所有元素必须是同一种类型。如果需要多种情况，可考虑枚举。</p>
-<p><code>String</code> 和 <code>&amp;str</code> 不同。<code>String</code> 拥有数据，<code>&amp;str</code> 借用数据。</p>
-<p><code>HashMap</code> 的键需要能哈希和比较相等。常见键如 <code>String</code>、整数都可以。</p>
-<p><code>iter()</code> 借用元素，<code>iter_mut()</code> 可变借用元素，<code>into_iter()</code> 通常会消费集合。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要在持有集合元素引用时随意修改集合结构，可能触发借用冲突。</li>
-<li><code>HashMap::get</code> 返回 <code>Option</code>，因为键可能不存在。</li>
-<li>字符串按字节存储，处理中文字符时不要随意用数字索引。</li>
-<li>遍历 <code>Vec&lt;String&gt;</code> 时，如果写 <code>for item in values</code>，通常会移动每个元素。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：Vec-过滤"><a href="#练习-1：Vec-过滤" class="headerlink" title="练习 1：Vec 过滤"></a>练习 1：Vec 过滤</h3><p>要求：从数字列表中收集所有偶数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">evens</span>: <span class="type">Vec</span>&lt;<span class="type">i32</span>&gt; = numbers.<span class="title function_ invoke__">iter</span>().<span class="title function_ invoke__">copied</span>().<span class="title function_ invoke__">filter</span>(|n| n % <span class="number">2</span> == <span class="number">0</span>).<span class="title function_ invoke__">collect</span>();</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, evens);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>iter()</code> 借用元素，<code>copied()</code> 把 <code>&amp;i32</code> 转成 <code>i32</code>。</p>
-<h3 id="练习-2：词频统计"><a href="#练习-2：词频统计" class="headerlink" title="练习 2：词频统计"></a>练习 2：词频统计</h3><p>要求：统计字符串中每个单词出现次数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">use</span> std::collections::HashMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">text</span> = <span class="string">&quot;rust rust book&quot;</span>;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">counts</span> = HashMap::<span class="title function_ invoke__">new</span>();</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">word</span> <span class="keyword">in</span> text.<span class="title function_ invoke__">split_whitespace</span>() &#123;</span><br><span class="line">        *counts.<span class="title function_ invoke__">entry</span>(word).<span class="title function_ invoke__">or_insert</span>(<span class="number">0</span>) += <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, counts);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>entry</code> 返回对应键的位置，不存在时先插入 0。</p>
-<h3 id="练习-3：修改-Vec-元素"><a href="#练习-3：修改-Vec-元素" class="headerlink" title="练习 3：修改 Vec 元素"></a>练习 3：修改 Vec 元素</h3><p>要求：把 Vec 中每个数字都乘以 10。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">numbers</span> = <span class="built_in">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>];</span><br><span class="line">    <span class="keyword">for</span> <span class="variable">number</span> <span class="keyword">in</span> &amp;<span class="keyword">mut</span> numbers &#123;</span><br><span class="line">        *number *= <span class="number">10</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, numbers);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>解释：<code>&amp;mut numbers</code> 产生可变引用，<code>*number</code> 解引用后修改元素。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">Rust学习笔记 08：枚举与模式匹配</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">Rust学习笔记 10：模块系统和包管理</a></li>
-</ul>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
         
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/" class="post-title-link" itemprop="url">Rust学习笔记 08：枚举与模式匹配</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2026-04-08 09:00:00" itemprop="dateCreated datePublished" datetime="2026-04-08T09:00:00+08:00">2026-04-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">更新于</span>
-      <time title="修改时间：2026-05-06 19:50:00" itemprop="dateModified" datetime="2026-05-06T19:50:00+08:00">2026-05-06</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Rust/" itemprop="url" rel="index"><span itemprop="name">Rust</span></a>
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
         </span>
-    </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Trait/">Trait</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>1.1k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>4 分钟</span>
-    </span>
+    <a href="/2026/04/13/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-13-Trait%20%E4%B8%8E%20Trait%20Bound/">阅读全文<span class="seo-reader-text">Rust学习笔记 13：Trait 与 Trait Bound</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
 </div>
 
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">
+                            Rust学习笔记 12：泛型
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/12_generics.rs
+运行命令：
+1cargo run --bin lesson12_generics
+
+学习目标泛型让同一段代码适用于多种类型。它能减少重复，同时保持静态类型检查。
+Rust 的泛型在编译期单态化，常见情况下不会带来运行时动态分发开销。
+
+理解泛型参数 T 的含义。
+会定义泛型函数和泛型结构体。
+知道泛型需要 trait bound 才能使用特定能力。
+理解 Option&lt;T&gt;、Result&lt;T, E&gt; 也是泛型类型。
+
+核心概念...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Apr 12 2026 09:00:00 GMT+0800">
+                
+                    2026-04-12
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%B3%9B%E5%9E%8B/">泛型</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/12/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-12-%E6%B3%9B%E5%9E%8B/">阅读全文<span class="seo-reader-text">Rust学习笔记 12：泛型</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">
+                            Rust学习笔记 11：错误处理
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/11_error_handling.rs
+运行命令：
+1cargo run --bin lesson11_error_handling
+
+学习目标Rust 把错误分成可恢复错误和不可恢复错误。可恢复错误通常用 Result 表达。
+错误处理是 Rust 代码可读性的重要部分。你需要明确说明失败时程序应该如何反应。
+
+理解 Result&lt;T, E&gt; 的含义。
+会用 match 处理成功和失败。
+掌握 unwrap、expect 的风险和适用场景。
+理解 ? 运算符如何传...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sat Apr 11 2026 09:00:00 GMT+0800">
+                
+                    2026-04-11
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">错误处理</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/11/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-11-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86/">阅读全文<span class="seo-reader-text">Rust学习笔记 11：错误处理</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">
+                            Rust学习笔记 10：模块系统和包管理
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/10_modules_packages.rs
+运行命令：
+1cargo run --bin lesson10_modules_packages
+
+学习目标模块系统用于组织代码、控制可见性和管理命名空间。Cargo 则负责构建、运行和包管理。
+本项目把每节课放在 src/bin 下，并在 Cargo.toml 中声明多个 bin target。
+
+理解 package、crate、module 的基本区别。
+掌握 mod、pub、use 的用途。
+知道如何通过 Cargo 运行指定...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Fri Apr 10 2026 09:00:00 GMT+0800">
+                
+                    2026-04-10
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%A8%A1%E5%9D%97/">模块</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/10/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-10-%E6%A8%A1%E5%9D%97%E7%B3%BB%E7%BB%9F%E5%92%8C%E5%8C%85%E7%AE%A1%E7%90%86/">阅读全文<span class="seo-reader-text">Rust学习笔记 10：模块系统和包管理</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">
+                            Rust学习笔记 09：常见集合类型
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/09_collections.rs
+运行命令：
+1cargo run --bin lesson09_collections
+
+学习目标集合用于保存运行时数量可变的数据。本节重点是 Vec、String 和 HashMap。
+集合通常把数据放在堆上，因此遍历、插入、借用时都会涉及所有权规则。
+
+掌握 Vec&lt;T&gt; 的创建、追加和遍历。
+理解 String 是可增长、拥有所有权的 UTF-8 字符串。
+掌握 HashMap&lt;K, V&gt; 的插入、读取和更新。
+知...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Thu Apr 09 2026 09:00:00 GMT+0800">
+                
+                    2026-04-09
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E9%9B%86%E5%90%88/">集合</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">阅读全文<span class="seo-reader-text">Rust学习笔记 09：常见集合类型</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">
+                            Rust学习笔记 08：枚举与模式匹配
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            对应代码文件：src/bin/08_enums_pattern_matching.rs
+运行命令：
+1cargo run --bin lesson08_enums_pattern_matching
+
+学习目标枚举用于表达一个值可能属于有限几种情况。模式匹配用于根据具体情况分支处理。
+Rust 的 Option 和 Result 都是枚举。掌握枚举后，错误处理和空值处理会更自然。
+
+掌握 enum 的基本定义。
+理解枚举变体可以携带数据。
+会使用 match 穷尽处理所有情况。
+会使用 if let 简化只关心...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Wed Apr 08 2026 09:00:00 GMT+0800">
+                
+                    2026-04-08
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Rust/">Rust</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/Cargo/">Cargo</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%9E%9A%E4%B8%BE/">枚举</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2026/04/08/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-08-%E6%9E%9A%E4%B8%BE%E4%B8%8E%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D/">阅读全文<span class="seo-reader-text">Rust学习笔记 08：枚举与模式匹配</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+    </ul>
+
+    <div class="home-paginator px-7 py-5">
+        <div class="paginator">
+	<a class="extend prev" rel="prev" href="/page/2/"><i class="fa-regular fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/4/"><i class="fa-regular fa-angle-right"></i></a>
+</div>
+  
+    </div>
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
         </div>
-      </header>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>对应代码文件：<code>src/bin/08_enums_pattern_matching.rs</code></p>
-<p>运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cargo run --bin lesson08_enums_pattern_matching</span><br></pre></td></tr></table></figure>
+	
 
-<h2 id="学习目标"><a href="#学习目标" class="headerlink" title="学习目标"></a>学习目标</h2><p>枚举用于表达一个值可能属于有限几种情况。模式匹配用于根据具体情况分支处理。</p>
-<p>Rust 的 <code>Option</code> 和 <code>Result</code> 都是枚举。掌握枚举后，错误处理和空值处理会更自然。</p>
-<ul>
-<li>掌握 <code>enum</code> 的基本定义。</li>
-<li>理解枚举变体可以携带数据。</li>
-<li>会使用 <code>match</code> 穷尽处理所有情况。</li>
-<li>会使用 <code>if let</code> 简化只关心一种情况的代码。</li>
-</ul>
-<h2 id="核心概念速查"><a href="#核心概念速查" class="headerlink" title="核心概念速查"></a>核心概念速查</h2><table>
-<thead>
-<tr>
-<th>术语</th>
-<th>基本意思</th>
-<th>本节用途</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>枚举 enum</td>
-<td>定义一组互斥的可能情况。</td>
-<td><code>Direction</code> 可以是 Up、Down、Left、Right。</td>
-</tr>
-<tr>
-<td>变体 variant</td>
-<td>枚举中的某一个具体情况。</td>
-<td><code>Message::Text(String)</code> 是一个变体。</td>
-</tr>
-<tr>
-<td>模式 pattern</td>
-<td>用于匹配数据结构形状的写法。</td>
-<td><code>Some(value)</code> 匹配有值的 Option。</td>
-</tr>
-<tr>
-<td>match</td>
-<td>穷尽式分支表达式。</td>
-<td>所有可能情况都必须处理。</td>
-</tr>
-<tr>
-<td>Option</td>
-<td>表示有值或没有值。</td>
-<td><code>Some(T)</code> 有值，<code>None</code> 无值。</td>
-</tr>
-</tbody></table>
-<h2 id="完整源码"><a href="#完整源码" class="headerlink" title="完整源码"></a>完整源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Debug)]</span></span><br><span class="line"><span class="keyword">enum</span> <span class="title class_">Message</span> &#123;</span><br><span class="line">    Quit,</span><br><span class="line">    Move &#123; x: <span class="type">i32</span>, y: <span class="type">i32</span> &#125;,</span><br><span class="line">    <span class="title function_ invoke__">Write</span>(<span class="type">String</span>),</span><br><span class="line">    <span class="title function_ invoke__">ChangeColor</span>(<span class="type">u8</span>, <span class="type">u8</span>, <span class="type">u8</span>),</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">handle_message</span>(message: Message) &#123;</span><br><span class="line">    <span class="comment">// match 必须覆盖所有可能情况，因此很适合处理枚举。</span></span><br><span class="line">    <span class="keyword">match</span> message &#123;</span><br><span class="line">        Message::Quit =&gt; <span class="built_in">println!</span>(<span class="string">&quot;退出&quot;</span>),</span><br><span class="line">        Message::Move &#123; x, y &#125; =&gt; <span class="built_in">println!</span>(<span class="string">&quot;移动到 (&#123;x&#125;, &#123;y&#125;)&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">Write</span>(text) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;写入: &#123;text&#125;&quot;</span>),</span><br><span class="line">        Message::<span class="title function_ invoke__">ChangeColor</span>(r, g, b) =&gt; <span class="built_in">println!</span>(<span class="string">&quot;颜色: rgb(&#123;r&#125;, &#123;g&#125;, &#123;b&#125;)&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Move &#123; x: <span class="number">3</span>, y: <span class="number">4</span> &#125;);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">Write</span>(<span class="type">String</span>::<span class="title function_ invoke__">from</span>(<span class="string">&quot;hello&quot;</span>)));</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::Quit);</span><br><span class="line">    <span class="title function_ invoke__">handle_message</span>(Message::<span class="title function_ invoke__">ChangeColor</span>(<span class="number">255</span>, <span class="number">128</span>, <span class="number">0</span>));</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">maybe_score</span> = <span class="title function_ invoke__">Some</span>(<span class="number">95</span>);</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(score) = maybe_score &#123;</span><br><span class="line">        <span class="comment">// if let 适合只关心一种匹配情况。</span></span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;成绩存在: &#123;score&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">value</span> = <span class="number">2</span>;</span><br><span class="line">    <span class="keyword">match</span> value &#123;</span><br><span class="line">        <span class="number">1</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;one&quot;</span>),</span><br><span class="line">        <span class="number">2</span> | <span class="number">3</span> =&gt; <span class="built_in">println!</span>(<span class="string">&quot;two or three&quot;</span>),</span><br><span class="line">        _ =&gt; <span class="built_in">println!</span>(<span class="string">&quot;other&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
 
-<h2 id="运行与观察"><a href="#运行与观察" class="headerlink" title="运行与观察"></a>运行与观察</h2><p>使用 <code>cargo run --bin lesson08_enums_pattern_matching</code> 可以只运行本节示例。</p>
-<p>这里的 <code>--bin</code> 后面写的是 <code>Cargo.toml</code> 中声明的目标名，不是 <code>.rs</code> 文件名。文件名用于组织源码，bin 名用于 Cargo 运行。</p>
-<p>建议初学时先直接运行，再修改一两行代码观察编译器提示。Rust 的错误信息通常会指出所有权、类型或借用规则哪里不满足。</p>
-<h2 id="逐段解读"><a href="#逐段解读" class="headerlink" title="逐段解读"></a>逐段解读</h2><h3 id="定义枚举"><a href="#定义枚举" class="headerlink" title="定义枚举"></a>定义枚举</h3><p><code>enum Direction</code> 把方向限制在几个合法值中。</p>
-<h3 id="携带数据"><a href="#携带数据" class="headerlink" title="携带数据"></a>携带数据</h3><p>枚举变体可以保存不同类型的数据，例如文本消息或移动坐标。</p>
-<h3 id="match-分支"><a href="#match-分支" class="headerlink" title="match 分支"></a>match 分支</h3><p><code>match direction</code> 对每个方向分别处理。</p>
-<h3 id="if-let"><a href="#if-let" class="headerlink" title="if let"></a>if let</h3><p>只关心 <code>Some</code> 或某个变体时，<code>if let</code> 更简洁。</p>
-<h2 id="专有词语详解"><a href="#专有词语详解" class="headerlink" title="专有词语详解"></a>专有词语详解</h2><h3 id="枚举-enum"><a href="#枚举-enum" class="headerlink" title="枚举 enum"></a>枚举 enum</h3><p>定义一组互斥的可能情况。</p>
-<p><code>Direction</code> 可以是 Up、Down、Left、Right。</p>
-<h3 id="变体-variant"><a href="#变体-variant" class="headerlink" title="变体 variant"></a>变体 variant</h3><p>枚举中的某一个具体情况。</p>
-<p><code>Message::Text(String)</code> 是一个变体。</p>
-<h3 id="模式-pattern"><a href="#模式-pattern" class="headerlink" title="模式 pattern"></a>模式 pattern</h3><p>用于匹配数据结构形状的写法。</p>
-<p><code>Some(value)</code> 匹配有值的 Option。</p>
-<h3 id="match"><a href="#match" class="headerlink" title="match"></a>match</h3><p>穷尽式分支表达式。</p>
-<p>所有可能情况都必须处理。</p>
-<h3 id="Option"><a href="#Option" class="headerlink" title="Option"></a>Option</h3><p>表示有值或没有值。</p>
-<p><code>Some(T)</code> 有值，<code>None</code> 无值。</p>
-<h2 id="初学者拓展"><a href="#初学者拓展" class="headerlink" title="初学者拓展"></a>初学者拓展</h2><p><code>match</code> 是表达式，每个分支可以返回值，但返回类型需要一致。</p>
-<p>枚举比字符串状态更安全。字符串可能拼错，枚举变体会被编译器检查。</p>
-<p><code>Option&lt;T&gt;</code> 避免空指针。你必须明确处理 <code>Some</code> 和 <code>None</code>。</p>
-<p><code>_</code> 是通配模式，表示其他所有情况。它方便，但不要用它隐藏应该明确处理的分支。</p>
-<h2 id="常见误区"><a href="#常见误区" class="headerlink" title="常见误区"></a>常见误区</h2><ul>
-<li>不要用普通字符串表示有限状态，优先考虑枚举。</li>
-<li><code>match</code> 必须穷尽，否则无法编译。</li>
-<li>匹配含有 <code>String</code> 的枚举时要注意所有权移动。</li>
-<li>滥用 <code>_</code> 会降低代码可维护性。新增变体时编译器可能无法提醒你。</li>
-</ul>
-<h2 id="进阶练习与参考答案"><a href="#进阶练习与参考答案" class="headerlink" title="进阶练习与参考答案"></a>进阶练习与参考答案</h2><h3 id="练习-1：定义交通灯"><a href="#练习-1：定义交通灯" class="headerlink" title="练习 1：定义交通灯"></a>练习 1：定义交通灯</h3><p>要求：定义 <code>TrafficLight</code>，用 <code>match</code> 返回等待秒数。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="title class_">TrafficLight</span> &#123;</span><br><span class="line">    Red,</span><br><span class="line">    Yellow,</span><br><span class="line">    Green,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">wait_seconds</span>(light: TrafficLight) <span class="punctuation">-&gt;</span> <span class="type">u8</span> &#123;</span><br><span class="line">    <span class="keyword">match</span> light &#123;</span><br><span class="line">        TrafficLight::Red =&gt; <span class="number">60</span>,</span><br><span class="line">        TrafficLight::Yellow =&gt; <span class="number">3</span>,</span><br><span class="line">        TrafficLight::Green =&gt; <span class="number">0</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;&#125;&quot;</span>, <span class="title function_ invoke__">wait_seconds</span>(TrafficLight::Red));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
 
-<p>解释：枚举让交通灯状态只能取合法变体。</p>
-<h3 id="练习-2：处理-Option"><a href="#练习-2：处理-Option" class="headerlink" title="练习 2：处理 Option"></a>练习 2：处理 Option</h3><p>要求：写函数把 <code>Option&lt;i32&gt;</code> 中的数字加一。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">plus_one</span>(value: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt;) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">i32</span>&gt; &#123;</span><br><span class="line">    <span class="keyword">match</span> value &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(number) =&gt; <span class="title function_ invoke__">Some</span>(number + <span class="number">1</span>),</span><br><span class="line">        <span class="literal">None</span> =&gt; <span class="literal">None</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;&#123;:?&#125;&quot;</span>, <span class="title function_ invoke__">plus_one</span>(<span class="title function_ invoke__">Some</span>(<span class="number">5</span>)));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
 
-<p>解释：<code>Option</code> 必须同时处理有值和无值。</p>
-<h3 id="练习-3：使用-if-let"><a href="#练习-3：使用-if-let" class="headerlink" title="练习 3：使用 if let"></a>练习 3：使用 if let</h3><p>要求：只在 <code>Some</code> 时打印用户名。</p>
-<p>参考答案：</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">user</span> = <span class="title function_ invoke__">Some</span>(<span class="string">&quot;Kylin&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">let</span> <span class="variable">Some</span>(name) = user &#123;</span><br><span class="line">        <span class="built_in">println!</span>(<span class="string">&quot;用户: &#123;name&#125;&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
 
-<p>解释：<code>if let</code> 适合只关心一个模式的场景。</p>
-<h2 id="相关笔记"><a href="#相关笔记" class="headerlink" title="相关笔记"></a>相关笔记</h2><ul>
-<li><a href="https://kylinxin.github.io/2026/04/07/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-07-%E7%BB%93%E6%9E%84%E4%BD%93%E5%92%8C%E6%96%B9%E6%B3%95/">Rust学习笔记 07：结构体和方法</a></li>
-<li><a href="https://kylinxin.github.io/2026/04/09/Rust%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-09-%E5%B8%B8%E8%A7%81%E9%9B%86%E5%90%88%E7%B1%BB%E5%9E%8B/">Rust学习笔记 09：常见集合类型</a></li>
-</ul>
+		
 
-      
-    </div>
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
 
-    
-    
-    
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
 
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-  <nav class="pagination">
-    <a class="extend prev" rel="prev" title="上一页" aria-label="上一页" href="/page/2/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/4/"><i class="fa fa-angle-right"></i></a>
-  </nav>
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
+	
 
-    <aside class="home-console" aria-label="Console preview">
-      <div class="home-label">ACTIVE NOTE</div>
-      <h2>Console</h2>
-      <div class="home-terminal" aria-hidden="true">
-        <span class="is-mint">pwndbg&gt; tele $rsp</span>
-        <span>00: 0x7ffff7e1b500</span>
-        <span class="is-muted"># pivot into fake frame</span>
-        <span>rax = SYS_read</span>
-        <span class="is-indigo">rip -&gt; setcontext+53</span>
-      </div>
-      <h3>Tags</h3>
-      <div class="home-tags" aria-label="Tags">
-        <a href="/tags/how2heap/">heap</a>
-        <a href="/tags/orw/">orw</a>
-        <a href="/tags/Rust/">Rust</a>
-        <a class="is-active" href="/tags/Solidity/">Solidity</a>
-      </div>
-    </aside>
-  </div>
+</main>
 
 
-</div>
-  </main>
 
-  <footer class="footer">
-    <div class="footer-inner">
+<script src="/js/build/libs/Swup.min.js"></script>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
 
-    </div>
-  </footer>
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>

