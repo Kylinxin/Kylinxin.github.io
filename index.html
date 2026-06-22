@@ -612,11 +612,11 @@
 
         <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">48</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">54</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">16</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
@@ -651,11 +651,11 @@
 </div>
                 <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">48</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">54</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">16</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
@@ -826,18 +826,21 @@ Ethereum 101 进度：1&#x2F;4
                 <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
                     <h3 class="home-article-title">
                         <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/">
-                            区块链技术与应用 17：ETH-交易树和收据树
+                            区块链技术与应用 17：ETH - 交易树和收据树（面试专题）
                         </a>
                     </h3>
 
                     <div class="home-article-content markdown-body">
                         
                             
-                            ETH 交易树和收据树学习笔记1. 交易树和收据树在区块中的位置ETH 交易树和收据树示意图 1ETH 交易树和收据树示意图 2以太坊每个区块可以分为区块头和区块体。区块头中保存若干个根哈希，其中和本节内容相关的主要有：
-123stateRoottransactionsRootreceiptsRoot
+                            ETH 交易树和收据树：面试知识点总览ETH 交易树和收据树示意图 1ETH 交易树和收据树示意图 2
 
-它们分别对应：
-123stateRoot        → 状态树根，表示当前区块执行完成后的全局状态transactionsRoot → 交易树根，表示当前区块包含的所有交易receiptsRoot    ...
+面试一句话：交易树承诺当前区块里的交易内容和顺序，收据树承诺这些交易执行后的结果。它们的根分别是 transactionsRoot 和 receiptsRoot，都会写入区块头。
+
+这一篇接着状态树展开。状态树回答“执行后世界状态是什么”，交易树回答“这个区块有哪些交易”，收据树回答“这些交易执行出了什么结果”。
+
+1. 先背下来的核心结论以太坊区块头里和本专题最相关的三个根是：
+123stateRoot...
                         
                     </div>
 
@@ -864,6 +867,16 @@ Ethereum 101 进度：1&#x2F;4
                     
                     
                 
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%B2%97%E4%BD%8D%E9%9D%A2%E8%AF%95/">区块链岗位面试</a>&nbsp;
+                        </li>
+                    
+                    
+                
             </ul>
         </span>
         
@@ -892,12 +905,17 @@ Ethereum 101 进度：1&#x2F;4
                             <a href="/tags/%E4%BB%A5%E5%A4%AA%E5%9D%8A/">以太坊</a>&nbsp;
                         </li>
                     
+                        <li>
+                            | 
+                            <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE%E9%9D%A2%E8%AF%95/">区块链面试</a>&nbsp;
+                        </li>
+                    
                 </ul>
             </span>
         
     </div>
 
-    <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/">阅读全文<span class="seo-reader-text">区块链技术与应用 17：ETH-交易树和收据树</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+    <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-17-ETH-%E4%BA%A4%E6%98%93%E6%A0%91%E5%92%8C%E6%94%B6%E6%8D%AE%E6%A0%91/">阅读全文<span class="seo-reader-text">区块链技术与应用 17：ETH - 交易树和收据树（面试专题）</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
 </div>
 
                 </div>
@@ -913,18 +931,20 @@ Ethereum 101 进度：1&#x2F;4
                 <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
                     <h3 class="home-article-title">
                         <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-16-ETH-%E7%8A%B6%E6%80%81%E6%A0%91/">
-                            区块链技术与应用 16：ETH-状态树
+                            区块链技术与应用 16：ETH - 状态树（面试专题）
                         </a>
                     </h3>
 
                     <div class="home-article-content markdown-body">
                         
                             
-                            ETH-状态树ETH 状态树示意图
+                            ETH 状态树：面试知识点总览ETH 状态树示意图
 
-以太坊用 State Trie 记录所有账户的当前状态。每个账户状态包含 nonce、balance、storageRoot 和 codeHash。普通用户账户主要记录 ETH 余额和 nonce；合约账户还通过 storageRoot 连接到自己的 Storage Trie，用来保存合约变量，例如 ERC-20 余额。每次交易执行后，相关账户或合约存储发生变化，树上相关节点哈希逐层更新，最终生成新的 stateRoot，并写入新区块头。
+面试一句话：以太坊状态树是全局账户状态的加密承诺。它用 Modified Merkle Patricia Trie 维护 address -&gt; account state，每个区块执行完交易后都会得到新的 stateRoot，并写入区块头。
 
-1交易执行→ 账户状态变化→ ...
+这一篇适合准备区块链开发、智能合约开发、节点工程和 Web3 后端岗位。面试官通常不是只问“状态树是什么”，而是继续追问为什么不用哈希表、为什么不用普通 Merkle Tree、状态树和合约存储有什么关系。
+
+...
                         
                     </div>
 
@@ -951,6 +971,16 @@ Ethereum 101 进度：1&#x2F;4
                     
                     
                 
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%B2%97%E4%BD%8D%E9%9D%A2%E8%AF%95/">区块链岗位面试</a>&nbsp;
+                        </li>
+                    
+                    
+                
             </ul>
         </span>
         
@@ -979,12 +1009,17 @@ Ethereum 101 进度：1&#x2F;4
                             <a href="/tags/%E4%BB%A5%E5%A4%AA%E5%9D%8A/">以太坊</a>&nbsp;
                         </li>
                     
+                        <li>
+                            | 
+                            <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE%E9%9D%A2%E8%AF%95/">区块链面试</a>&nbsp;
+                        </li>
+                    
                 </ul>
             </span>
         
     </div>
 
-    <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-16-ETH-%E7%8A%B6%E6%80%81%E6%A0%91/">阅读全文<span class="seo-reader-text">区块链技术与应用 16：ETH-状态树</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+    <a href="/2026/06/04/%E5%8C%BA%E5%9D%97%E9%93%BE%E6%8A%80%E6%9C%AF%E4%B8%8E%E5%BA%94%E7%94%A8-16-ETH-%E7%8A%B6%E6%80%81%E6%A0%91/">阅读全文<span class="seo-reader-text">区块链技术与应用 16：ETH - 状态树（面试专题）</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
 </div>
 
                 </div>
@@ -1426,7 +1461,7 @@ delegatecall
                     </span>
                     
                         <span>
-                            共 135k 字
+                            共 132.2k 字
                         </span>
                     
                 </p>
