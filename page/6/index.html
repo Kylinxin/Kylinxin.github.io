@@ -518,7 +518,7 @@
 
         <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">52</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">55</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -526,7 +526,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">61</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">62</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -557,7 +557,7 @@
 </div>
                 <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">52</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">55</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -565,7 +565,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">61</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">62</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -613,6 +613,78 @@
 			<div class="main-content">
 				<div class="home-content-container">
     <ul class="home-article-list">
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/">
+                            Fuzzing101系列 Exercise 1
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            转载 Fuzzing101系列 Exercise 1 - Xpdf 序言　Fuzzing101系列包含针对10 个真实目标的10个练习，在练习中一步一步学习Fuzzing技术的知识。
+　模糊测试（Fuzzing/Fuzz）是一种自动化软件测试技术，它基于为程序提供随机或变异的输入值并监视它的异常和崩溃。
+　AFL、libFuzzer 和 HonggFuzz 是现实世界应用中最多的三个模糊器，这三个都是覆盖引导的进化模糊器（Coverage-guided evolutionary fuzzer）。其中
+
+进化（...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Oct 08 2023 15:14:29 GMT+0800">
+                
+                    2023-10-08
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/Fuzzing101%E7%B3%BB%E5%88%97/">Fuzzing101系列</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Fuzzing101%E7%B3%BB%E5%88%97-Exercise-1/">Fuzzing101系列 Exercise 1</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2023/10/08/Fuzzing101%E7%B3%BB%E5%88%97%20Exercise%201%20-%20Xpdf/">阅读全文<span class="seo-reader-text">Fuzzing101系列 Exercise 1</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
         
             <li class="home-article-item">
 
@@ -1045,94 +1117,6 @@ image.png
                 </div>
             </li>
         
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/08/20/SROP/">
-                            SROP
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            高级ROP-SROP之前一直没掌握SROP技术，以此篇重新学习一下SROP
-利用工具在目前的pwntools中已经集成了对于srop的攻击。
-使用情况在汇编代码中看到存在systemcall的时候可以考虑采用该方法进行尝试
-下面给出我们将会用到的64位函数及函数调用号和函数原型
-
-
-
-系统调用
-调用号
-函数原型
-
-
-
-read
-0
-read( int fd, void *buf, size_t count )
-
-
-write
-1
-write( int fd, const void *buf, size_t c...
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Aug 20 2023 15:14:29 GMT+0800">
-                
-                    2023-08-20
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/pwn-%E8%BF%9B%E9%98%B6/">pwn 进阶</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/SROP/">SROP</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/08/20/SROP/">阅读全文<span class="seo-reader-text">SROP</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
     </ul>
 
     <div class="home-paginator px-7 py-5">
@@ -1165,11 +1149,11 @@ write( int fd, const void *buf, size_t c...
                 
                 <p class="post-count space-x-0.5">
                     <span>
-                        共撰写了 61 篇文章
+                        共撰写了 62 篇文章
                     </span>
                     
                         <span>
-                            共 349k 字
+                            共 134.3k 字
                         </span>
                     
                 </p>
