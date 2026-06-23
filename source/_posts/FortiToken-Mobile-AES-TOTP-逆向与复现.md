@@ -1,7 +1,7 @@
 ---
 title: "FortiToken Mobile AES/TOTP 逆向与复现"
-date: 2026-06-23 11:00:00
-updated: 2026-06-23 11:00:00
+date: 2025-06-23 11:00:00
+updated: 2025-06-23 11:00:00
 categories:
   - "逆向工程"
 tags:
