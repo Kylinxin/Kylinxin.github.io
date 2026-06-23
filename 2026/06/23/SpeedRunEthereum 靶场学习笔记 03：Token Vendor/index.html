@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2026/06/23/speedrunethereum 靶场学习笔记 03：token vendor/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpeedRunEthereum 靶场学习笔记 03：Token Vendor">
+<meta property="og:url" content="https://kylinxin.github.io/2026/06/23/SpeedRunEthereum%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9AToken%20Vendor/index.html">
+<meta property="og:site_name" content="Kylinxin&#39;s Blog">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kylinxin.github.io/images/avatar.jpg">
+<meta property="article:published_time" content="2026-06-23T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-23T01:00:00.000Z">
+<meta property="article:author" content="Kylinxin">
+<meta property="article:tag" content="Solidity">
+<meta property="article:tag" content="SpeedRunEthereum">
+<meta property="article:tag" content="Scaffold-ETH 2">
+<meta property="article:tag" content="Foundry">
+<meta property="article:tag" content="ERC-20">
+<meta property="article:tag" content="DeFi">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/avatar.jpg">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            SpeedRunEthereum 靶场学习笔记 03：Token Vendor | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/avatar.jpg","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":false,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+</head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">66</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">SpeedRunEthereum 靶场学习笔记 03：Token Vendor</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-06-23 09:00</span>
+        <span class="mobile">2026-06-23 09:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-06-23 09:00</span>
+            <span class="mobile">2026-06-23 09:00</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%BC%80%E5%8F%91/">区块链开发</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%BC%80%E5%8F%91/SpeedRunEthereum/">SpeedRunEthereum</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/SpeedRunEthereum/">SpeedRunEthereum</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Scaffold-ETH-2/">Scaffold-ETH 2</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Foundry/">Foundry</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/ERC-20/">ERC-20</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DeFi/">DeFi</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>4.1k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>18 分钟</span>
+        </span>
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<blockquote>
+<p>这是我的 SpeedRunEthereum 靶场个人学习笔记。第三关 Token Vendor 聚焦 ERC-20、固定汇率买卖、approve &#x2F; transferFrom 授权、Ownable 权限控制、Sepolia 部署、Etherscan 验证和前端上线。</p>
+</blockquote>
+<blockquote>
+<p><strong>Challenge</strong>: <a class="link"   target="_blank" rel="noopener" href="https://speedrunethereum.com/challenge/token-vendor" >speedrunethereum.com&#x2F;challenge&#x2F;token-vendor<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br><strong>状态</strong>: ✅ ACCEPTED (Ethereum 101 · 3&#x2F;4)<br><strong>框架</strong>: Foundry<br><strong>日期</strong>: 2026&#x2F;06&#x2F;23<br><strong>XP</strong>: +10</p>
+</blockquote>
+<hr>
+<h2 id="📋-项目总览"><a href="#📋-项目总览" class="headerlink" title="📋 项目总览"></a>📋 项目总览</h2><p>去中心化<strong>自动售货机</strong> dApp，两个合约组成：</p>
+<ul>
+<li><strong>YourToken</strong>：OpenZeppelin ERC-20（<code>Gold</code>&#x2F;<code>GLD</code>），部署时铸造 1000 个</li>
+<li><strong>Vendor</strong>：1 ETH &#x3D; 100 GLD 的固定汇率合约，支持双向交易（买&#x2F;卖）</li>
+</ul>
+<h3 id="真实场景"><a href="#真实场景" class="headerlink" title="真实场景"></a>真实场景</h3><p>Token Vendor 模式是**自动做市商（AMM）**的最简形态，这个模式直接对应 DeFi 的核心协议：</p>
+<ul>
+<li><strong>Uniswap</strong>：从固定汇率 → 恒定乘积（x·y&#x3D;k）定价曲线的高级版。每天处理数十亿美元交易，无订单簿、无中介。</li>
+<li><strong>ERC-20 approve 模式</strong>：你在这里写的 <code>approve</code> + <code>transferFrom</code> 是 <strong>DeFi 通用机制</strong>——Uniswap、Aave、Compound 全部用这个模式做合约间转账。</li>
+<li><strong>Ownable withdraw</strong>：最简单的访问控制——只有 owner 能提 ETH。生产协议延伸为 timelock、multisig、DAO 治理。</li>
+<li><strong>Token economics</strong>：固定供应 + Vendor 分发 &#x3D; 简单代币分配机制，真实项目用 bonding curve、auction、airdrop，但核心一样。</li>
+</ul>
+<p><strong>关键洞察</strong>：Vendor 是 <strong>trustless</strong> 的——用户不需要信任你，他们在合约代码里<strong>验证</strong>汇率。任何人都可以审计，任何人都能交易。<strong>这是 DeFi 的基石</strong>：用透明、可审计的代码替代可信中介（银行、券商、交易所）。</p>
+<hr>
+<h2 id="🚀-部署信息（我的-Sepolia-上线）"><a href="#🚀-部署信息（我的-Sepolia-上线）" class="headerlink" title="🚀 部署信息（我的 Sepolia 上线）"></a>🚀 部署信息（我的 Sepolia 上线）</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>YourToken</strong></td>
+<td><code>0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9</code></td>
+</tr>
+<tr>
+<td><strong>Vendor</strong></td>
+<td><code>0x657F8DC030c2756CFA4649695f9b8ED640f4554B</code></td>
+</tr>
+<tr>
+<td><strong>Deployer（keystore <code>kylinxin</code>）</strong></td>
+<td><code>0x6d1cd1d9f7226de5af18a7f9fd64e3aa6e81ca04</code></td>
+</tr>
+<tr>
+<td><strong>Vendor Owner（前端钱包）</strong></td>
+<td><code>0x7FB24f7c6BE7fE61dA353E2A0fEf38b310aE71f7</code></td>
+</tr>
+<tr>
+<td><strong>Vercel</strong></td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://token-vendor-ky.vercel.app/" >https://token-vendor-ky.vercel.app<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>Etherscan（YourToken）</strong></td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/address/0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9" >https://sepolia.etherscan.io/address/0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>Etherscan（Vendor）</strong></td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/address/0x657F8DC030c2756CFA4649695f9b8ED640f4554B" >https://sepolia.etherscan.io/address/0x657F8DC030c2756CFA4649695f9b8ED640f4554B<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>部署区块</strong></td>
+<td>11122928</td>
+</tr>
+<tr>
+<td><strong>部署总费用</strong></td>
+<td>0.00226 ETH（4 笔交易）</td>
+</tr>
+<tr>
+<td><strong>网络</strong></td>
+<td>Sepolia（chain id 11155111）</td>
+</tr>
+</tbody></table>
+<h3 id="链上验证数据"><a href="#链上验证数据" class="headerlink" title="链上验证数据"></a>链上验证数据</h3><table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>期望</th>
+<th>实际</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>YourToken bytecode</td>
+<td>&gt; 0</td>
+<td>3573 chars ✅</td>
+</tr>
+<tr>
+<td>YourToken name &#x2F; symbol</td>
+<td>“Gold” &#x2F; “GLD”</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>YourToken totalSupply</td>
+<td>1000 ether</td>
+<td>1e21 wei ✅</td>
+</tr>
+<tr>
+<td>Vendor bytecode</td>
+<td>&gt; 0</td>
+<td>3837 chars ✅</td>
+</tr>
+<tr>
+<td>Vendor owner</td>
+<td><code>0x7FB2...</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Vendor tokensPerEth</td>
+<td>100</td>
+<td>100 ✅</td>
+</tr>
+<tr>
+<td>Vendor.yourToken 指向</td>
+<td>YourToken 地址</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Vendor GLD 余额</td>
+<td>1000 ether</td>
+<td>1e21 wei ✅</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="📜-最终合约代码"><a href="#📜-最终合约代码" class="headerlink" title="📜 最终合约代码"></a>📜 最终合约代码</h2><h3 id="YourToken-sol"><a href="#YourToken-sol" class="headerlink" title="YourToken.sol"></a><code>YourToken.sol</code></h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity 0.8.20;</span><br><span class="line"></span><br><span class="line">import &quot;@openzeppelin/contracts/token/ERC20/ERC20.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract YourToken is ERC20 &#123;</span><br><span class="line">    constructor() ERC20(&quot;Gold&quot;, &quot;GLD&quot;) &#123;</span><br><span class="line">        // 部署时一次性铸造 1000 GLD 给 deployer</span><br><span class="line">        // 1000 * 10**18 = 1e21 wei（ERC-20 默认 18 位小数）</span><br><span class="line">        _mint(msg.sender, 1000 * 10 ** 18);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="Vendor-sol"><a href="#Vendor-sol" class="headerlink" title="Vendor.sol"></a><code>Vendor.sol</code></h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity 0.8.20;</span><br><span class="line"></span><br><span class="line">import &quot;@openzeppelin/contracts/access/Ownable.sol&quot;;</span><br><span class="line">import &quot;./YourToken.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract Vendor is Ownable &#123;</span><br><span class="line">    /////////////////</span><br><span class="line">    /// Errors //////</span><br><span class="line">    /////////////////</span><br><span class="line">    error InvalidEthAmount();</span><br><span class="line">    error InsufficientVendorTokenBalance(uint256 vendorBalance, uint256 requestedAmount);</span><br><span class="line">    error InvalidTokenAmount();</span><br><span class="line">    error InsufficientVendorEthBalance(uint256 vendorBalance, uint256 requestedAmount);</span><br><span class="line">    error EthTransferFailed(address to, uint256 amount);</span><br><span class="line"></span><br><span class="line">    //////////////////////</span><br><span class="line">    /// State Variables //</span><br><span class="line">    //////////////////////</span><br><span class="line">    YourToken public immutable yourToken;</span><br><span class="line">    uint256 public constant tokensPerEth = 100;   // 1 ETH = 100 GLD</span><br><span class="line"></span><br><span class="line">    ////////////////</span><br><span class="line">    /// Events /////</span><br><span class="line">    ////////////////</span><br><span class="line">    event BuyTokens(address indexed buyer, uint256 amountOfETH, uint256 amountOfTokens);</span><br><span class="line">    event SellTokens(address indexed seller, uint256 amountOfTokens, uint256 amountOfETH);</span><br><span class="line"></span><br><span class="line">    ///////////////////</span><br><span class="line">    /// Constructor ///</span><br><span class="line">    ///////////////////</span><br><span class="line">    constructor(address tokenAddress) Ownable(msg.sender) &#123;</span><br><span class="line">        yourToken = YourToken(tokenAddress);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ///////////////////</span><br><span class="line">    /// Functions /////</span><br><span class="line">    ///////////////////</span><br><span class="line"></span><br><span class="line">    // CP2：用 ETH 买 GLD</span><br><span class="line">    function buyTokens() external payable &#123;</span><br><span class="line">        if (msg.value == 0) revert InvalidEthAmount();</span><br><span class="line">        uint256 amountToBuy = msg.value * tokensPerEth;</span><br><span class="line"></span><br><span class="line">        uint256 vendorBalance = yourToken.balanceOf(address(this));</span><br><span class="line">        if (vendorBalance &lt; amountToBuy) &#123;</span><br><span class="line">            revert InsufficientVendorTokenBalance(vendorBalance, amountToBuy);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        bool sent = yourToken.transfer(msg.sender, amountToBuy);</span><br><span class="line">        require(sent, &quot;Failed to transfer tokens&quot;);</span><br><span class="line"></span><br><span class="line">        emit BuyTokens(msg.sender, msg.value, amountToBuy);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // CP3：Owner 提取 Vendor 积累的 ETH</span><br><span class="line">    function withdraw() public onlyOwner &#123;</span><br><span class="line">        uint256 ownerAmount = address(this).balance;</span><br><span class="line">        (bool sent, ) = owner().call&#123;value: ownerAmount&#125;(&quot;&quot;);</span><br><span class="line">        if (!sent) revert EthTransferFailed(owner(), ownerAmount);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // CP4：用 GLD 卖回给 Vendor 拿 ETH</span><br><span class="line">    function sellTokens(uint256 amount) public &#123;</span><br><span class="line">        if (amount == 0) revert InvalidTokenAmount();</span><br><span class="line"></span><br><span class="line">        uint256 amountOfETH = amount / tokensPerEth;   // 整数除法，向下取整</span><br><span class="line">        if (address(this).balance &lt; amountOfETH) &#123;</span><br><span class="line">            revert InsufficientVendorEthBalance(address(this).balance, amountOfETH);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        yourToken.transferFrom(msg.sender, address(this), amount);  // 从卖家拉</span><br><span class="line"></span><br><span class="line">        (bool sent, ) = msg.sender.call&#123;value: amountOfETH&#125;(&quot;&quot;);</span><br><span class="line">        if (!sent) revert EthTransferFailed(msg.sender, amountOfETH);</span><br><span class="line"></span><br><span class="line">        emit SellTokens(msg.sender, amount, amountOfETH);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>测试结果</strong>：<code>yarn test</code> → <strong>14&#x2F;14 PASSED</strong>（CP1: 2, CP2: 5, CP3: 3, CP4: 4）</p>
+<hr>
+<h2 id="🧠-核心知识点"><a href="#🧠-核心知识点" class="headerlink" title="🧠 核心知识点"></a>🧠 核心知识点</h2><h3 id="1-多种地址角色"><a href="#1-多种地址角色" class="headerlink" title="1. 多种地址角色"></a>1. 多种地址角色</h3><table>
+<thead>
+<tr>
+<th>地址</th>
+<th>类型</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0x6d1c...ca04</code> 🟣</td>
+<td><strong>EOA（keystore <code>kylinxin</code>）</strong></td>
+<td>Foundry 部署合约，签 deploy 交易</td>
+</tr>
+<tr>
+<td><code>0x7FB2...77f7</code> 😎</td>
+<td><strong>EOA（MetaMask Burner Wallet）</strong></td>
+<td>前端操作，buy&#x2F;sell&#x2F;withdraw</td>
+</tr>
+<tr>
+<td><code>0x24ac...3ed9</code> 🎨</td>
+<td><strong>Contract（YourToken）</strong></td>
+<td>ERC-20 实现</td>
+</tr>
+<tr>
+<td><code>0x657F...54B</code> 🏪</td>
+<td><strong>Contract（Vendor）</strong></td>
+<td>自动售货机逻辑</td>
+</tr>
+</tbody></table>
+<p><strong>关键洞察</strong>：<code>0x7FB2...</code> 看起来是 “the wallet”，但<strong>它是 Vendor 的 owner，不是 deployer</strong>。Deployer 是 <code>0x6d1c...</code>，owner 通过 <code>transferOwnership(0x7FB2...)</code> 转过去的。</p>
+<hr>
+<h3 id="2-ERC-20-基础"><a href="#2-ERC-20-基础" class="headerlink" title="2. ERC-20 基础"></a>2. ERC-20 基础</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// 继承 OpenZeppelin 标准实现</span><br><span class="line">contract YourToken is ERC20 &#123;</span><br><span class="line">    constructor() ERC20(&quot;Gold&quot;, &quot;GLD&quot;) &#123;</span><br><span class="line">        _mint(msg.sender, 1000 * 10 ** 18);</span><br><span class="line">        //      ↑           ↑         ↑</span><br><span class="line">        //      接收者      数量      1000 GLD 转 base 单位</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>为什么 <code>10 ** 18</code>？</strong> ERC-20 默认 18 位小数（像 ETH 有 wei），所以：</p>
+<ul>
+<li>1 GLD &#x3D; 10^18 base units（类似 1 ETH &#x3D; 10^18 wei）</li>
+<li>“1000 GLD” 在合约里其实是 <code>1000 * 10^18</code> 这个大整数</li>
+<li>前端用 <code>formatEther()</code> 自动除以 10^18 显示成人类可读</li>
+</ul>
+<p><strong>如果不乘 <code>10 ** 18</code> 呢？</strong> 你会”铸造 1000 个最小单位”——人类角度看只有 <code>0.000000000000001 GLD</code>，几乎为 0。</p>
+<hr>
+<h3 id="3-payable-与-msg-value"><a href="#3-payable-与-msg-value" class="headerlink" title="3. payable 与 msg.value"></a>3. <code>payable</code> 与 <code>msg.value</code></h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">function buyTokens() external payable &#123;           // payable 才能收 ETH</span><br><span class="line">    if (msg.value == 0) revert InvalidEthAmount();  // 拒绝 0 ETH 攻击</span><br><span class="line">    uint256 amountToBuy = msg.value * tokensPerEth;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>msg.value</code></td>
+<td>这笔交易附带的 ETH（单位 wei）</td>
+</tr>
+<tr>
+<td><code>msg.sender</code></td>
+<td>调用者地址</td>
+</tr>
+</tbody></table>
+<p><strong>为什么 wei × 100 直接等于 token 数？</strong> 因为<strong>两边都是 18 位小数</strong>，单位”刻度”一样。<code>0.1 ETH × 100 = 10 GLD</code>，数学完全自洽，不用换算。</p>
+<hr>
+<h3 id="4-Custom-Errors（自定义错误）"><a href="#4-Custom-Errors（自定义错误）" class="headerlink" title="4. Custom Errors（自定义错误）"></a>4. Custom Errors（自定义错误）</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">error InvalidEthAmount();</span><br><span class="line">error InsufficientVendorTokenBalance(uint256 vendorBalance, uint256 requestedAmount);</span><br><span class="line"></span><br><span class="line">if (msg.value == 0) revert InvalidEthAmount();</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>对比老式 require</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// ❌ 老式：把字符串存链上，贵</span><br><span class="line">require(msg.value &gt; 0, &quot;Must send ETH&quot;);</span><br><span class="line"></span><br><span class="line">// ✅ 新式：只存 4 字节 selector，省 gas 80%</span><br><span class="line">if (msg.value == 0) revert InvalidEthAmount();</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>带参数的错误能告诉前端”差多少、当前多少”</strong>——前端拿到错误能算差额、给提示。</p>
+<p><strong>Selector 匹配</strong>：测试用 <code>IVendor.InvalidEthAmount.selector</code> 匹配——<strong>拼错一个字母就匹配不上</strong>！</p>
+<hr>
+<h3 id="5-indexed-事件参数"><a href="#5-indexed-事件参数" class="headerlink" title="5. indexed 事件参数"></a>5. <code>indexed</code> 事件参数</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">event BuyTokens(</span><br><span class="line">    address indexed buyer,        // indexed → 进 topic，可被过滤</span><br><span class="line">    uint256 amountOfETH,</span><br><span class="line">    uint256 amountOfTokens</span><br><span class="line">);</span><br></pre></td></tr></table></figure></div>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>是否 indexed</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>buyer</code></td>
+<td>✅</td>
+<td>前端要查”某用户的所有买入”</td>
+</tr>
+<tr>
+<td><code>amountOfETH</code></td>
+<td>❌</td>
+<td>只展示用，不需要按它过滤</td>
+</tr>
+<tr>
+<td><code>amountOfTokens</code></td>
+<td>❌</td>
+<td>同上</td>
+</tr>
+</tbody></table>
+<p><strong>为什么只 3 个 indexed？</strong> EVM topic 数组最多 3 个槽，超过会 revert。</p>
+<hr>
+<h3 id="6-ERC-20-转账方向"><a href="#6-ERC-20-转账方向" class="headerlink" title="6. ERC-20 转账方向"></a>6. ERC-20 转账方向</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>函数</th>
+<th>调用方</th>
+<th>资金方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>buyTokens</strong></td>
+<td><code>yourToken.transfer(msg.sender, amount)</code></td>
+<td>Vendor → User</td>
+<td>Vendor 把自己的 GLD 发给买家</td>
+</tr>
+<tr>
+<td><strong>sellTokens</strong></td>
+<td><code>yourToken.transferFrom(msg.sender, address(this), amount)</code></td>
+<td>Vendor 拉 User 的 GLD</td>
+<td>买家授权后，Vendor 拉走</td>
+</tr>
+</tbody></table>
+<p><strong>为什么 sell 要 transferFrom？</strong> 因为合约<strong>不能主动</strong>从用户钱包拿 token——必须用户先 <code>approve</code> 授权。</p>
+<hr>
+<h3 id="7-approve-transferFrom-模式-⭐⭐⭐"><a href="#7-approve-transferFrom-模式-⭐⭐⭐" class="headerlink" title="7. approve &#x2F; transferFrom 模式 ⭐⭐⭐"></a>7. <code>approve</code> &#x2F; <code>transferFrom</code> 模式 ⭐⭐⭐</h3><p><strong>DeFi 最核心的模式。</strong></p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// 第 1 步：用户在 YourToken 上授权 Vendor</span><br><span class="line">yourToken.approve(vendorAddress, amount);</span><br><span class="line">// = &quot;我允许 Vendor 最多拿走 amount 个 GLD&quot;</span><br><span class="line"></span><br><span class="line">// 第 2 步：用户调 sellTokens，Vendor 用 transferFrom 拉走</span><br><span class="line">yourToken.transferFrom(msg.sender, address(this), amount);</span><br><span class="line">//   from=卖家  to=Vendor  amount=数量</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>为什么非要两步？</strong> 如果合约能直接 <code>transfer</code> 拿用户 token，任何 dApp 都能偷光你钱包。<code>approve</code> 是<strong>用户主动的、精确控制的、可撤销的授权额度</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>直接 transfer（不允许）</th>
+<th>approve + transferFrom（允许）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>谁主动？</td>
+<td>合约</td>
+<td><strong>用户</strong></td>
+</tr>
+<tr>
+<td>拿多少？</td>
+<td>合约想拿多少</td>
+<td><strong>用户设定上限</strong></td>
+</tr>
+<tr>
+<td>可撤销？</td>
+<td>❌</td>
+<td>✅（再次 approve(0)）</td>
+</tr>
+<tr>
+<td>谁能查？</td>
+<td>没人知道</td>
+<td>✅ <code>allowance()</code> 公开可查</td>
+</tr>
+</tbody></table>
+<p><strong>这就是为什么</strong>：Uniswap swap 前先 approve USDC、Aave deposit 前先 approve collateral——<strong>全部同一个模式</strong>。</p>
+<hr>
+<h3 id="8-整数除法的”取整陷阱”"><a href="#8-整数除法的”取整陷阱”" class="headerlink" title="8. 整数除法的”取整陷阱”"></a>8. 整数除法的”取整陷阱”</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">uint256 amountOfETH = amount / tokensPerEth;   // 100</span><br><span class="line">// 卖 99 GLD：99 / 100 = 0  ← 不是 0.99！直接变 0</span><br><span class="line">// 卖 100 GLD：100 / 100 = 1  ← 1 ETH ✅</span><br><span class="line">// 卖 199 GLD：199 / 100 = 1  ← 不是 1.99！</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>Solidity 整数除法永远向下取整</strong>。卖 99 GLD 只能换 0 ETH，等于免费送！</p>
+<p><strong>生产代码</strong>会用 OpenZeppelin 的 <code>Math.mulDiv</code> 或检查 <code>amount % tokensPerEth == 0</code> 拒绝不整除的情况。</p>
+<hr>
+<h3 id="9-call-value-发-ETH（现代标准）"><a href="#9-call-value-发-ETH（现代标准）" class="headerlink" title="9. call{value:...}(&quot;&quot;) 发 ETH（现代标准）"></a>9. <code>call&#123;value:...&#125;(&quot;&quot;)</code> 发 ETH（现代标准）</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(bool success, ) = msg.sender.call&#123;value: amountOfETH&#125;(&quot;&quot;);</span><br><span class="line">if (!success) revert EthTransferFailed(msg.sender, amountOfETH);</span><br></pre></td></tr></table></figure></div>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>转发 gas</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>transfer</code></td>
+<td>固定 2300</td>
+<td>❌ 合约钱包会挂（不够 gas）</td>
+</tr>
+<tr>
+<td><code>send</code></td>
+<td>固定 2300</td>
+<td>❌ 同上</td>
+</tr>
+<tr>
+<td><code>call&#123;value:...&#125;(&quot;&quot;)</code></td>
+<td><strong>剩余全部</strong></td>
+<td>✅ 2024+ 行业标准</td>
+</tr>
+</tbody></table>
+<p><strong>为什么 2300 不够？</strong> EIP-1884 之后 2300 gas 在某些 opcodes 上连基础 SLOAD 都不够。<strong>Safe &#x2F; Multisig 等合约钱包</strong>收 ETH 时需要更多 gas 跑 receive 逻辑。</p>
+<hr>
+<h3 id="10-Ownable-访问控制"><a href="#10-Ownable-访问控制" class="headerlink" title="10. Ownable 访问控制"></a>10. Ownable 访问控制</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">contract Vendor is Ownable &#123;</span><br><span class="line">    constructor(...) Ownable(msg.sender) &#123; ... &#125;   // deploy 时 owner = deployer</span><br><span class="line">    function withdraw() public onlyOwner &#123; ... &#125;    // 只有 owner 能调</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>OpenZeppelin Ownable 提供</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>owner()</code></td>
+<td>读当前 owner 地址</td>
+</tr>
+<tr>
+<td><code>onlyOwner</code> 修饰符</td>
+<td>限制函数只能 owner 调</td>
+</tr>
+<tr>
+<td><code>transferOwnership(newOwner)</code></td>
+<td>转交 owner 身份</td>
+</tr>
+</tbody></table>
+<p><strong>我们项目的 owner 转移链</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Deploy 0x6d1c... → constructor: owner = 0x6d1c...</span><br><span class="line">Deploy script: vendor.transferOwnership(0x7FB2...)</span><br><span class="line">最终: owner = 0x7FB2...（你 MetaMask）</span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h3 id="11-Emit-顺序：先做完，最后发事件"><a href="#11-Emit-顺序：先做完，最后发事件" class="headerlink" title="11. Emit 顺序：先做完，最后发事件"></a>11. Emit 顺序：先做完，最后发事件</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">yourToken.transferFrom(...);          // ① 状态变更</span><br><span class="line">(bool sent, ) = msg.sender.call&#123;...&#125;(&quot;&quot;);  // ② ETH 发送</span><br><span class="line">emit SellTokens(...);                 // ③ 最后 emit</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>为什么？Solidity emit 不会自动撤销</strong>——就算后面 revert，某些客户端短暂看到 emit。所以<strong>先做完所有可能失败的检查和状态变更，最后 emit</strong>——保证事件和数据一致。</p>
+<hr>
+<h2 id="🛠️-完整上线流程"><a href="#🛠️-完整上线流程" class="headerlink" title="🛠️ 完整上线流程"></a>🛠️ 完整上线流程</h2><h3 id="Checkpoint-0：环境"><a href="#Checkpoint-0：环境" class="headerlink" title="Checkpoint 0：环境"></a>Checkpoint 0：环境</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">node --version  <span class="comment"># v25.2.1</span></span><br><span class="line">yarn --version  <span class="comment"># 1.22.22</span></span><br><span class="line">forge --version <span class="comment"># 1.5.1-stable</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 挑战模板</span></span><br><span class="line">npx create-eth@2.0.20 -e challenge-token-vendor challenge-token-vendor -s foundry</span><br><span class="line"></span><br><span class="line"><span class="comment"># 三终端</span></span><br><span class="line">yarn chain    <span class="comment"># 终端1：Anvil（本地链）</span></span><br><span class="line">yarn deploy   <span class="comment"># 终端2：Foundry deploy（本地）</span></span><br><span class="line">yarn start    <span class="comment"># 终端3：Next.js dev</span></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="AI-引导学习模式"><a href="#AI-引导学习模式" class="headerlink" title="AI 引导学习模式"></a>AI 引导学习模式</h3><p><code>/start</code> → 教学 → 理解题 → 编码 → <code>check</code> 跑测试</p>
+<p>每个 checkpoint 流程：</p>
+<ol>
+<li>讲 context（概念）</li>
+<li>问理解题（验理解）</li>
+<li>给编程任务（spec）</li>
+<li>用户写代码 → <code>check</code> 跑测试</li>
+<li>通过 → 下一个</li>
+</ol>
+<h3 id="Foundry-测试命令"><a href="#Foundry-测试命令" class="headerlink" title="Foundry 测试命令"></a>Foundry 测试命令</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">yarn <span class="built_in">test</span>                                 <span class="comment"># 全部 14 个</span></span><br><span class="line">yarn <span class="built_in">test</span> --match-test <span class="string">&#x27;Checkpoint1&#x27;</span>      <span class="comment"># 单个</span></span><br><span class="line">yarn <span class="built_in">test</span> --match-test <span class="string">&#x27;Checkpoint2&#x27;</span>      <span class="comment"># buyTokens</span></span><br><span class="line">yarn <span class="built_in">test</span> --match-test <span class="string">&#x27;Checkpoint3&#x27;</span>      <span class="comment"># withdraw</span></span><br><span class="line">yarn <span class="built_in">test</span> --match-test <span class="string">&#x27;Checkpoint4&#x27;</span>      <span class="comment"># sellTokens</span></span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h3 id="📸-本地端到端测试截图"><a href="#📸-本地端到端测试截图" class="headerlink" title="📸 本地端到端测试截图"></a>📸 本地端到端测试截图</h3><p><strong>1. 部署完，前端刷新前</strong>——只显示余额，看不到 Buy 按钮（因为前端区块还是注释）：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-token-vendor-01-balance-zero.png"
+                      alt="本地链初始状态：Your token balance 0.0000 GLD，Buy 按钮还没出现"
+                ><figcaption>本地链初始状态：Your token balance 0.0000 GLD，Buy 按钮还没出现</figcaption></figure></p>
+<blockquote>
+<p>此时 <code>packages/nextjs/app/token-vendor/page.tsx</code> 里 Buy Tokens 区块还是 <code>/* ... */</code> 注释状态——合约部署成功了，但前端 UI 没解锁。</p>
+</blockquote>
+<p><strong>2. 解锁前端后，buy 110 GLD 成功</strong>——4 个区块全部显示，数字自洽（987.9 + 12.1 &#x3D; 1000）：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-token-vendor-02-buy-success.png"
+                      alt="buy 成功，Your balance 110 GLD，Vendor token 890 GLD，Vendor ETH 1.1 ETH"
+                ><figcaption>buy 成功，Your balance 110 GLD，Vendor token 890 GLD，Vendor ETH 1.1 ETH</figcaption></figure></p>
+<p><strong>3. Debug Contracts + MetaMask</strong>——确认合约 owner 是前端钱包：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-token-vendor-03-owner-metamask.png"
+                      alt="owner() 返回 0x7FB2...77f7（用户 MetaMask），yourToken 指向 0x82Dc...AccC，Vendor 余额 0"
+                ><figcaption>owner() 返回 0x7FB2...77f7（用户 MetaMask），yourToken 指向 0x82Dc...AccC，Vendor 余额 0</figcaption></figure></p>
+<p><strong>4. MetaMask 网络配置</strong>——Chain ID 31337，RPC <code>127.0.0.1:8545</code>：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-token-vendor-04-localhost-network.png"
+                      alt="MetaMask 编辑网络：Localhost &#x2F; 127.0.0.1:8545 &#x2F; Chain ID 31337 &#x2F; ETH"
+                ><figcaption>MetaMask 编辑网络：Localhost &#x2F; 127.0.0.1:8545 &#x2F; Chain ID 31337 &#x2F; ETH</figcaption></figure></p>
+<p><strong>5. 完整端到端 4 区块</strong>——Your &#x2F; Vendor Balances &#x2F; Buy &#x2F; Sell 都工作：</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-token-vendor-05-end-to-end.png"
+                      alt="完整 UI：Your balance 987.9 GLD，Vendor token 12.1，Vendor ETH 9.879，Buy 输入 900，Transfer + Sell 区块可见"
+                ><figcaption>完整 UI：Your balance 987.9 GLD，Vendor token 12.1，Vendor ETH 9.879，Buy 输入 900，Transfer + Sell 区块可见</figcaption></figure></p>
+<hr>
+<h3 id="上线-Sepolia"><a href="#上线-Sepolia" class="headerlink" title="上线 Sepolia"></a>上线 Sepolia</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 把 MetaMask 私钥导入 Foundry keystore</span></span><br><span class="line">cast wallet import --private-key 0x...你的私钥... kylinxin</span><br><span class="line"><span class="comment"># → Foundry 提示输入密码，输两遍（不是 MetaMask 密码）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 配置 .env（已有 ALCHEMY + ETHERSCAN API key）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Sepolia faucet 拿 ETH（给 0x7FB2... 充至少 0.05 ETH）</span></span><br><span class="line"><span class="comment"># → https://sepoliafaucet.com/ 或 Google/Infura</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 部署</span></span><br><span class="line">yarn deploy --network sepolia</span><br><span class="line"><span class="comment"># → 选 kylinxin keystore（不要选 scaffold-eth-default）</span></span><br><span class="line"><span class="comment"># → 输入 keystore 密码</span></span><br><span class="line"><span class="comment"># → 等 ~30s - 2min，看到 4 笔 transactions success</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 验证合约（上传源码到 Etherscan）</span></span><br><span class="line">yarn verify --network sepolia</span><br><span class="line"><span class="comment"># → 不需要密码（不发交易）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 6. 改前端切到 Sepolia</span></span><br><span class="line"><span class="comment"># packages/nextjs/scaffold.config.ts:</span></span><br><span class="line">targetNetworks: [chains.sepolia],</span><br><span class="line"></span><br><span class="line"><span class="comment"># 7. 解锁前端 Sell Tokens 区块 + events/page.tsx SellTokens Events hook</span></span><br><span class="line"><span class="comment"># (见下文&quot;踩坑 4&quot;)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 8. 部署前端</span></span><br><span class="line">yarn vercel --prod</span><br><span class="line"><span class="comment"># → 第一次会让你登录 Vercel + 创建项目</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 9. 提交到 speedrunethereum.com</span></span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="🐛-实战踩过的坑"><a href="#🐛-实战踩过的坑" class="headerlink" title="🐛 实战踩过的坑"></a>🐛 实战踩过的坑</h2><h3 id="1-❌-错误拼写-InvaildTokenAmount"><a href="#1-❌-错误拼写-InvaildTokenAmount" class="headerlink" title="1. ❌ 错误拼写 InvaildTokenAmount"></a>1. ❌ 错误拼写 <code>InvaildTokenAmount</code></h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// ❌ 我的拼写错误</span><br><span class="line">error InvaildTokenAmount();</span><br><span class="line">revert InvaildTokenAmount();</span><br><span class="line"></span><br><span class="line">// ✅ spec 要求</span><br><span class="line">error InvalidTokenAmount();</span><br><span class="line">revert InvalidTokenAmount();</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>症状</strong>：测试报 <code>Error != expected error: InvaildTokenAmount() != InvalidTokenAmount()</code></p>
+<p><strong>原因</strong>：Solidity error 名通过 <code>keccak256(&quot;InvalidTokenAmount()&quot;)[0..4]</code> 算出 4 字节 selector。<strong>拼错一个字母 → selector 不同 → 测试匹配不上</strong>。</p>
+<p><strong>教训</strong>：<strong>永远对着 spec 抄错误名</strong>——多一个字母少一个字母都失败。声明处、调用处、测试里都得一致。</p>
+<hr>
+<h3 id="2-❌-Foundry-MetaMask-nonce-冲突"><a href="#2-❌-Foundry-MetaMask-nonce-冲突" class="headerlink" title="2. ❌ Foundry + MetaMask nonce 冲突"></a>2. ❌ Foundry + MetaMask nonce 冲突</h3><p><strong>症状</strong>：<code>yarn deploy --network sepolia</code> 报：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Error: Failed to send transaction after 4 attempts</span><br><span class="line">Err: replacement transaction underpriced</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>诊断</strong>：Sepolia Etherscan 查 deployer 历史，发现 nonce 132 是 MetaMask 发的 ETH 转账，<strong>不是</strong> Foundry 的 deploy。</p>
+<p><strong>根因</strong>：Foundry 和 MetaMask 共享<strong>同一个账户的 nonce 计数器</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">时间线：</span><br><span class="line">  MetaMask：   准备发 nonce 132 的 ETH 转账</span><br><span class="line">  Foundry：    模拟成功，准备发 nonce 132 的 YourToken deploy</span><br><span class="line">  ↓</span><br><span class="line">  MetaMask 的 132 先广播 → Foundry 想用更高 gas 替换</span><br><span class="line">  Foundry 的 replacement gas 不够高 → 4 次重试都失败</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>解决</strong>：</p>
+<ol>
+<li>跑 Foundry 时<strong>关掉 MetaMask</strong>，或者别在 MetaMask 里点发送</li>
+<li>让 Foundry 跑完 4 笔 deploy 交易（不要 Ctrl+C！）</li>
+<li>等 MetaMask 那笔 nonce 132 上链确认后，Foundry 自动用 nonce 133+</li>
+</ol>
+<p><strong>长期建议</strong>：<strong>Foundry 部署批量脚本</strong> + <strong>MetaMask 手动单笔</strong>——两者不该共用同一个 nonce 计数器。</p>
+<hr>
+<h3 id="3-❌-部署脚本-broadcast-失败但-simulation-成功"><a href="#3-❌-部署脚本-broadcast-失败但-simulation-成功" class="headerlink" title="3. ❌ 部署脚本 broadcast 失败但 simulation 成功"></a>3. ❌ 部署脚本 broadcast 失败但 simulation 成功</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">== Logs ==</span><br><span class="line">  YourToken deployed at: 0x24ac2...        <span class="comment"># 模拟算的地址</span></span><br><span class="line">  Vendor deployed at: 0x657F8...</span><br><span class="line"></span><br><span class="line"><span class="comment">##### sepolia</span></span><br><span class="line">✅ [Success] Hash: 0x5db7b7e8...        <span class="comment"># 真发了</span></span><br><span class="line">Block: 11122928</span><br></pre></td></tr></table></figure></div>
+
+<p><strong><code>run-latest.json</code> 里 <code>hash: null</code></strong> 表示 broadcast 没真发出去。检查方法：</p>
+<div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查链上合约有没有 bytecode</span></span><br><span class="line">cast code 0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9 \</span><br><span class="line">  --rpc-url https://eth-sepolia.g.alchemy.com/v2/KEY | <span class="built_in">wc</span> -c</span><br><span class="line"><span class="comment"># 3 chars = &quot;0x\n&quot; → 没部署</span></span><br><span class="line"><span class="comment"># &gt; 1000 chars → 部署成功</span></span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h3 id="4-❌-Vercel-build-失败：isSellEventsLoading-is-not-defined"><a href="#4-❌-Vercel-build-失败：isSellEventsLoading-is-not-defined" class="headerlink" title="4. ❌ Vercel build 失败：isSellEventsLoading is not defined"></a>4. ❌ Vercel build 失败：<code>isSellEventsLoading is not defined</code></h3><p><strong>症状</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Error occurred prerendering page &quot;/events&quot;</span><br><span class="line">ReferenceError: isSellEventsLoading is not defined</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>根因</strong>：<code>events/page.tsx</code> 处于<strong>半解锁状态</strong>——区块解锁了但 hook 没解锁：</p>
+<div class="code-container" data-rel="Tsx"><figure class="iseeu highlight tsx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// hook 还是注释</span></span><br><span class="line"><span class="comment">// const &#123; data: sellTokenEvents, isLoading: isSellEventsLoading &#125; = ...</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 区块已经解锁，引用了 hook 里的变量</span></span><br><span class="line">&#123;isSellEventsLoading ? (...) : (...)&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>修复</strong>：把 hook 的 <code>//</code> 注释去掉，<strong>hook 和区块必须同步解锁</strong>。</p>
+<p><strong>为什么本地 dev 不报错？</strong> Next.js dev 模式宽松，build 模式才会预渲染所有页面 → 触发静态分析。</p>
+<hr>
+<h3 id="5-❌-前端-Buy-Tokens-按钮没出现"><a href="#5-❌-前端-Buy-Tokens-按钮没出现" class="headerlink" title="5. ❌ 前端 Buy Tokens 按钮没出现"></a>5. ❌ 前端 Buy Tokens 按钮没出现</h3><p><strong>症状</strong>：Token Vendor 页只显示 “Your token balance: 0.0000 GLD”，看不到 Vendor 余额、Buy 按钮。</p>
+<p><strong>根因</strong>：<code>packages/nextjs/app/token-vendor/page.tsx</code> 里的几个区块初始状态是 <code>/* ... */</code> 注释，需要手动解锁：</p>
+<div class="code-container" data-rel="Tsx"><figure class="iseeu highlight tsx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Vendor Balances 区块</span></span><br><span class="line"><span class="keyword">const</span> &#123; <span class="attr">data</span>: vendorTokenBalance &#125; = <span class="title function_">useScaffoldReadContract</span>(...);   <span class="comment">// 解开</span></span><br><span class="line"><span class="keyword">const</span> &#123; <span class="attr">data</span>: vendorEthBalance &#125; = <span class="title function_">useWatchBalance</span>(...);              <span class="comment">// 解开</span></span><br><span class="line"><span class="keyword">const</span> &#123; <span class="attr">data</span>: tokensPerEth &#125; = <span class="title function_">useScaffoldReadContract</span>(...);          <span class="comment">// 解开</span></span><br><span class="line"></span><br><span class="line">&#123;<span class="comment">/* &lt;div&gt;Buy Tokens&lt;/div&gt; */</span>&#125;  →  &lt;div&gt;<span class="title class_">Buy</span> <span class="title class_">Tokens</span>&lt;<span class="regexp">/div&gt;               /</span>/ 解开</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>教训</strong>：Scaffold-ETH 2 把 UI 分阶段解锁——合约写了但 UI 没解锁 → 用户看不到效果。</p>
+<hr>
+<h3 id="6-❌-Foundry-默认-keystore-vs-你的-keystore"><a href="#6-❌-Foundry-默认-keystore-vs-你的-keystore" class="headerlink" title="6. ❌ Foundry 默认 keystore vs 你的 keystore"></a>6. ❌ Foundry 默认 keystore vs 你的 keystore</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Foundry 默认 keystore（scaffold-eth-default）</span></span><br><span class="line">$ cast wallet address --account scaffold-eth-default --password localhost</span><br><span class="line">0xa0Ee7A142d267C1f36714E4a8F75612F20a79720    <span class="comment"># Anvil 内置 9 号账户</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 我导入的 keystore（kylinxin）</span></span><br><span class="line">$ cast wallet address --account kylinxin --password &lt;你的密码&gt;</span><br><span class="line">0x6d1cd1d9f7226de5af18a7f9fd64e3aa6e81ca04    <span class="comment"># 你的真实 MetaMask</span></span><br></pre></td></tr></table></figure></div>
+
+<p><strong>关键区别</strong>：</p>
+<ul>
+<li>默认 keystore 是 Anvil 内置，<strong>Sepolia 上没 ETH</strong></li>
+<li>kylinxin keystore 是你的真实钱包，Sepolia faucet 可以充钱</li>
+</ul>
+<p><strong>部署到测试网必须用你自己的 keystore</strong>，否则 gas 都付不起。</p>
+<hr>
+<h3 id="7-❌-Vercel-targetNetworks-chains-foundry"><a href="#7-❌-Vercel-targetNetworks-chains-foundry" class="headerlink" title="7. ❌ Vercel targetNetworks: [chains.foundry]"></a>7. ❌ Vercel <code>targetNetworks: [chains.foundry]</code></h3><p>部署完合约到 Sepolia，但前端还是连本地链！</p>
+<p><strong>修复</strong>：</p>
+<div class="code-container" data-rel="Ts"><figure class="iseeu highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// packages/nextjs/scaffold.config.ts</span></span><br><span class="line"><span class="attr">targetNetworks</span>: [chains.<span class="property">foundry</span>],   <span class="comment">// ❌</span></span><br><span class="line"><span class="attr">targetNetworks</span>: [chains.<span class="property">sepolia</span>],   <span class="comment">// ✅</span></span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="💡-关键心得"><a href="#💡-关键心得" class="headerlink" title="💡 关键心得"></a>💡 关键心得</h2><ol>
+<li><strong>ERC-20 approve 是 DeFi 的通用语</strong>——学完 Vendor 等于学完 Uniswap &#x2F; Aave &#x2F; Compound 的核心交互。</li>
+<li><strong>整数除法永远向下取整</strong>——99 GLD &#x2F; 100 &#x3D; 0，不是 0.99。</li>
+<li><strong>错误名是 Selector，不是 Label</strong>——拼错 &#x3D; 测试全挂。</li>
+<li><strong><code>call&#123;value:...&#125;</code> 现代标准</strong>——<code>transfer</code> 在合约钱包时代已经过时。</li>
+<li><strong>Emit 最后发</strong>——状态变更完后再 emit，避免数据不一致。</li>
+<li><strong>Foundry 和 MetaMask 别共用账户</strong>——nonce 会撞。</li>
+<li><strong>前端解锁 &#x3D; 修改 <code>/* */</code> 注释</strong>——Scaffold-ETH 把 UI 分阶段教。</li>
+<li><strong>Vercel build 比 dev 严格</strong>——dev 能跑不代表 build 能过。</li>
+<li><strong>Owner ≠ Deployer</strong>——deploy 后通过 <code>transferOwnership</code> 转交。</li>
+<li><strong>CEI 顺序同样适用</strong>——<code>call</code> 发 ETH 也是外部调用，理论上需要防重入（虽然本挑战卖 token 时已经先 transferFrom 改了状态）。</li>
+</ol>
+<hr>
+<h2 id="🔗-有用的链接"><a href="#🔗-有用的链接" class="headerlink" title="🔗 有用的链接"></a>🔗 有用的链接</h2><ul>
+<li>Challenge: <a class="link"   target="_blank" rel="noopener" href="https://speedrunethereum.com/challenge/token-vendor" >https://speedrunethereum.com/challenge/token-vendor<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>我的 Portfolio: <a class="link"   target="_blank" rel="noopener" href="https://speedrunethereum.com/builders/0x7FB24f7c6BE7fE61dA353E2A0fE38b310aE71f7" >https://speedrunethereum.com/builders/0x7FB24f7c6BE7fE61dA353E2A0fE38b310aE71f7<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>我的 dApp: <a class="link"   target="_blank" rel="noopener" href="https://token-vendor-ky.vercel.app/" >https://token-vendor-ky.vercel.app<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Sepolia Etherscan: <a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/" >https://sepolia.etherscan.io<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Sepolia 水龙头：<ul>
+<li><a class="link"   target="_blank" rel="noopener" href="https://www.alchemy.com/faucets/ethereum-sepolia" >https://www.alchemy.com/faucets/ethereum-sepolia<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li><a class="link"   target="_blank" rel="noopener" href="https://cloud.google.com/application/web3/faucet" >https://cloud.google.com/application/web3/faucet<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li><a class="link"   target="_blank" rel="noopener" href="https://www.infura.io/faucet/sepolia" >https://www.infura.io/faucet/sepolia<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+</ul>
+</li>
+<li>Vercel: <a class="link"   target="_blank" rel="noopener" href="https://vercel.com/" >https://vercel.com<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Foundry 文档: <a class="link"   target="_blank" rel="noopener" href="https://book.getfoundry.sh/" >https://book.getfoundry.sh<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>OpenZeppelin ERC20: <a class="link"   target="_blank" rel="noopener" href="https://docs.openzeppelin.com/contracts/5.x/erc20" >https://docs.openzeppelin.com/contracts/5.x/erc20<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>OpenZeppelin Ownable: <a class="link"   target="_blank" rel="noopener" href="https://docs.openzeppelin.com/contracts/5.x/access-control" >https://docs.openzeppelin.com/contracts/5.x/access-control<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+</ul>
+<hr>
+<h2 id="📁-项目文件结构"><a href="#📁-项目文件结构" class="headerlink" title="📁 项目文件结构"></a>📁 项目文件结构</h2><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">challenge-token-vendor/</span><br><span class="line">├── packages/</span><br><span class="line">│   ├── foundry/</span><br><span class="line">│   │   ├── contracts/</span><br><span class="line">│   │   │   ├── YourToken.sol              # CP1: ERC-20 + _mint</span><br><span class="line">│   │   │   └── Vendor.sol                 # CP2/3/4: buy/withdraw/sell</span><br><span class="line">│   │   ├── script/</span><br><span class="line">│   │   │   ├── Deploy.s.sol               # 主入口</span><br><span class="line">│   │   │   ├── DeployYourToken.s.sol      # 部署 + FRONTEND_ADDRESS + SEND_TOKENS_TO_VENDOR</span><br><span class="line">│   │   │   └── VerifyAll.s.sol            # 自动 verify 所有 CREATE 交易</span><br><span class="line">│   │   ├── test/</span><br><span class="line">│   │   │   └── Vendor.t.sol               # Foundry 测试（14 个）</span><br><span class="line">│   │   ├── foundry.toml                   # 网络 + RPC 配置</span><br><span class="line">│   │   └── .env                           # ALCHEMY/ETHERSCAN API key</span><br><span class="line">│   └── nextjs/</span><br><span class="line">│       ├── scaffold.config.ts             # targetNetworks: [chains.sepolia]</span><br><span class="line">│       ├── app/</span><br><span class="line">│       │   ├── token-vendor/page.tsx      # 主 UI（Your/Vendor/Buy/Transfer/Sell 区块）</span><br><span class="line">│       │   └── events/page.tsx            # BuyTokens + SellTokens 事件表</span><br><span class="line">│       └── contracts/deployedContracts.ts # 部署后自动生成 ABI</span><br><span class="line">├── .challenge-ai/progress.json            # AI 引导模式进度</span><br><span class="line">├── AGENTS.md                              # 项目 AI 指令</span><br><span class="line">├── CLAUDE.md                              # 引用 AGENTS.md</span><br><span class="line">└── package.json                           # yarn workspace 根</span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="🎓-完成记录-下一步"><a href="#🎓-完成记录-下一步" class="headerlink" title="🎓 完成记录 &amp; 下一步"></a>🎓 完成记录 &amp; 下一步</h2><p><strong>Ethereum 101 进度</strong>：3&#x2F;4</p>
+<ul>
+<li>✅ Tokenization</li>
+<li>✅ Crowdfunding</li>
+<li>✅ <strong>Token Vendor</strong>（本次）</li>
+<li>⏳ Dice Game</li>
+</ul>
+<p><strong>Ethereum 101 完成后推荐方向</strong>：</p>
+<ul>
+<li>🚀 <strong>Build a DEX</strong> — 流动性池 + 恒定乘积（<code>x*y=k</code>），把 Vendor 的固定汇率升级成动态定价</li>
+<li>🔮 <strong>Oracles</strong> — 链下数据（价格、天气）怎么上链</li>
+<li>💰 <strong>Over-Collateralized Lending</strong> — DeFi 借贷基础（Aave 简化版）</li>
+<li>🎲 <strong>Dice Game</strong> — 链上随机数 + commit-reveal</li>
+<li>🔐 <strong>ZK Proofs</strong> — 零知识证明入门</li>
+</ul>
+<p><strong>Token Vendor → DEX 的核心跳跃</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">固定汇率        →  动态定价曲线</span><br><span class="line">1 ETH = 100 GLD →  x * y = k</span><br><span class="line">单一价格        →  根据流动性深度自动调整</span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="📝-SpeedRunEthereum-提交记录"><a href="#📝-SpeedRunEthereum-提交记录" class="headerlink" title="📝 SpeedRunEthereum 提交记录"></a>📝 SpeedRunEthereum 提交记录</h2><ul>
+<li><input checked="" disabled="" type="checkbox"> Vercel URL: <a class="link"   target="_blank" rel="noopener" href="https://token-vendor-ky.vercel.app/" >https://token-vendor-ky.vercel.app<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li><input checked="" disabled="" type="checkbox"> Sepolia 合约：<ul>
+<li>YourToken: <code>0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9</code></li>
+<li>Vendor: <code>0x657F8DC030c2756CFA4649695f9b8ED640f4554B</code></li>
+</ul>
+</li>
+<li><input checked="" disabled="" type="checkbox"> SpeedRunEthereum 状态：ACCEPTED（Ethereum 101 · 3&#x2F;4）</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> SpeedRunEthereum 靶场学习笔记 03：Token Vendor</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2026-06-23 09:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-06-23 09:00:00
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2026/06/23/SpeedRunEthereum 靶场学习笔记 03：Token Vendor/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Solidity/">#Solidity</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/SpeedRunEthereum/">#SpeedRunEthereum</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Scaffold-ETH-2/">#Scaffold-ETH 2</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Foundry/">#Foundry</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/ERC-20/">#ERC-20</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DeFi/">#DeFi</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/06/22/SpeedRunEthereum%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9ACrowdfunding/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">SpeedRunEthereum 靶场学习笔记 02：Crowdfunding</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">SpeedRunEthereum 靶场学习笔记 03：Token Vendor</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%8B-%E9%A1%B9%E7%9B%AE%E6%80%BB%E8%A7%88"><span class="nav-text">📋 项目总览</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9C%9F%E5%AE%9E%E5%9C%BA%E6%99%AF"><span class="nav-text">真实场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%9A%80-%E9%83%A8%E7%BD%B2%E4%BF%A1%E6%81%AF%EF%BC%88%E6%88%91%E7%9A%84-Sepolia-%E4%B8%8A%E7%BA%BF%EF%BC%89"><span class="nav-text">🚀 部署信息（我的 Sepolia 上线）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%93%BE%E4%B8%8A%E9%AA%8C%E8%AF%81%E6%95%B0%E6%8D%AE"><span class="nav-text">链上验证数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%9C-%E6%9C%80%E7%BB%88%E5%90%88%E7%BA%A6%E4%BB%A3%E7%A0%81"><span class="nav-text">📜 最终合约代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#YourToken-sol"><span class="nav-text">YourToken.sol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Vendor-sol"><span class="nav-text">Vendor.sol</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%A7%A0-%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86%E7%82%B9"><span class="nav-text">🧠 核心知识点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%A4%9A%E7%A7%8D%E5%9C%B0%E5%9D%80%E8%A7%92%E8%89%B2"><span class="nav-text">1. 多种地址角色</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-ERC-20-%E5%9F%BA%E7%A1%80"><span class="nav-text">2. ERC-20 基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-payable-%E4%B8%8E-msg-value"><span class="nav-text">3. payable 与 msg.value</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Custom-Errors%EF%BC%88%E8%87%AA%E5%AE%9A%E4%B9%89%E9%94%99%E8%AF%AF%EF%BC%89"><span class="nav-text">4. Custom Errors（自定义错误）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-indexed-%E4%BA%8B%E4%BB%B6%E5%8F%82%E6%95%B0"><span class="nav-text">5. indexed 事件参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-ERC-20-%E8%BD%AC%E8%B4%A6%E6%96%B9%E5%90%91"><span class="nav-text">6. ERC-20 转账方向</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-approve-transferFrom-%E6%A8%A1%E5%BC%8F-%E2%AD%90%E2%AD%90%E2%AD%90"><span class="nav-text">7. approve &#x2F; transferFrom 模式 ⭐⭐⭐</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-%E6%95%B4%E6%95%B0%E9%99%A4%E6%B3%95%E7%9A%84%E2%80%9D%E5%8F%96%E6%95%B4%E9%99%B7%E9%98%B1%E2%80%9D"><span class="nav-text">8. 整数除法的”取整陷阱”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-call-value-%E5%8F%91-ETH%EF%BC%88%E7%8E%B0%E4%BB%A3%E6%A0%87%E5%87%86%EF%BC%89"><span class="nav-text">9. call{value:...}(&quot;&quot;) 发 ETH（现代标准）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-Ownable-%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6"><span class="nav-text">10. Ownable 访问控制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-Emit-%E9%A1%BA%E5%BA%8F%EF%BC%9A%E5%85%88%E5%81%9A%E5%AE%8C%EF%BC%8C%E6%9C%80%E5%90%8E%E5%8F%91%E4%BA%8B%E4%BB%B6"><span class="nav-text">11. Emit 顺序：先做完，最后发事件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%9B%A0%EF%B8%8F-%E5%AE%8C%E6%95%B4%E4%B8%8A%E7%BA%BF%E6%B5%81%E7%A8%8B"><span class="nav-text">🛠️ 完整上线流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-0%EF%BC%9A%E7%8E%AF%E5%A2%83"><span class="nav-text">Checkpoint 0：环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AI-%E5%BC%95%E5%AF%BC%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%BC%8F"><span class="nav-text">AI 引导学习模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Foundry-%E6%B5%8B%E8%AF%95%E5%91%BD%E4%BB%A4"><span class="nav-text">Foundry 测试命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%93%B8-%E6%9C%AC%E5%9C%B0%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%B5%8B%E8%AF%95%E6%88%AA%E5%9B%BE"><span class="nav-text">📸 本地端到端测试截图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8A%E7%BA%BF-Sepolia"><span class="nav-text">上线 Sepolia</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%90%9B-%E5%AE%9E%E6%88%98%E8%B8%A9%E8%BF%87%E7%9A%84%E5%9D%91"><span class="nav-text">🐛 实战踩过的坑</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E2%9D%8C-%E9%94%99%E8%AF%AF%E6%8B%BC%E5%86%99-InvaildTokenAmount"><span class="nav-text">1. ❌ 错误拼写 InvaildTokenAmount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E2%9D%8C-Foundry-MetaMask-nonce-%E5%86%B2%E7%AA%81"><span class="nav-text">2. ❌ Foundry + MetaMask nonce 冲突</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E2%9D%8C-%E9%83%A8%E7%BD%B2%E8%84%9A%E6%9C%AC-broadcast-%E5%A4%B1%E8%B4%A5%E4%BD%86-simulation-%E6%88%90%E5%8A%9F"><span class="nav-text">3. ❌ 部署脚本 broadcast 失败但 simulation 成功</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E2%9D%8C-Vercel-build-%E5%A4%B1%E8%B4%A5%EF%BC%9AisSellEventsLoading-is-not-defined"><span class="nav-text">4. ❌ Vercel build 失败：isSellEventsLoading is not defined</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E2%9D%8C-%E5%89%8D%E7%AB%AF-Buy-Tokens-%E6%8C%89%E9%92%AE%E6%B2%A1%E5%87%BA%E7%8E%B0"><span class="nav-text">5. ❌ 前端 Buy Tokens 按钮没出现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E2%9D%8C-Foundry-%E9%BB%98%E8%AE%A4-keystore-vs-%E4%BD%A0%E7%9A%84-keystore"><span class="nav-text">6. ❌ Foundry 默认 keystore vs 你的 keystore</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E2%9D%8C-Vercel-targetNetworks-chains-foundry"><span class="nav-text">7. ❌ Vercel targetNetworks: [chains.foundry]</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%92%A1-%E5%85%B3%E9%94%AE%E5%BF%83%E5%BE%97"><span class="nav-text">💡 关键心得</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%94%97-%E6%9C%89%E7%94%A8%E7%9A%84%E9%93%BE%E6%8E%A5"><span class="nav-text">🔗 有用的链接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%81-%E9%A1%B9%E7%9B%AE%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="nav-text">📁 项目文件结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%8E%93-%E5%AE%8C%E6%88%90%E8%AE%B0%E5%BD%95-%E4%B8%8B%E4%B8%80%E6%AD%A5"><span class="nav-text">🎓 完成记录 &amp; 下一步</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%9D-SpeedRunEthereum-%E6%8F%90%E4%BA%A4%E8%AE%B0%E5%BD%95"><span class="nav-text">📝 SpeedRunEthereum 提交记录</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 66 篇文章
+                    </span>
+                    
+                        <span>
+                            共 147.4k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
+</body>
+
+</html>
