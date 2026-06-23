@@ -518,15 +518,15 @@
 
         <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">55</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">65</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">16</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">62</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">65</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -557,15 +557,15 @@
 </div>
                 <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">55</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">65</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">16</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">62</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">65</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -613,6 +613,215 @@
 			<div class="main-content">
 				<div class="home-content-container">
     <ul class="home-article-list">
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2023/10/29/ORW%20%E9%A2%98%E5%9E%8B/">
+                            ORW
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            最近复现强网杯2021赛题[shellcode]有感，特意来学习一下有关orw原理中缺少某些函数的情况如何进行ORW禁用沙箱规则我在之前提到过 [[prctl-seccomp]]参考了大佬!https://www.jianshu.com/p/754b0a2ae353
+普通 ORW
+32 位
+1234567891011121314151617181920212223242526272829; "/home/orw/flag\x00" 保存到栈上  ; 小端序  ; 要注意给字符串结尾加上 '\x00'  pus...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Oct 29 2023 15:14:29 GMT+0800">
+                
+                    2023-10-29
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/pwn-%E8%BF%9B%E9%98%B6/">pwn 进阶</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/orw/">orw</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2023/10/29/ORW%20%E9%A2%98%E5%9E%8B/">阅读全文<span class="seo-reader-text">ORW</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2023/10/22/Glibc%E5%A0%86%E5%88%A9%E7%94%A8%E4%B9%8Bhouse%20of%20%E7%B3%BB%E5%88%97/">
+                            Glibc堆利用之house of 系列
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            转载自Glibc堆利用之house of系列总结 - roderick - record and learn! (roderickchan.cn)
+1 - 前言Glibc 的 house of 系列攻击手法基于都是围绕着堆利用和 IO FILE 利用。还有很多堆利用手法也非常经典，但是由于其没有被冠以 house of xxxx，故没有收录到本文中。如果想学习所有的详细的堆攻击手法，强烈建议 follow 仓库 how2heap进行学习。我相信，只要把 how2heap 里面的每一个堆利用手法都学懂学透了，g...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Oct 22 2023 15:14:29 GMT+0800">
+                
+                    2023-10-22
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/heap/">heap</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/House-of-%E7%B3%BB%E5%88%97/">House of 系列</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2023/10/22/Glibc%E5%A0%86%E5%88%A9%E7%94%A8%E4%B9%8Bhouse%20of%20%E7%B3%BB%E5%88%97/">阅读全文<span class="seo-reader-text">Glibc堆利用之house of 系列</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2023/10/15/IO_File%E5%88%A9%E7%94%A8/">
+                            IO_File的利用
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            【PWN】IO_FILE的利用此篇简单的学习一下IO_File的利用
+IO_FILE 的结构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162struct _IO_FILE &#123;  int _flags;       /* High-order word is _IO_MAGIC; rest is flags. */#def...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Oct 15 2023 15:14:29 GMT+0800">
+                
+                    2023-10-15
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/IO-File/">IO_File</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/IO-File/">IO_File</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2023/10/15/IO_File%E5%88%A9%E7%94%A8/">阅读全文<span class="seo-reader-text">IO_File的利用</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
         
             <li class="home-article-item">
 
@@ -904,224 +1113,11 @@
                 </div>
             </li>
         
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/09/10/LLVM%20PASS%20PWN%EF%BC%88%E4%B8%80%EF%BC%89/">
-                            LLVM PASS PWN（一）
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            LLVM PASS PWN（一）前置知识简述为什么要编译程序机器语言是用1和0组成的代码，但机器是识别不了1和0的，更具体的是如何识别的呢？对机器电路进行设计之后，机器能识别高电平还是低电平，刚好与2进制很相似，想输入0就给机器输入低电平，想输入1，就给机器输入高电平，所以就看到了1和0的表示形式
-机器语言它是计算机唯一能识别和执行的语言，但它的直观性差，可读性差，比如一串11110000111100001111机器可以快速识别是什么但是我们很难理解，再比如我们想要在屏幕上输出hello world那我们该如...
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Sep 10 2023 15:14:29 GMT+0800">
-                
-                    2023-09-10
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/LLVM-PASS-PWN%EF%BC%88%E4%B8%80%EF%BC%89/">LLVM PASS PWN（一）</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/09/10/LLVM%20PASS%20PWN%EF%BC%88%E4%B8%80%EF%BC%89/">阅读全文<span class="seo-reader-text">LLVM PASS PWN（一）</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/09/03/LLVM%20PASS%20PWN%20(%E4%BA%8C)/">
-                            LLVM PASS PWN（二）
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            LLVM PASS PWN（二）
-
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Sep 03 2023 15:14:29 GMT+0800">
-                
-                    2023-09-03
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/LLVM-PASS-PWN/">LLVM PASS PWN</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/LLVM-PASS-PWN%EF%BC%88%E4%BA%8C%EF%BC%89/">LLVM PASS PWN（二）</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/09/03/LLVM%20PASS%20PWN%20(%E4%BA%8C)/">阅读全文<span class="seo-reader-text">LLVM PASS PWN（二）</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/08/27/ret2dlresolve%E5%AD%A6%E4%B9%A0/">
-                            ret2dlresolve
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            借鉴文档：【精选】ret2dlresolve超详细教程(x86&amp;x64)-CSDN博客
-x86前置知识在Linux中，程序使用_dl_runtime_resolve(link_map,reloc_offset)来对动态链接的函数进行重定位。
-而ret2dlresolve攻击的核心就是控制相应的参数及其对应地址的内容，从而控制解析的函数。
-延迟绑定机制第一次调用一个函数时，先是到plt表，然后jmp到got表
-image.png
-此时got表存的地址是在plt表上
-image.png
-其实也就是jmp ...
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Aug 27 2023 15:14:29 GMT+0800">
-                
-                    2023-08-27
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/pwn-%E8%BF%9B%E9%98%B6/">pwn 进阶</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/ret2dlresolve/">ret2dlresolve</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/08/27/ret2dlresolve%E5%AD%A6%E4%B9%A0/">阅读全文<span class="seo-reader-text">ret2dlresolve</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
     </ul>
 
     <div class="home-paginator px-7 py-5">
         <div class="paginator">
-	<a class="extend prev" rel="prev" href="/page/5/"><i class="fa-regular fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/7/"><i class="fa-regular fa-angle-right"></i></a>
+	<a class="extend prev" rel="prev" href="/page/5/"><i class="fa-regular fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><span class="page-number current">6</span><a class="page-number" href="/page/7/">7</a><a class="page-number" href="/page/8/">8</a><span class="space">&hellip;</span><a class="page-number" href="/page/10/">10</a><a class="extend next" rel="next" href="/page/7/"><i class="fa-regular fa-angle-right"></i></a>
 </div>
   
     </div>
@@ -1149,11 +1145,11 @@ image.png
                 
                 <p class="post-count space-x-0.5">
                     <span>
-                        共撰写了 62 篇文章
+                        共撰写了 65 篇文章
                     </span>
                     
                         <span>
-                            共 134.3k 字
+                            共 143.3k 字
                         </span>
                     
                 </p>
