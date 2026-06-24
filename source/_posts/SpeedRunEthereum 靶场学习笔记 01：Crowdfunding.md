@@ -1,7 +1,7 @@
 ---
-title: "SpeedRunEthereum 靶场学习笔记 02：Crowdfunding"
+title: "SpeedRunEthereum 靶场学习笔记 01：Crowdfunding"
 date: 2026-06-22 09:00:00
-updated: 2026-06-22 09:00:00
+updated: 2026-06-24 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -14,12 +14,12 @@ tags:
   - "合约安全"
 abbrlink: "speedrunethereum-crowdfunding"
 ---
-> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第二关 Crowdfunding 聚焦去中心化众筹合约：贡献记账、退款、截止时间、状态机推进、CEI 防重入、Sepolia 部署、Etherscan 验证和前端上线。
+> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第 1 关 Crowdfunding 聚焦去中心化众筹合约：贡献记账、退款、截止时间、状态机推进、CEI 防重入、Sepolia 部署、Etherscan 验证和前端上线。
 
 - 关卡：Crowdfunding
 - 完成日期：2026/06/22
 - 状态：✅ ACCEPTED（+10 XP）
-- Ethereum 101 进度：2/4
+- Ethereum 101 系列进度：✅ 4/4
 - 框架：Foundry
 
 ## 本关目标
@@ -431,6 +431,6 @@ challenge-crowdfunding/
 - Foundry 文档：https://book.getfoundry.sh
 - Solidity 文档：https://docs.soliditylang.org
 
-## 下一步
+## 系列进度与后续方向
 
-Ethereum 101 后续可以继续做 Token Vendor 和 Dice Game。Advanced 部分建议重点看 Build a DEX，因为它会把 ERC-20、AMM、流动性池和恒定乘积公式串起来，是理解 DeFi 的核心入口。
+Ethereum 101 的 Token Vendor 和 Dice Game 也已完成，当前进度为 4/4。Advanced 部分可以继续研究 Build a DEX，把 ERC-20、AMM、流动性池和恒定乘积公式串起来，作为理解 DeFi 的后续入口。

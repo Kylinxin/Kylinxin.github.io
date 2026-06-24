@@ -518,7 +518,7 @@
 
         <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -526,7 +526,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">66</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -557,7 +557,7 @@
 </div>
                 <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -565,7 +565,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">66</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -613,6 +613,75 @@
 			<div class="main-content">
 				<div class="home-content-container">
     <ul class="home-article-list">
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2023/06/18/House%20of%20Force/">
+                            House of Force
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            House Of Force（控制top_chunk）（基础）
+参考资料：CTF-wiki：https://ctf-wiki.github.io/ctf-wiki/pwn/linux/glibc-heap/house_of_force-zh/附件下载：链接: https://pan.baidu.com/s/1NiEZbuBUCFJrMOjqlazPUA  密码: np57–来自百度网盘超级会员V3的分享    House Of Force是一种堆的利用方法，其主要原理是控制heap中的top_chunk并ma...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Sun Jun 18 2023 15:14:29 GMT+0800">
+                
+                    2023-06-18
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/heap/">heap</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/House-of-%E7%B3%BB%E5%88%97/">House of 系列</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2023/06/18/House%20of%20Force/">阅读全文<span class="seo-reader-text">House of Force</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
         
             <li class="home-article-item">
 
@@ -1019,77 +1088,6 @@ main函数可以看到是实现了四个功能，增改删查
                 </div>
             </li>
         
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/04/30/House%20of%20Lore/">
-                            Tcache Stashing Unlink Attack（House of Lore）
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            如果从fastbins中malloc-一个freechunk时，glibc会做以下两个检测：
-Tcache Stashing Unlink Attack利用了House of Lore的一些手段，两者都是利用了small bin
-House of Lore
-House of Lore 攻击与 Glibc 堆管理中的 Small Bin 的机制紧密相关。House of Lore 可以实现分配任意指定位置的 chunk，从而修改任意地址的内存。House of Lore 利用的前提是需要控制 Small Bin...
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Apr 30 2023 15:14:29 GMT+0800">
-                
-                    2023-04-30
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/heap/">heap</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/House-of-%E7%B3%BB%E5%88%97/">House of 系列</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/04/30/House%20of%20Lore/">阅读全文<span class="seo-reader-text">Tcache Stashing Unlink Attack（House of Lore）</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
     </ul>
 
     <div class="home-paginator px-7 py-5">
@@ -1122,11 +1120,11 @@ House of Lore 攻击与 Glibc 堆管理中的 Small Bin 的机制紧密相关。
                 
                 <p class="post-count space-x-0.5">
                     <span>
-                        共撰写了 66 篇文章
+                        共撰写了 67 篇文章
                     </span>
                     
                         <span>
-                            共 147.4k 字
+                            共 151.3k 字
                         </span>
                     
                 </p>

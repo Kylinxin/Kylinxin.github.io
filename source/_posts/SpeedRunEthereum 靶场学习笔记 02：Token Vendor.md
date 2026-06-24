@@ -1,7 +1,7 @@
 ---
-title: "SpeedRunEthereum 靶场学习笔记 03：Token Vendor"
+title: "SpeedRunEthereum 靶场学习笔记 02：Token Vendor"
 date: 2026-06-23 09:00:00
-updated: 2026-06-23 09:00:00
+updated: 2026-06-24 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -14,10 +14,10 @@ tags:
   - "DeFi"
 abbrlink: "speedrunethereum-token-vendor"
 ---
-> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第三关 Token Vendor 聚焦 ERC-20、固定汇率买卖、approve / transferFrom 授权、Ownable 权限控制、Sepolia 部署、Etherscan 验证和前端上线。
+> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第 2 关 Token Vendor 聚焦 ERC-20、固定汇率买卖、approve / transferFrom 授权、Ownable 权限控制、Sepolia 部署、Etherscan 验证和前端上线。
 
 > **Challenge**: [speedrunethereum.com/challenge/token-vendor](https://speedrunethereum.com/challenge/token-vendor)
-> **状态**: ✅ ACCEPTED (Ethereum 101 · 3/4)
+> **状态**: ✅ ACCEPTED（Ethereum 101 · 4/4）
 > **框架**: Foundry
 > **日期**: 2026/06/23
 > **XP**: +10
@@ -435,25 +435,25 @@ yarn test --match-test 'Checkpoint4'      # sellTokens
 
 **1. 部署完，前端刷新前**——只显示余额，看不到 Buy 按钮（因为前端区块还是注释）：
 
-![本地链初始状态：Your token balance 0.0000 GLD，Buy 按钮还没出现](/images/speedrunethereum/03-token-vendor-01-balance-zero.png)
+![本地链初始状态：Your token balance 0.0000 GLD，Buy 按钮还没出现](/images/speedrunethereum/02-token-vendor-01-balance-zero.png)
 
 > 此时 `packages/nextjs/app/token-vendor/page.tsx` 里 Buy Tokens 区块还是 `/* ... */` 注释状态——合约部署成功了，但前端 UI 没解锁。
 
 **2. 解锁前端后，buy 110 GLD 成功**——4 个区块全部显示，数字自洽（987.9 + 12.1 = 1000）：
 
-![buy 成功，Your balance 110 GLD，Vendor token 890 GLD，Vendor ETH 1.1 ETH](/images/speedrunethereum/03-token-vendor-02-buy-success.png)
+![buy 成功，Your balance 110 GLD，Vendor token 890 GLD，Vendor ETH 1.1 ETH](/images/speedrunethereum/02-token-vendor-02-buy-success.png)
 
 **3. Debug Contracts + MetaMask**——确认合约 owner 是前端钱包：
 
-![owner() 返回 0x7FB2...77f7（用户 MetaMask），yourToken 指向 0x82Dc...AccC，Vendor 余额 0](/images/speedrunethereum/03-token-vendor-03-owner-metamask.png)
+![owner() 返回 0x7FB2...77f7（用户 MetaMask），yourToken 指向 0x82Dc...AccC，Vendor 余额 0](/images/speedrunethereum/02-token-vendor-03-owner-metamask.png)
 
 **4. MetaMask 网络配置**——Chain ID 31337，RPC `127.0.0.1:8545`：
 
-![MetaMask 编辑网络：Localhost / 127.0.0.1:8545 / Chain ID 31337 / ETH](/images/speedrunethereum/03-token-vendor-04-localhost-network.png)
+![MetaMask 编辑网络：Localhost / 127.0.0.1:8545 / Chain ID 31337 / ETH](/images/speedrunethereum/02-token-vendor-04-localhost-network.png)
 
 **5. 完整端到端 4 区块**——Your / Vendor Balances / Buy / Sell 都工作：
 
-![完整 UI：Your balance 987.9 GLD，Vendor token 12.1，Vendor ETH 9.879，Buy 输入 900，Transfer + Sell 区块可见](/images/speedrunethereum/03-token-vendor-05-end-to-end.png)
+![完整 UI：Your balance 987.9 GLD，Vendor token 12.1，Vendor ETH 9.879，Buy 输入 900，Transfer + Sell 区块可见](/images/speedrunethereum/02-token-vendor-05-end-to-end.png)
 
 ---
 
@@ -708,19 +708,18 @@ challenge-token-vendor/
 
 ---
 
-## 🎓 完成记录 & 下一步
+## 🎓 Ethereum 101 完成记录
 
-**Ethereum 101 进度**：3/4
+**Ethereum 101 当前进度**：4/4
 - ✅ Tokenization
 - ✅ Crowdfunding
 - ✅ **Token Vendor**（本次）
-- ⏳ Dice Game
+- ✅ Dice Game
 
 **Ethereum 101 完成后推荐方向**：
 - 🚀 **Build a DEX** — 流动性池 + 恒定乘积（`x*y=k`），把 Vendor 的固定汇率升级成动态定价
 - 🔮 **Oracles** — 链下数据（价格、天气）怎么上链
 - 💰 **Over-Collateralized Lending** — DeFi 借贷基础（Aave 简化版）
-- 🎲 **Dice Game** — 链上随机数 + commit-reveal
 - 🔐 **ZK Proofs** — 零知识证明入门
 
 **Token Vendor → DEX 的核心跳跃**：
@@ -734,8 +733,8 @@ challenge-token-vendor/
 
 ## 📝 SpeedRunEthereum 提交记录
 
-- [x] Vercel URL: https://token-vendor-ky.vercel.app
-- [x] Sepolia 合约：
+- ✅ Vercel URL: https://token-vendor-ky.vercel.app
+- ✅ Sepolia 合约：
   - YourToken: `0x24ac227C28D204cD0Be8eE602Ef64c0549d03ed9`
   - Vendor: `0x657F8DC030c2756CFA4649695f9b8ED640f4554B`
-- [x] SpeedRunEthereum 状态：ACCEPTED（Ethereum 101 · 3/4）
+- ✅ SpeedRunEthereum 状态：本关 ACCEPTED；系列当前 4/4

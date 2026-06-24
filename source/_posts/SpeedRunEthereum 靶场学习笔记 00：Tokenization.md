@@ -1,7 +1,7 @@
 ---
-title: "SpeedRunEthereum 靶场学习笔记 01：Tokenization"
+title: "SpeedRunEthereum 靶场学习笔记 00：Tokenization"
 date: 2026-06-21 09:00:00
-updated: 2026-06-21 09:00:00
+updated: 2026-06-24 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -13,12 +13,12 @@ tags:
   - "NFT"
 abbrlink: "speedrunethereum-tokenization"
 ---
-> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第一关 Tokenization 聚焦 NFT 全栈开发：合约编写、测试、本地交互、Sepolia 部署、Etherscan 验证、Vercel 上线，以及最终提交通关。
+> 这是我的 SpeedRunEthereum 靶场个人学习笔记。第 0 关 Tokenization 聚焦 NFT 全栈开发：合约编写、测试、本地交互、Sepolia 部署、Etherscan 验证、Vercel 上线，以及最终提交通关。
 
 - 关卡：Tokenization
 - 完成日期：2026/06/21
 - 状态：✅ ACCEPTED（+10 XP）
-- Ethereum 101 进度：1/4
+- Ethereum 101 系列进度：✅ 4/4
 
 ## 本关目标
 
@@ -548,9 +548,9 @@ anvil
 7. IPFS metadata 的链上链下边界。
 8. 部署钱包、用户钱包、burner wallet 的角色区分。
 
-## 下一关方向
+## 系列路线
 
-后续 SpeedRunEthereum 可以继续按专题推进：
+SpeedRunEthereum Ethereum 101 系列现已按以下专题全部完成；表中的 Advanced 主题作为后续学习方向：
 
 | 挑战 | 主题 | 难度 |
 | --- | --- | --- |

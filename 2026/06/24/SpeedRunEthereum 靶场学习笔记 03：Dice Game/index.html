@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Kylinxin, security, Web3, Rust, pwn, CTF">
+    
+    
+    <meta name="author" content="Kylinxin">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://kylinxin.github.io/2026/06/24/speedrunethereum 靶场学习笔记 03：dice game/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpeedRunEthereum 靶场学习笔记 03：Dice Game">
+<meta property="og:url" content="https://kylinxin.github.io/2026/06/24/SpeedRunEthereum%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2003%EF%BC%9ADice%20Game/index.html">
+<meta property="og:site_name" content="Kylinxin&#39;s Blog">
+<meta property="og:description" content="Kylinxin&#39;s notes on security, Web3, systems, and programming.">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kylinxin.github.io/images/avatar.jpg">
+<meta property="article:published_time" content="2026-06-24T01:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-24T01:00:00.000Z">
+<meta property="article:author" content="Kylinxin">
+<meta property="article:tag" content="Solidity">
+<meta property="article:tag" content="SpeedRunEthereum">
+<meta property="article:tag" content="Foundry">
+<meta property="article:tag" content="Scaffold-ETH 2">
+<meta property="article:tag" content="合约安全">
+<meta property="article:tag" content="链上随机数">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kylinxin.github.io/images/avatar.jpg">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/favicon.ico" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <!--- Page Info-->
+    
+    <title>
+        
+            SpeedRunEthereum 靶场学习笔记 03：Dice Game | Kylinxin&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"kylinxin.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.75,"image_border_radius":"10px","image_alignment":"center","image_caption":true,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3rem","h2":"2.4rem","h3":"1.9rem","h4":"1.5rem","h5":"1.25rem","h6":"1.1rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":["Kylinxin"]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"tokyo-night-dark"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":true,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":"#2F4858","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1120px","sidebar_width":"240px","hover":{"shadow":true,"scale":true},"scroll_progress":{"bar":true,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/avatar.jpg","description":"Kylinxin's notes on security, Web3, systems, and programming."},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Kylinxin's Blog","subtitle":{"text":["Security notes, exploit writeups, and engineering traces.","Web3, Rust, systems, and learning records.","Write, break, rebuild, and document."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":70,"backing_speed":45,"starting_delay":350,"backing_delay":1800,"loop":true,"smart_backspace":true},"text_color":{"light":"#ffffff","dark":"#f4efe7"},"text_style":{"title_size":"3rem","subtitle_size":"1.25rem","line_height":1.25},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"center","links":[{"icon":"fa-brands fa-github","url":"https://github.com/Kylinxin"},{"icon":"fa-solid fa-rss","url":"/atom.xml"},{"icon":"fa-solid fa-at","url":null},{"icon":"fa-brands fa-telegram","url":null},{"icon":"/images/custom-icon.svg","url":null}],"qrs":[{"icon":"fa-brands fa-weixin","qr":null},{"icon":"/images/custom-icon.svg","qr":null}]}},"plugins":{"feed":{"enable":true},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#141821","right":"#A31F34","transparency":28},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives/","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories/","icon":"fa-regular fa-folder-open"},"Tags":{"path":"/tags/","icon":"fa-regular fa-tags"},"Friends":{"path":"/friends/","icon":"fa-regular fa-link"},"About":{"path":"/about/","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":3,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"info","announcement":"CTF / Pwn / Web3 / Rust / notes","show_on_mobile":true,"links":{"GitHub":{"path":"https://github.com/Kylinxin","icon":"fa-brands fa-github"},"RSS":{"path":"/atom.xml","icon":"fa-solid fa-rss"}}},"article_date_format":"YYYY-MM-DD","excerpt_length":260,"categories":{"enable":true,"limit":4},"tags":{"enable":true,"limit":5}},"footer":{"runtime":false,"icon":"<i class=\"fa-solid fa-shield-halved\" style=\"color: #A31F34\"></i>","start":"2023/4/9 00:00:00","statistics":true,"customize":"Built with Hexo and Redefine.","icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/4/9 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="Kylinxin's Blog" type="application/atom+xml">
+</head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+	<span class="scroll-progress-bar"></span>
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Kylinxin&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives/"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories/"
+                                        >
+                                    <i class="fa-regular fa-folder-open fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags/"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/friends/"
+                                        >
+                                    <i class="fa-regular fa-link fa-fw"></i>
+                                    友情链接
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about/"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives/"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories/"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder-open fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags/"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/friends/"
+                        >
+                            <span>
+                                友情链接
+                            </span>
+                            
+                                <i class="fa-regular fa-link fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about/"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           target="_blank" rel="noopener" href="https://github.com/Kylinxin"
+                        >
+                            <span>GitHub</span>
+                            <i class="fa-brands fa-github fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/atom.xml"
+                        >
+                            <span>RSS</span>
+                            <i class="fa-solid fa-rss fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">17</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">SpeedRunEthereum 靶场学习笔记 03：Dice Game</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Kylinxin</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Kylinxin</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-06-24 09:00</span>
+        <span class="mobile">2026-06-24 09:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-06-24 09:00</span>
+            <span class="mobile">2026-06-24 09:00</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%BC%80%E5%8F%91/">区块链开发</a>&nbsp;
+                        </li>
+                    
+                    
+                
+                    
+                        
+                            <li>></li>
+                        
+                        <li>
+                            <a href="/categories/%E5%8C%BA%E5%9D%97%E9%93%BE%E5%BC%80%E5%8F%91/SpeedRunEthereum/">SpeedRunEthereum</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Solidity/">Solidity</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/SpeedRunEthereum/">SpeedRunEthereum</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Foundry/">Foundry</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Scaffold-ETH-2/">Scaffold-ETH 2</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">合约安全</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E9%93%BE%E4%B8%8A%E9%9A%8F%E6%9C%BA%E6%95%B0/">链上随机数</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+        <span class="article-wordcount article-meta-item">
+            <i class="fa-regular fa-typewriter"></i>&nbsp;<span>3.9k 字</span>
+        </span>
+    
+    
+        <span class="article-min2read article-meta-item">
+            <i class="fa-regular fa-clock"></i>&nbsp;<span>16 分钟</span>
+        </span>
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<blockquote>
+<p>这是我的 SpeedRunEthereum 靶场个人学习笔记。第 3 关 Dice Game 聚焦可预测的链上随机数、同交易攻击、ETH 接收、Ownable 权限控制，以及从本地测试到 Sepolia 和 Vercel 的完整部署流程。</p>
+</blockquote>
+<blockquote>
+<p><strong>Challenge</strong>: <a class="link"   target="_blank" rel="noopener" href="https://speedrunethereum.com/challenge/dice-game" >speedrunethereum.com&#x2F;challenge&#x2F;dice-game<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a><br><strong>状态</strong>: ✅ ACCEPTED（Ethereum 101 · 4&#x2F;4；8&#x2F;8 本地测试、Sepolia 部署、Etherscan 验证、Vercel 上线和靶场提交均已完成）<br><strong>框架</strong>: Foundry<br><strong>日期</strong>: 2026&#x2F;06&#x2F;24<br><strong>XP</strong>: +10（Ethereum 101 · 4&#x2F;4）</p>
+</blockquote>
+<hr>
+<h2 id="🚀-部署信息（我的-Sepolia-上线）"><a href="#🚀-部署信息（我的-Sepolia-上线）" class="headerlink" title="🚀 部署信息（我的 Sepolia 上线）"></a>🚀 部署信息（我的 Sepolia 上线）</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DiceGame</strong></td>
+<td><code>0x452a44a69a831D6EeeA1a890Cb35dbEE46B4d8aF</code></td>
+</tr>
+<tr>
+<td><strong>RiggedRoll</strong></td>
+<td><code>0xD231ba0a1FbD4A4A459a1B4A46BA6383Ae5D0Bc8</code></td>
+</tr>
+<tr>
+<td><strong>Deployer 账户</strong></td>
+<td><code>0x6d1cD1d9F7226De5af18a7f9fD64E3aA6e81ca04</code>（<code>kylinxin</code> keystore）</td>
+</tr>
+<tr>
+<td><strong>Vercel 生产</strong></td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://dicegame-o88gj1h72-spacex3.vercel.app/" >https://dicegame-o88gj1h72-spacex3.vercel.app<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>Vercel 别名</strong></td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://dicegame-ky.vercel.app/" >https://dicegame-ky.vercel.app<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>Vercel 项目</strong></td>
+<td><code>spacex3/dicegame-ky</code></td>
+</tr>
+<tr>
+<td><strong>网络</strong></td>
+<td>Sepolia（chain id 11155111）</td>
+</tr>
+<tr>
+<td><strong>部署区块</strong></td>
+<td>11128616</td>
+</tr>
+</tbody></table>
+<h3 id="部署交易"><a href="#部署交易" class="headerlink" title="部署交易"></a>部署交易</h3><table>
+<thead>
+<tr>
+<th>合约</th>
+<th>Tx Hash</th>
+<th>Gas</th>
+<th>费用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>DiceGame</strong></td>
+<td><code>0x1abec1c633e03d0d9524f70111219dd3a52af936fc7a9ac0024c69ca47868604</code></td>
+<td>272,763</td>
+<td>0.000293829 ETH</td>
+</tr>
+<tr>
+<td><strong>RiggedRoll</strong></td>
+<td><code>0x0803646835d3c9b0f02540baac1ca315349ff7cd1d44a349e94f15a504f4b91c</code></td>
+<td>395,764</td>
+<td>0.000426329 ETH</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td>—</td>
+<td>668,527</td>
+<td><strong>0.000720159 ETH</strong></td>
+</tr>
+</tbody></table>
+<h3 id="部署时实际命令"><a href="#部署时实际命令" class="headerlink" title="部署时实际命令"></a>部署时实际命令</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">yarn deploy --network sepolia</span><br><span class="line"><span class="comment"># 选择 #2 = kylinxin keystore，输入密码</span></span><br><span class="line"><span class="comment"># 编译（No files changed, compilation skipped）</span></span><br><span class="line"><span class="comment"># 自动脚本：构造 + 部署 + 广播</span></span><br></pre></td></tr></table></figure></div>
+
+<blockquote>
+<p>部署走 <code>DeployDiceGame.s.sol</code>，会自动：</p>
+<ol>
+<li><code>new DiceGame&#123; value: 0.05 ether &#125;()</code> 部署 + 注资</li>
+<li><code>new RiggedRoll(payable(address(diceGame)))</code> 部署 RiggedRoll</li>
+<li>按部署脚本完成 <code>RiggedRoll</code> 所有权设置</li>
+</ol>
+</blockquote>
+<h3 id="Etherscan-链接"><a href="#Etherscan-链接" class="headerlink" title="Etherscan 链接"></a>Etherscan 链接</h3><ul>
+<li>DiceGame: <a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/address/0x452a44a69a831D6EeeA1a890Cb35dbEE46B4d8aF" >https://sepolia.etherscan.io/address/0x452a44a69a831D6EeeA1a890Cb35dbEE46B4d8aF<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>RiggedRoll: <a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/address/0xD231ba0a1FbD4A4A459a1B4A46BA6383Ae5D0Bc8" >https://sepolia.etherscan.io/address/0xD231ba0a1FbD4A4A459a1B4A46BA6383Ae5D0Bc8<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Deploy Tx 1 (DiceGame): <a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/tx/0x1abec1c633e03d0d9524f70111219dd3a52af936fc7a9ac0024c69ca47868604" >https://sepolia.etherscan.io/tx/0x1abec1c633e03d0d9524f70111219dd3a52af936fc7a9ac0024c69ca47868604<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Deploy Tx 2 (RiggedRoll): <a class="link"   target="_blank" rel="noopener" href="https://sepolia.etherscan.io/tx/0x0803646835d3c9b0f02540baac1ca315349ff7cd1d44a349e94f15a504f4b91c" >https://sepolia.etherscan.io/tx/0x0803646835d3c9b0f02540baac1ca315349ff7cd1d44a349e94f15a504f4b91c<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+</ul>
+<h3 id="Vercel-部署"><a href="#Vercel-部署" class="headerlink" title="Vercel 部署"></a>Vercel 部署</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">yarn vercel --prod</span><br><span class="line"><span class="comment"># 设置和部署确认：是</span></span><br><span class="line"><span class="comment"># 范围：zz</span></span><br><span class="line"><span class="comment"># 链接到已有项目：否（创建新项目）</span></span><br><span class="line"><span class="comment"># 项目名：dicegame-ky</span></span><br><span class="line"><span class="comment"># 代码目录：./</span></span><br><span class="line"><span class="comment"># 修改项目设置：否</span></span><br><span class="line"><span class="comment"># ✅ Production: https://dicegame-o88gj1h72-spacex3.vercel.app</span></span><br><span class="line"><span class="comment"># 🔗 Aliased: https://dicegame-ky.vercel.app</span></span><br></pre></td></tr></table></figure></div>
+
+<blockquote>
+<p>线上配置已将 <code>packages/nextjs/scaffold.config.ts</code> 的 <code>targetNetwork</code> 设为 <code>chains.sepolia</code>，Vercel 前端连接 Sepolia。</p>
+</blockquote>
+<hr>
+<h2 id="📋-项目总览"><a href="#📋-项目总览" class="headerlink" title="📋 项目总览"></a>📋 项目总览</h2><p>链上掷骰子游戏 + <strong>攻击者合约</strong>。<code>DiceGame</code> 是”庄家”（出题人提供，DO NOT EDIT），我们要写一个 <code>RiggedRoll</code> 来<strong>预测随机数</strong>、<strong>只赢才掷</strong>。</p>
+<h3 id="教学价值（这个挑战想让你懂的）"><a href="#教学价值（这个挑战想让你懂的）" class="headerlink" title="教学价值（这个挑战想让你懂的）"></a>教学价值（这个挑战想让你懂的）</h3><ol>
+<li><strong>合约怎么收 ETH</strong> —— <code>receive() external payable</code></li>
+<li><strong>同交易攻击</strong>（same-tx attack）—— 合约内同步读取的公开链上数据不能充当不可预测随机源</li>
+<li><strong><code>Ownable</code> 访问控制</strong> —— 谁能动钱，谁不能动</li>
+<li><strong><code>call&#123;value: ...&#125;</code></strong> 转账及其返回值检查</li>
+<li><strong>为什么不能用 <code>blockhash</code> 做随机</strong> —— NFT 公平 mint &#x2F; DeFi 清算 &#x2F; 抽奖全踩过这个坑</li>
+</ol>
+<blockquote>
+<p><strong>关键洞察</strong>：本题使用的上一块 <code>blockhash</code>、合约地址和公开 <code>nonce</code> 都能被攻击合约在调用前复算。同理，<code>block.prevrandao</code>、<code>block.timestamp</code> 等当前交易可读数据也不能单独作为安全随机源；需要使用 <a class="link"   target="_blank" rel="noopener" href="https://docs.chain.link/vrf" >Chainlink VRF<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>、commit-reveal 等方案引入不可预先获知的信息。</p>
+</blockquote>
+<hr>
+<h2 id="🎲-游戏规则"><a href="#🎲-游戏规则" class="headerlink" title="🎲 游戏规则"></a>🎲 游戏规则</h2><p><code>DiceGame</code> 合约（<code>packages/foundry/contracts/DiceGame.sol</code>）：</p>
+<ul>
+<li>玩家每次必须付 <strong>0.002 ETH</strong> 才能掷一次</li>
+<li>合约掷出 <strong>0–15</strong> 的”随机数”</li>
+<li><strong>点数 ≤ 5</strong>（6&#x2F;16 ≈ 37.5% 胜率）→ <strong>玩家赢</strong></li>
+<li>否则 → 玩家输，钱归合约</li>
+</ul>
+<h3 id="钱怎么分"><a href="#钱怎么分" class="headerlink" title="钱怎么分"></a>钱怎么分</h3><p>每次 0.002 ETH 拆成：</p>
+<table>
+<thead>
+<tr>
+<th>比例</th>
+<th>金额</th>
+<th>去向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>40%</td>
+<td>0.0008 ETH</td>
+<td>滚入<strong>奖池</strong>（给未来赢家）</td>
+</tr>
+<tr>
+<td>60%</td>
+<td>0.0012 ETH</td>
+<td><strong>庄家抽水</strong>，永远留在合约里</td>
+</tr>
+</tbody></table>
+<h3 id="赢的瞬间"><a href="#赢的瞬间" class="headerlink" title="赢的瞬间"></a>赢的瞬间</h3><ul>
+<li>赢家<strong>一次性拿走整个当前奖池</strong></li>
+<li>奖池<strong>重置</strong>为「合约余额的 10%」（庄家把之前抽的水又压回去）</li>
+<li>发起新一局，奖池重新积累</li>
+</ul>
+<hr>
+<h2 id="🐛-漏洞在哪里"><a href="#🐛-漏洞在哪里" class="headerlink" title="🐛 漏洞在哪里"></a>🐛 漏洞在哪里</h2><p>DiceGame 算”随机数”的方式：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">bytes32 prevHash = blockhash(block.number - 1);</span><br><span class="line">bytes32 hash = keccak256(abi.encodePacked(prevHash, address(this), nonce));</span><br><span class="line">uint256 roll = uint256(hash) % 16;</span><br></pre></td></tr></table></figure></div>
+
+<p>看起来随机，但<strong>三个输入全是公开的</strong>：</p>
+<ul>
+<li><code>blockhash(block.number - 1)</code> —— 任何人都能读</li>
+<li><code>address(this)</code> —— 合约地址，公开</li>
+<li><code>nonce</code> —— 公开的 state variable</li>
+</ul>
+<p>所以<strong>另一个合约可以在同一笔交易里”算一遍”</strong> DiceGame 会算出的数。<strong>只在自己必胜的时候才付 0.002 ETH 去掷</strong>。</p>
+<blockquote>
+<p>这就是”庄家模式” —— 知道自己掷出啥，&gt; 5 就 revert，≤ 5 才花那 0.002 ETH。</p>
+</blockquote>
+<hr>
+<h2 id="📜-最终合约代码（RiggedRoll-sol）"><a href="#📜-最终合约代码（RiggedRoll-sol）" class="headerlink" title="📜 最终合约代码（RiggedRoll.sol）"></a>📜 最终合约代码（<code>RiggedRoll.sol</code>）</h2><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity &gt;=0.8.0 &lt;0.9.0;</span><br><span class="line"></span><br><span class="line">import &quot;./DiceGame.sol&quot;;</span><br><span class="line">import &quot;@openzeppelin/contracts/access/Ownable.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract RiggedRoll is Ownable &#123;</span><br><span class="line">    /////////////////</span><br><span class="line">    /// Errors //////</span><br><span class="line">    /////////////////</span><br><span class="line">    error NotEnoughETH(uint256 required, uint256 available);</span><br><span class="line">    error NotWinningRoll(uint256 roll);</span><br><span class="line">    error InsufficientBalance(uint256 required, uint256 available);</span><br><span class="line"></span><br><span class="line">    //////////////////////</span><br><span class="line">    /// State Variables //</span><br><span class="line">    //////////////////////</span><br><span class="line">    DiceGame public diceGame;</span><br><span class="line"></span><br><span class="line">    ///////////////////</span><br><span class="line">    /// Constructor ///</span><br><span class="line">    ///////////////////</span><br><span class="line">    constructor(address payable diceGameAddress) Ownable(msg.sender) &#123;</span><br><span class="line">        diceGame = DiceGame(diceGameAddress);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ///////////////////</span><br><span class="line">    /// Functions /////</span><br><span class="line">    ///////////////////</span><br><span class="line"></span><br><span class="line">    // Checkpoint 2: 预测 + 只赢才掷</span><br><span class="line">    function riggedRoll() external &#123;</span><br><span class="line">        uint256 required = 0.002 ether;</span><br><span class="line">        if (address(this).balance &lt; required) &#123;</span><br><span class="line">            revert NotEnoughETH(required, address(this).balance);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        // 复刻 DiceGame 的随机数计算</span><br><span class="line">        bytes32 prevHash = blockhash(block.number - 1);</span><br><span class="line">        bytes32 hash = keccak256(abi.encodePacked(prevHash, address(diceGame), diceGame.nonce()));</span><br><span class="line">        uint256 roll = uint256(hash) % 16;</span><br><span class="line"></span><br><span class="line">        if (roll &gt; 5) &#123;</span><br><span class="line">            revert NotWinningRoll(roll);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        diceGame.rollTheDice&#123;value: required&#125;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Checkpoint 1: 接收 ETH</span><br><span class="line">    receive() external payable &#123;</span><br><span class="line">        // This function is called when the contract receives Ether</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Checkpoint 3: 提现</span><br><span class="line">    function withdraw(address _addr, uint256 _amount) external onlyOwner &#123;</span><br><span class="line">        if (address(this).balance &lt; _amount) &#123;</span><br><span class="line">            revert InsufficientBalance(_amount, address(this).balance);</span><br><span class="line">        &#125;</span><br><span class="line">        // 用 call 把 _amount 发给 _addr</span><br><span class="line">        (bool success, ) = _addr.call&#123;value: _amount&#125;(&quot;&quot;);</span><br><span class="line">        require(success, &quot;Transfer failed.&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="💡-几个值得记的小细节"><a href="#💡-几个值得记的小细节" class="headerlink" title="💡 几个值得记的小细节"></a>💡 几个值得记的小细节</h3><ul>
+<li><strong><code>receive()</code> 没有 <code>function</code> 关键字</strong> —— 它是 Solidity 的特殊函数</li>
+<li><strong><code>_addr.call&#123;value: _amount&#125;(&quot;&quot;)</code> 走的是 <code>address</code> 类型</strong>，不需要先转 <code>payable(address)</code></li>
+<li><strong><code>Ownable(msg.sender)</code> 在构造时把 deployer 设为初始 owner</strong></li>
+<li><strong>错误参数名和 interface 不一致也无所谓</strong> —— Solidity 自定义错误的 selector 只看名字，不看参数名</li>
+</ul>
+<hr>
+<h2 id="🎓-教学流程回顾"><a href="#🎓-教学流程回顾" class="headerlink" title="🎓 教学流程回顾"></a>🎓 教学流程回顾</h2><h3 id="Checkpoint-1：Receiving-ETH（receive-）"><a href="#Checkpoint-1：Receiving-ETH（receive-）" class="headerlink" title="Checkpoint 1：Receiving ETH（receive()）"></a>Checkpoint 1：Receiving ETH（<code>receive()</code>）</h3><p><strong>问题</strong>：如果 RiggedRoll 没有 <code>receive()</code>，DiceGame 发奖时会发生什么？</p>
+<p><strong>答</strong>：DiceGame 向 RiggedRoll 发放奖金时会触发裸 ETH 转账；如果没有 <code>receive() external payable</code>，收款会 revert，整笔中奖交易也会失败。</p>
+<p><strong>验证结论</strong>：✅ <code>receive()</code>、裸 ETH 转账与 revert 传播关系均已确认。</p>
+<p><strong>关键概念</strong>：</p>
+<ul>
+<li>合约默认<strong>收不到 ETH</strong></li>
+<li><code>receive() external payable &#123;&#125;</code> 是接收”裸 ETH”（无 calldata）的入口</li>
+<li>没有 <code>receive()</code> 时，<strong>转账会 revert</strong>，整笔交易失败</li>
+</ul>
+<hr>
+<h3 id="Checkpoint-2：Predicting-Randomness（riggedRoll-）"><a href="#Checkpoint-2：Predicting-Randomness（riggedRoll-）" class="headerlink" title="Checkpoint 2：Predicting Randomness（riggedRoll()）"></a>Checkpoint 2：Predicting Randomness（<code>riggedRoll()</code>）</h3><p><strong>问题</strong>：为什么 RiggedRoll 能预测 DiceGame 的”随机”数？</p>
+<p><strong>答（教学版）</strong>：</p>
+<ul>
+<li>同一笔交易 &#x2F; 同一区块，三个输入（<code>blockhash</code>、<code>address</code>、<code>nonce</code>）<strong>全是公开的</strong></li>
+<li>在调用 <code>rollTheDice()</code> <strong>之前</strong>就能算出 roll 值</li>
+<li>≤ 5 才掷，&gt; 5 直接 revert，省 0.002 ETH</li>
+</ul>
+<p><strong>代码逻辑顺序</strong>：</p>
+<ol>
+<li>余额检查 → <code>NotEnoughETH</code></li>
+<li>复刻哈希计算</li>
+<li><code>roll &gt; 5</code> → <code>NotWinningRoll</code></li>
+<li><code>diceGame.rollTheDice&#123;value: required&#125;()</code></li>
+</ol>
+<hr>
+<h3 id="Checkpoint-3：Withdrawing-Funds（withdraw-）"><a href="#Checkpoint-3：Withdrawing-Funds（withdraw-）" class="headerlink" title="Checkpoint 3：Withdrawing Funds（withdraw()）"></a>Checkpoint 3：Withdrawing Funds（<code>withdraw()</code>）</h3><p><strong>问题</strong>：为什么 <code>withdraw()</code> 必须有 <code>onlyOwner</code>？</p>
+<p><strong>答</strong>：没有的话任何人都能调，钱会被抽光（drain）</p>
+<p><strong>实现细节</strong>：</p>
+<ul>
+<li>余额检查用自定义错误 <code>InsufficientBalance</code>（更省 gas + 信息更丰富）</li>
+<li>用 <code>_addr.call&#123;value: _amount&#125;(&quot;&quot;)</code> 而不是 <code>.transfer()</code>（后者只转发 2300 gas，会让合约钱包卡住）</li>
+<li>必须 <code>require(success, ...)</code> 检查返回值</li>
+</ul>
+<hr>
+<h2 id="📊-资金会计模型（4-玩家例子）"><a href="#📊-资金会计模型（4-玩家例子）" class="headerlink" title="📊 资金会计模型（4 玩家例子）"></a>📊 资金会计模型（4 玩家例子）</h2><p>合约部署时 <code>constructor() payable</code> 注资 <strong>0.05 ETH</strong>。<br><code>resetPrize()</code> 在 constructor 里执行一次，初始 <code>prize = 0.05 * 10% = 0.005 ETH</code>。</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>操作</th>
+<th>合约余额</th>
+<th>奖池 (prize)</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始</td>
+<td>—</td>
+<td>0.05</td>
+<td>0.005</td>
+<td>constructor 注资 + resetPrize</td>
+</tr>
+<tr>
+<td>Roll 1</td>
+<td>Alice 付 0.002，掷 11（<strong>输</strong>）</td>
+<td>0.052</td>
+<td>0.0058</td>
+<td>prize +&#x3D; 0.0008，return</td>
+</tr>
+<tr>
+<td>Roll 2</td>
+<td>Bob 付 0.002，掷 9（<strong>输</strong>）</td>
+<td>0.054</td>
+<td>0.0066</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>Roll 3</td>
+<td>Charlie 付 0.002，掷 3（<strong>赢</strong>）</td>
+<td>0.056 → 0.0486</td>
+<td>0.0074 → 0.00486</td>
+<td>发奖后 resetPrize &#x3D; 0.0486 × 10%</td>
+</tr>
+<tr>
+<td>Roll 4</td>
+<td>Dave 付 0.002，掷 8（<strong>输</strong>）</td>
+<td>0.0506</td>
+<td>0.00566</td>
+<td>新一局开始累积</td>
+</tr>
+</tbody></table>
+<h3 id="关键洞察"><a href="#关键洞察" class="headerlink" title="关键洞察"></a>关键洞察</h3><ol>
+<li><strong>奖池 ≠ 合约余额</strong> —— 合约余额 &#x3D; 奖池 + 累计庄家抽水 + 初始注资</li>
+<li><strong>赢的人拿走的是「更新后的 prize」</strong> —— 自己的 40% 也算进去了</li>
+<li><strong><code>resetPrize()</code> 公式</strong>：<code>prize = address(this).balance * 10%</code>，所以<strong>重置后立刻变小</strong>（因为刚发完奖，余额缩水）</li>
+<li><strong>越晚赢越赚</strong> —— 奖池会随着输家持续投入而膨胀</li>
+</ol>
+<h3 id="算式"><a href="#算式" class="headerlink" title="算式"></a>算式</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">每次 roll:</span><br><span class="line">  msg.value = 0.002 ETH</span><br><span class="line">  prize_delta = 0.002 × 40% = 0.0008 ETH</span><br><span class="line">  house_delta = 0.002 × 60% = 0.0012 ETH</span><br><span class="line">  contract_balance_delta = 0.002 ETH</span><br><span class="line"></span><br><span class="line">赢了:</span><br><span class="line">  发奖 amount = prize</span><br><span class="line">  contract_balance -= amount</span><br><span class="line">  prize = contract_balance × 10%   ← resetPrize</span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="🧪-本地端到端测试流程（实战）"><a href="#🧪-本地端到端测试流程（实战）" class="headerlink" title="🧪 本地端到端测试流程（实战）"></a>🧪 本地端到端测试流程（实战）</h2><h3 id="准备阶段"><a href="#准备阶段" class="headerlink" title="准备阶段"></a>准备阶段</h3><h4 id="⚠️-调整-A：前端启用-“Rigged-Roll-”-按钮"><a href="#⚠️-调整-A：前端启用-“Rigged-Roll-”-按钮" class="headerlink" title="⚠️ 调整 A：前端启用 “Rigged Roll!” 按钮"></a>⚠️ 调整 A：前端启用 “Rigged Roll!” 按钮</h4><p><code>packages/nextjs/app/dice/page.tsx</code> 第 153–170 行的 <code>&lt;button&gt;</code> 默认被 <code>&#123;/* ... */&#125;</code> 注释。解开它：</p>
+<div class="code-container" data-rel="Tsx"><figure class="iseeu highlight tsx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="comment">/* 改之前 */</span>&#125;</span><br><span class="line">&#123;<span class="comment">/* &lt;button onClick=&#123;...&#125;&gt;Rigged Roll!&lt;/button&gt; */</span>&#125;</span><br><span class="line"></span><br><span class="line">&#123;<span class="comment">/* 改之后 */</span>&#125;</span><br><span class="line">&lt;button</span><br><span class="line">  onClick=&#123;<span class="title function_">async</span> () =&gt; &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">await</span> <span class="title function_">writeRiggedRollAsync</span>(&#123; <span class="attr">functionName</span>: <span class="string">&quot;riggedRoll&quot;</span> &#125;);</span><br><span class="line">    ...</span><br><span class="line">  &#125;&#125;</span><br><span class="line">  className=<span class="string">&quot;mt-2 btn btn-secondary btn-xl normal-case font-xl text-lg&quot;</span></span><br><span class="line">&gt;</span><br><span class="line">  <span class="title class_">Rigged</span> <span class="title class_">Roll</span>!</span><br><span class="line">&lt;/button&gt;</span><br></pre></td></tr></table></figure></div>
+
+<h4 id="⚠️-调整-B：部署脚本把-owner-转给前端地址"><a href="#⚠️-调整-B：部署脚本把-owner-转给前端地址" class="headerlink" title="⚠️ 调整 B：部署脚本把 owner 转给前端地址"></a>⚠️ 调整 B：部署脚本把 owner 转给前端地址</h4><p><code>packages/foundry/script/DeployDiceGame.s.sol</code> 默认 owner 是 Anvil deployer（不是浏览器钱包）。改完才能用前端调 <code>withdraw</code>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// Uncomment to deploy RiggedRoll contract</span><br><span class="line">RiggedRoll riggedRoll = new RiggedRoll(payable(address(diceGame)));</span><br><span class="line">// console.logString(string.concat(&quot;RiggedRoll deployed at: &quot;, vm.toString(address(riggedRoll))));</span><br><span class="line"></span><br><span class="line">// 把 owner 转给前端钱包</span><br><span class="line">riggedRoll.transferOwnership(0x7FB24f7c6BE7fE61dA353E2A0fE38b310aE71f17);</span><br></pre></td></tr></table></figure></div>
+
+<blockquote>
+<p>替换成你自己的前端钱包地址（连上 MetaMask 后右上角能看到）。</p>
+</blockquote>
+<h3 id="启动三个终端"><a href="#启动三个终端" class="headerlink" title="启动三个终端"></a>启动三个终端</h3><table>
+<thead>
+<tr>
+<th>终端</th>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A</td>
+<td><code>yarn chain</code></td>
+<td>本地 Anvil 链（:8545）</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>yarn deploy --reset</code></td>
+<td>重新部署</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>yarn start</code></td>
+<td>Next.js 前端（:3000）</td>
+</tr>
+</tbody></table>
+<h3 id="浏览器演练"><a href="#浏览器演练" class="headerlink" title="浏览器演练"></a>浏览器演练</h3><ol>
+<li>打开 <a class="link"   target="_blank" rel="noopener" href="http://localhost:3000/" >http://localhost:3000<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> → 连接 MetaMask</li>
+<li>左下角 <strong>Faucet</strong> 给自己充点 ETH</li>
+<li><strong>手动 roll 几次</strong> <code>Roll the dice!</code> —— 让奖池涨起来</li>
+<li><strong>给 RiggedRoll 充钱</strong>：用 MetaMask Send 0.01 ETH 给 RiggedRoll 地址</li>
+<li>点 <strong>“Rigged Roll!”</strong>：<ul>
+<li>预测到 &gt; 5 → MetaMask 里<strong>直接 Failed</strong>，0.002 ETH 不动</li>
+<li>预测到 ≤ 5 → 成功，拿走当前奖池</li>
+</ul>
+</li>
+<li>切到 Debug Contracts 调 <code>withdraw(我的地址, 余额)</code> 提现</li>
+</ol>
+<hr>
+<h2 id="🐞-实战中踩过的坑（重要）"><a href="#🐞-实战中踩过的坑（重要）" class="headerlink" title="🐞 实战中踩过的坑（重要）"></a>🐞 实战中踩过的坑（<strong>重要</strong>）</h2><h3 id="坑-1：Debug-Contracts-看不到-receive"><a href="#坑-1：Debug-Contracts-看不到-receive" class="headerlink" title="坑 1：Debug Contracts 看不到 receive()"></a>坑 1：Debug Contracts 看不到 <code>receive()</code></h3><p><strong>现象</strong>：在 <code>RiggedRoll</code> 的 Write 方法列表里没有 <code>receive()</code></p>
+<p><strong>原因</strong>：<code>receive()</code> 是 Solidity 特殊函数，<strong>不通过函数选择器触发</strong>，Debug UI 只列可主动调用的方法</p>
+<p><strong>解决</strong>：直接用 MetaMask Send ETH 给合约地址，或 <code>cast send</code> 低层调用</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-01-debug-no-receive.png"
+                      alt="Debug Contracts 页面，RiggedRoll 没有 receive 函数"
+                ><figcaption>Debug Contracts 页面，RiggedRoll 没有 receive 函数</figcaption></figure></p>
+<h3 id="坑-2：调-withdraw-报-OwnableUnauthorizedAccount"><a href="#坑-2：调-withdraw-报-OwnableUnauthorizedAccount" class="headerlink" title="坑 2：调 withdraw 报 OwnableUnauthorizedAccount"></a>坑 2：调 <code>withdraw</code> 报 <code>OwnableUnauthorizedAccount</code></h3><p><strong>现象</strong>：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">The contract function &quot;withdraw&quot; reverted with the following reason:</span><br><span class="line">OwnableUnauthorizedAccount(0x7FB24f7c6BE7fE61dA353E2A0fE38b310aE71f17)</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>原因</strong>：前端钱包 <code>0x7FB2...7f17</code> 不是 owner。owner 是 Anvil deployer <code>0xa0Ee...7F17</code>（部署脚本默认账户）</p>
+<p><strong>两条解决路</strong>：</p>
+<ul>
+<li><strong>A（推荐）</strong>：从 deployer 调 <code>transferOwnership(0x7FB2...7f17)</code>，把 owner 转给前端</li>
+<li><strong>B</strong>：从 deployer 直接调 <code>withdraw</code>（不需要改 owner，但每次都要切到 deployer 账户）</li>
+</ul>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-02-withdraw-unauthorized.png"
+                      alt="withdraw 失败的截图"
+                ><figcaption>withdraw 失败的截图</figcaption></figure></p>
+<h3 id="坑-3：dApp-顶部连接的地址-≠-MetaMask-账户"><a href="#坑-3：dApp-顶部连接的地址-≠-MetaMask-账户" class="headerlink" title="坑 3：dApp 顶部连接的地址 ≠ MetaMask 账户"></a>坑 3：dApp 顶部连接的地址 ≠ MetaMask 账户</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>dApp 顶部显示 <code>0xf39F...2286</code>（Anvil index 0）</li>
+<li>MetaMask 切到了 <code>0xa0Ee...7F17</code>（deployer）</li>
+<li>调任何交易都是从 <code>0xf39F...2286</code> 发起 → 失败</li>
+</ul>
+<p><strong>原因</strong>：dApp 缓存了上次的连接，没跟着 MetaMask 切换</p>
+<p><strong>解决</strong>：</p>
+<ol>
+<li>dApp 顶部点连接按钮 → <strong>Disconnect</strong></li>
+<li>重新 <strong>Connect Wallet</strong></li>
+<li>MetaMask 弹窗里<strong>选择正确的账户</strong>（这次是 <code>0xa0Ee...7F17</code>）</li>
+<li>确认后 dApp 顶部才会更新</li>
+</ol>
+<blockquote>
+<p>⚠️ 还有一个更隐蔽的信号：MetaMask 右下角 “localhost:3000 &#x2F; Not connected” —— 如果显示 “Not connected”，说明根本没连上</p>
+</blockquote>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-04-dapp-metamask-mismatch.png"
+                      alt="dApp 显示 0xf39F 但 MetaMask 是 0xa0Ee"
+                ><figcaption>dApp 显示 0xf39F 但 MetaMask 是 0xa0Ee</figcaption></figure></p>
+<h3 id="坑-4：导入-Anvil-deployer-私钥到-MetaMask"><a href="#坑-4：导入-Anvil-deployer-私钥到-MetaMask" class="headerlink" title="坑 4：导入 Anvil deployer 私钥到 MetaMask"></a>坑 4：导入 Anvil deployer 私钥到 MetaMask</h3><p><strong>私钥</strong>（来自 <code>packages/foundry/Makefile</code> 的 <code>setup-anvil-wallet</code>）：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6</span><br></pre></td></tr></table></figure></div>
+
+<p><strong>对应地址</strong>：<code>0xa0Ee66B62968fAd9D267Ae52d8a116D71f5C7F17</code>（Anvil index 9）</p>
+<blockquote>
+<p>⚠️ <strong>这只是本地 Anvil 测试链的私钥</strong>，<strong>永远不要</strong>在主网或存有真实资产的账户上用这个私钥！</p>
+</blockquote>
+<h3 id="坑-5：用-0xa0Ee-调-transferOwnership-给自己，还是失败"><a href="#坑-5：用-0xa0Ee-调-transferOwnership-给自己，还是失败" class="headerlink" title="坑 5：用 0xa0Ee 调 transferOwnership 给自己，还是失败"></a>坑 5：用 <code>0xa0Ee</code> 调 <code>transferOwnership</code> 给自己，还是失败</h3><p><strong>现象</strong>：从 deployer 调 <code>transferOwnership(0x7FB2)</code> 报错 <code>OwnableUnauthorizedAccount(0xa0Ee...)</code></p>
+<p><strong>原因</strong>：<code>transferOwnership</code> 自己也有 <code>onlyOwner</code> 保护，必须<strong>当前 owner</strong>（也是 deployer）才能调。看起来”我给自己转”语义怪，但代码就是要 owner 才能改 owner</p>
+<p><strong>解决</strong>：从 <code>0xa0Ee</code> 调 <code>transferOwnership(0x7FB2)</code> 是<strong>对的</strong>，错的是发起的账户不是 <code>0xa0Ee</code>（参见坑 3）</p>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-03-transfer-ownership-fail.png"
+                      alt="transferOwnership 失败的截图"
+                ><figcaption>transferOwnership 失败的截图</figcaption></figure></p>
+<h3 id="坑-6：调-riggedRoll-反复是同一个数字（如-13）"><a href="#坑-6：调-riggedRoll-反复是同一个数字（如-13）" class="headerlink" title="坑 6：调 riggedRoll 反复是同一个数字（如 13）"></a>坑 6：调 <code>riggedRoll</code> 反复是同一个数字（如 13）</h3><p><strong>现象</strong>：连点几下 <code>riggedRoll</code> Send，每次都 <code>NotWinningRoll(13)</code></p>
+<p><strong>原因</strong>：<code>riggedRoll</code> 算的是 <code>blockhash(block.number - 1)</code>，<strong>只有新区块才变</strong>。空区块 &#x2F; 同区块连点 → 输入没变 → 输出永远是 13</p>
+<p><strong>解决</strong>（任选一）：</p>
+<ul>
+<li><strong>方法 1（推荐）</strong>：先点 “Roll the dice!” 输一次 → 新区块 + nonce++ → 下次 riggedRoll 就是新数</li>
+<li><strong>方法 2</strong>：等几秒，等 Anvil 自己挖新区块</li>
+<li><strong>方法 3</strong>：用 Debug Contracts 在 DiceGame 上调一次 <code>rollTheDice</code></li>
+</ul>
+<blockquote>
+<p>看到 <code>NotWinningRoll(13)</code> <strong>不要慌</strong>——这是合约在<strong>主动放弃</strong>会输的掷骰，保护你的 0.002 ETH</p>
+</blockquote>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-07-not-winning-roll-13.png"
+                      alt="riggedRoll 反复 NotWinningRoll(13)"
+                ><figcaption>riggedRoll 反复 NotWinningRoll(13)</figcaption></figure></p>
+<h3 id="坑-7：roll-7-没有-revert"><a href="#坑-7：roll-7-没有-revert" class="headerlink" title="坑 7：roll 7 没有 revert"></a>坑 7：roll 7 没有 revert</h3><p><strong>现象</strong>：用 “Roll the dice!” 按钮掷出 7（&gt; 5），交易<strong>正常 confirm</strong> 没有 revert</p>
+<p><strong>原因</strong>：这个按钮调的是 <code>DiceGame.rollTheDice()</code> <strong>直接调用</strong>，没有预测逻辑。输赢都正常扣钱</p>
+<blockquote>
+<p><strong>关键区分</strong>：</p>
+<ul>
+<li><strong>“Roll the dice!”</strong> → 普通玩家模式，输赢都扣钱，不 revert</li>
+<li><strong>“Rigged Roll!”</strong> → 庄家模式，预测会输就 revert</li>
+</ul>
+</blockquote>
+<p><figure class="image-caption"><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-06-roll-7-no-revert.png"
+                      alt="普通 Roll the dice 按钮掷出 7，没 revert"
+                ><figcaption>普通 Roll the dice 按钮掷出 7，没 revert</figcaption></figure></p>
+<h3 id="坑-8：withdraw-提完钱后-riggedRoll-报错-NotEnoughETH"><a href="#坑-8：withdraw-提完钱后-riggedRoll-报错-NotEnoughETH" class="headerlink" title="坑 8：withdraw 提完钱后 riggedRoll 报错 NotEnoughETH"></a>坑 8：<code>withdraw</code> 提完钱后 <code>riggedRoll</code> 报错 <code>NotEnoughETH</code></h3><p><strong>现象</strong>：提完 1.002 ETH 后再点 <code>riggedRoll</code> → <code>revert NotEnoughETH(0.002 ether, 0)</code></p>
+<p><strong>原因</strong>：合约余额 &#x3D; 0，没钱支付 roll 费</p>
+<p><strong>解决</strong>：用 MetaMask Send 0.01 ETH 给 RiggedRoll 充钱再试</p>
+<hr>
+<h2 id="✅-成功截图：transferOwnership-withdraw-全部-Confirmed"><a href="#✅-成功截图：transferOwnership-withdraw-全部-Confirmed" class="headerlink" title="✅ 成功截图：transferOwnership + withdraw 全部 Confirmed"></a>✅ 成功截图：transferOwnership + withdraw 全部 Confirmed</h2><p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/speedrunethereum/03-dicegame-05-success.png"
+                     
+                ></p>
+<ul>
+<li>✅ <code>owner</code> 字段 &#x3D; dApp 顶部的 <code>0xa0Ee...9720</code></li>
+<li>✅ RiggedRoll Balance &#x3D; <code>0.0000 ETH</code>（钱全提走）</li>
+<li>✅ MetaMask Activity 里 <code>Withdraw</code> + <code>Transfer Ownership</code> 都 Confirmed</li>
+</ul>
+<hr>
+<h2 id="🧪-测试结果"><a href="#🧪-测试结果" class="headerlink" title="🧪 测试结果"></a>🧪 测试结果</h2><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ yarn <span class="built_in">test</span></span><br><span class="line">Ran 8 tests <span class="keyword">for</span> <span class="built_in">test</span>/RiggedRoll.t.sol:RiggedRollTest</span><br><span class="line">[PASS] test_Checkpoint1_ShouldAcceptETHTransfers() (gas: 5651)</span><br><span class="line">[PASS] test_Checkpoint2_ShouldCallRollTheDiceForWinningRoll() (gas: 66238)</span><br><span class="line">[PASS] test_Checkpoint2_ShouldDeployContracts() (gas: 9984)</span><br><span class="line">[PASS] test_Checkpoint2_ShouldNotCallRollTheDiceForLosingRoll() (gas: 63245)</span><br><span class="line">[PASS] test_Checkpoint2_ShouldRevertIfBalanceLessThanRollAmount() (gas: 8653)</span><br><span class="line">[PASS] test_Checkpoint2_ShouldTransferSufficientETH() (gas: 5673)</span><br><span class="line">[PASS] test_Checkpoint3_ShouldRevertWithdrawWhenAmountExceedsBalance() (gas: 12130)</span><br><span class="line">[PASS] test_Checkpoint3_ShouldWithdrawFunds() (gas: 21062)</span><br><span class="line">Suite result: ok. 8 passed; 0 failed; 0 skipped</span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="🪞-反思-进阶思考"><a href="#🪞-反思-进阶思考" class="headerlink" title="🪞 反思 &amp; 进阶思考"></a>🪞 反思 &amp; 进阶思考</h2><h3 id="1-为什么-blockhash-不安全？（深度）"><a href="#1-为什么-blockhash-不安全？（深度）" class="headerlink" title="1. 为什么 blockhash 不安全？（深度）"></a>1. 为什么 <code>blockhash</code> 不安全？（深度）</h3><p>在 EVM 里：</p>
+<ul>
+<li><code>block.number</code> 是<strong>确定</strong>的（当前块号）</li>
+<li><code>blockhash(block.number - 1)</code> 是<strong>最近 256 个块</strong>之一</li>
+<li>一个区块一旦产出，<code>blockhash</code> 就<strong>永远不变</strong></li>
+<li>在<strong>同一笔交易</strong>里，<code>block.number</code> 是定值 → <code>blockhash</code> 是定值</li>
+</ul>
+<p>所以<strong>任何同区块的合约都能算出</strong>你的”随机数”。这是 EVM <strong>同步性</strong>带来的根本限制。</p>
+<h3 id="2-生产环境怎么做随机？"><a href="#2-生产环境怎么做随机？" class="headerlink" title="2. 生产环境怎么做随机？"></a>2. 生产环境怎么做随机？</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>原理</th>
+<th>代表</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Chainlink VRF</strong></td>
+<td>链下 oracle 生成 + 链上验证（密码学证明）</td>
+<td><a class="link"   target="_blank" rel="noopener" href="https://docs.chain.link/vrf" >chain.link&#x2F;vrf<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></td>
+</tr>
+<tr>
+<td><strong>Commit-Reveal</strong></td>
+<td>玩家先提交 hash → 后揭示原数 → 防止同区块偷窥</td>
+<td>Kleros 陪审员抽选</td>
+</tr>
+<tr>
+<td><strong>RANDAO</strong></td>
+<td>用验证者的 BLS 签名做种</td>
+<td>以太坊 PoS beacon chain</td>
+</tr>
+<tr>
+<td><strong>API3 QRNG</strong></td>
+<td>量子随机数 + 链上验证</td>
+<td>API3</td>
+</tr>
+</tbody></table>
+<h3 id="3-攻击成立的边界"><a href="#3-攻击成立的边界" class="headerlink" title="3. 攻击成立的边界"></a>3. 攻击成立的边界</h3><p>RiggedRoll 的关键不是抢跑，而是在同一笔交易中先复算、后调用。只要 DiceGame 与攻击合约使用相同的 <code>blockhash</code>、目标地址和 <code>nonce</code>，预测结果就一致；新区块或 <code>nonce</code> 变化后必须重新计算。这个边界也解释了为什么失败预测会直接 revert，而不是继续支付 0.002 ETH。</p>
+<h3 id="4-当前实现的设计边界"><a href="#4-当前实现的设计边界" class="headerlink" title="4. 当前实现的设计边界"></a>4. 当前实现的设计边界</h3><p>本次实现严格遵循挑战接口：<code>riggedRoll()</code> 使用合约已有余额支付 roll 费，<code>withdraw(address,uint256)</code> 由 <code>onlyOwner</code> 保护并支持按金额提现。没有额外加入 <code>payable</code> 入口或 <code>emergencyWithdraw</code>，避免改变题目要求的调用方式和测试接口。</p>
+<hr>
+<h2 id="📚-真实系统中的同类风险"><a href="#📚-真实系统中的同类风险" class="headerlink" title="📚 真实系统中的同类风险"></a>📚 真实系统中的同类风险</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>不安全做法</th>
+<th>可能后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NFT 随机铸造</td>
+<td>用 <code>blockhash</code>、区块号或时间戳决定稀有度</td>
+<td>铸造结果可被模拟和选择</td>
+</tr>
+<tr>
+<td>链上抽奖</td>
+<td>用公开链上变量直接计算中奖号码</td>
+<td>攻击合约只在中奖时参与</td>
+</tr>
+<tr>
+<td>DeFi 排序敏感逻辑</td>
+<td>把交易顺序或当前区块数据当作不可操纵输入</td>
+<td>搜索者或区块构建者可利用排序获利</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>经验法则</strong>：<strong>永远不要</strong>用任何链上数据（<code>blockhash</code>、<code>block.timestamp</code>、<code>block.prevrandao</code>、<code>difficulty</code>）做随机源。能被同区块合约算出来的东西就不是”随机”。</p>
+</blockquote>
+<hr>
+<h2 id="🎯-部署与提交完成记录"><a href="#🎯-部署与提交完成记录" class="headerlink" title="🎯 部署与提交完成记录"></a>🎯 部署与提交完成记录</h2><ul>
+<li>✅ 部署到 Sepolia：<code>yarn deploy --network sepolia</code>（已上链，见上方部署信息）</li>
+<li>✅ Vercel 部署：<code>yarn vercel --prod</code>（生产 URL: <a class="link"   target="_blank" rel="noopener" href="https://dicegame-ky.vercel.app)/" >https://dicegame-ky.vercel.app）<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>✅ <code>scaffold.config.ts</code> 的 <code>targetNetwork</code> 已切换为 <code>chains.sepolia</code>，线上前端连接 Sepolia</li>
+<li>✅ 已通过 <code>yarn verify --network sepolia</code> 完成 Etherscan 源码验证</li>
+<li>✅ 完成验证后已提交到 <a class="link"   target="_blank" rel="noopener" href="https://speedrunethereum.com/challenge/dice-game" >https://speedrunethereum.com/challenge/dice-game<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 并通过</li>
+</ul>
+<hr>
+<h2 id="💭-教学过程小记"><a href="#💭-教学过程小记" class="headerlink" title="💭 教学过程小记"></a>💭 教学过程小记</h2><p>这个挑战用的是 <strong>AI 引导式学习</strong>（<code>/start</code> skill 加载），流程是：</p>
+<ol>
+<li><strong>教 → 问 → 写代码 → 跑测试</strong> 循环</li>
+<li>概念 checkpoint（带 <code>questions</code>）→ 先讲明白 → 回答问题 → 才开始写</li>
+<li>代码 checkpoint（带 <code>task</code>）→ 讲清楚 → 用户写 → <code>check</code> 跑测试</li>
+<li>进度保存在 <code>.challenge-ai/progress.json</code>，可以 <code>/start</code> 恢复</li>
+</ol>
+<p>这种模式比直接给答案更扎实 —— 我必须<strong>先理解概念</strong>才能继续。</p>
+<p>按从第 0 关开始计数，Dice Game 是 Ethereum 101 的第 3 关，也是本阶段第 4 个、最后一个挑战；Tokenization、Crowdfunding、Token Vendor 与 Dice Game 均已完成。这个挑战的<strong>核心考点</strong>是「<code>blockhash</code> 不可用作随机源」+ 「<code>receive()</code> + <code>Ownable</code> 实战」+ 「<strong>怎么思考可预测性</strong>」。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> SpeedRunEthereum 靶场学习笔记 03：Dice Game</li>
+        <li><strong>作者:</strong> Kylinxin</li>
+        <li><strong>创建于
+                :</strong> 2026-06-24 09:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-06-24 09:00:00
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://kylinxin.github.io/2026/06/24/SpeedRunEthereum 靶场学习笔记 03：Dice Game/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Solidity/">#Solidity</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/SpeedRunEthereum/">#SpeedRunEthereum</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Foundry/">#Foundry</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Scaffold-ETH-2/">#Scaffold-ETH 2</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%90%88%E7%BA%A6%E5%AE%89%E5%85%A8/">#合约安全</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%93%BE%E4%B8%8A%E9%9A%8F%E6%9C%BA%E6%95%B0/">#链上随机数</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/06/23/SpeedRunEthereum%20%E9%9D%B6%E5%9C%BA%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%2002%EF%BC%9AToken%20Vendor/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">SpeedRunEthereum 靶场学习笔记 02：Token Vendor</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">SpeedRunEthereum 靶场学习笔记 03：Dice Game</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%9A%80-%E9%83%A8%E7%BD%B2%E4%BF%A1%E6%81%AF%EF%BC%88%E6%88%91%E7%9A%84-Sepolia-%E4%B8%8A%E7%BA%BF%EF%BC%89"><span class="nav-text">🚀 部署信息（我的 Sepolia 上线）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E4%BA%A4%E6%98%93"><span class="nav-text">部署交易</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E6%97%B6%E5%AE%9E%E9%99%85%E5%91%BD%E4%BB%A4"><span class="nav-text">部署时实际命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Etherscan-%E9%93%BE%E6%8E%A5"><span class="nav-text">Etherscan 链接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Vercel-%E9%83%A8%E7%BD%B2"><span class="nav-text">Vercel 部署</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%8B-%E9%A1%B9%E7%9B%AE%E6%80%BB%E8%A7%88"><span class="nav-text">📋 项目总览</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%99%E5%AD%A6%E4%BB%B7%E5%80%BC%EF%BC%88%E8%BF%99%E4%B8%AA%E6%8C%91%E6%88%98%E6%83%B3%E8%AE%A9%E4%BD%A0%E6%87%82%E7%9A%84%EF%BC%89"><span class="nav-text">教学价值（这个挑战想让你懂的）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%8E%B2-%E6%B8%B8%E6%88%8F%E8%A7%84%E5%88%99"><span class="nav-text">🎲 游戏规则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%92%B1%E6%80%8E%E4%B9%88%E5%88%86"><span class="nav-text">钱怎么分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B5%A2%E7%9A%84%E7%9E%AC%E9%97%B4"><span class="nav-text">赢的瞬间</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%90%9B-%E6%BC%8F%E6%B4%9E%E5%9C%A8%E5%93%AA%E9%87%8C"><span class="nav-text">🐛 漏洞在哪里</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%9C-%E6%9C%80%E7%BB%88%E5%90%88%E7%BA%A6%E4%BB%A3%E7%A0%81%EF%BC%88RiggedRoll-sol%EF%BC%89"><span class="nav-text">📜 最终合约代码（RiggedRoll.sol）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%F0%9F%92%A1-%E5%87%A0%E4%B8%AA%E5%80%BC%E5%BE%97%E8%AE%B0%E7%9A%84%E5%B0%8F%E7%BB%86%E8%8A%82"><span class="nav-text">💡 几个值得记的小细节</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%8E%93-%E6%95%99%E5%AD%A6%E6%B5%81%E7%A8%8B%E5%9B%9E%E9%A1%BE"><span class="nav-text">🎓 教学流程回顾</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-1%EF%BC%9AReceiving-ETH%EF%BC%88receive-%EF%BC%89"><span class="nav-text">Checkpoint 1：Receiving ETH（receive()）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-2%EF%BC%9APredicting-Randomness%EF%BC%88riggedRoll-%EF%BC%89"><span class="nav-text">Checkpoint 2：Predicting Randomness（riggedRoll()）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-3%EF%BC%9AWithdrawing-Funds%EF%BC%88withdraw-%EF%BC%89"><span class="nav-text">Checkpoint 3：Withdrawing Funds（withdraw()）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%8A-%E8%B5%84%E9%87%91%E4%BC%9A%E8%AE%A1%E6%A8%A1%E5%9E%8B%EF%BC%884-%E7%8E%A9%E5%AE%B6%E4%BE%8B%E5%AD%90%EF%BC%89"><span class="nav-text">📊 资金会计模型（4 玩家例子）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E6%B4%9E%E5%AF%9F"><span class="nav-text">关键洞察</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%97%E5%BC%8F"><span class="nav-text">算式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%A7%AA-%E6%9C%AC%E5%9C%B0%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%B5%8B%E8%AF%95%E6%B5%81%E7%A8%8B%EF%BC%88%E5%AE%9E%E6%88%98%EF%BC%89"><span class="nav-text">🧪 本地端到端测试流程（实战）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E9%98%B6%E6%AE%B5"><span class="nav-text">准备阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E4%B8%89%E4%B8%AA%E7%BB%88%E7%AB%AF"><span class="nav-text">启动三个终端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8F%E8%A7%88%E5%99%A8%E6%BC%94%E7%BB%83"><span class="nav-text">浏览器演练</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%90%9E-%E5%AE%9E%E6%88%98%E4%B8%AD%E8%B8%A9%E8%BF%87%E7%9A%84%E5%9D%91%EF%BC%88%E9%87%8D%E8%A6%81%EF%BC%89"><span class="nav-text">🐞 实战中踩过的坑（重要）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-1%EF%BC%9ADebug-Contracts-%E7%9C%8B%E4%B8%8D%E5%88%B0-receive"><span class="nav-text">坑 1：Debug Contracts 看不到 receive()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-2%EF%BC%9A%E8%B0%83-withdraw-%E6%8A%A5-OwnableUnauthorizedAccount"><span class="nav-text">坑 2：调 withdraw 报 OwnableUnauthorizedAccount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-3%EF%BC%9AdApp-%E9%A1%B6%E9%83%A8%E8%BF%9E%E6%8E%A5%E7%9A%84%E5%9C%B0%E5%9D%80-%E2%89%A0-MetaMask-%E8%B4%A6%E6%88%B7"><span class="nav-text">坑 3：dApp 顶部连接的地址 ≠ MetaMask 账户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-4%EF%BC%9A%E5%AF%BC%E5%85%A5-Anvil-deployer-%E7%A7%81%E9%92%A5%E5%88%B0-MetaMask"><span class="nav-text">坑 4：导入 Anvil deployer 私钥到 MetaMask</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-5%EF%BC%9A%E7%94%A8-0xa0Ee-%E8%B0%83-transferOwnership-%E7%BB%99%E8%87%AA%E5%B7%B1%EF%BC%8C%E8%BF%98%E6%98%AF%E5%A4%B1%E8%B4%A5"><span class="nav-text">坑 5：用 0xa0Ee 调 transferOwnership 给自己，还是失败</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-6%EF%BC%9A%E8%B0%83-riggedRoll-%E5%8F%8D%E5%A4%8D%E6%98%AF%E5%90%8C%E4%B8%80%E4%B8%AA%E6%95%B0%E5%AD%97%EF%BC%88%E5%A6%82-13%EF%BC%89"><span class="nav-text">坑 6：调 riggedRoll 反复是同一个数字（如 13）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-7%EF%BC%9Aroll-7-%E6%B2%A1%E6%9C%89-revert"><span class="nav-text">坑 7：roll 7 没有 revert</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9D%91-8%EF%BC%9Awithdraw-%E6%8F%90%E5%AE%8C%E9%92%B1%E5%90%8E-riggedRoll-%E6%8A%A5%E9%94%99-NotEnoughETH"><span class="nav-text">坑 8：withdraw 提完钱后 riggedRoll 报错 NotEnoughETH</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E2%9C%85-%E6%88%90%E5%8A%9F%E6%88%AA%E5%9B%BE%EF%BC%9AtransferOwnership-withdraw-%E5%85%A8%E9%83%A8-Confirmed"><span class="nav-text">✅ 成功截图：transferOwnership + withdraw 全部 Confirmed</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%A7%AA-%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="nav-text">🧪 测试结果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%AA%9E-%E5%8F%8D%E6%80%9D-%E8%BF%9B%E9%98%B6%E6%80%9D%E8%80%83"><span class="nav-text">🪞 反思 &amp; 进阶思考</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88-blockhash-%E4%B8%8D%E5%AE%89%E5%85%A8%EF%BC%9F%EF%BC%88%E6%B7%B1%E5%BA%A6%EF%BC%89"><span class="nav-text">1. 为什么 blockhash 不安全？（深度）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E6%80%8E%E4%B9%88%E5%81%9A%E9%9A%8F%E6%9C%BA%EF%BC%9F"><span class="nav-text">2. 生产环境怎么做随机？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%94%BB%E5%87%BB%E6%88%90%E7%AB%8B%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-text">3. 攻击成立的边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%BD%93%E5%89%8D%E5%AE%9E%E7%8E%B0%E7%9A%84%E8%AE%BE%E8%AE%A1%E8%BE%B9%E7%95%8C"><span class="nav-text">4. 当前实现的设计边界</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%9A-%E7%9C%9F%E5%AE%9E%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%90%8C%E7%B1%BB%E9%A3%8E%E9%99%A9"><span class="nav-text">📚 真实系统中的同类风险</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%8E%AF-%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%8F%90%E4%BA%A4%E5%AE%8C%E6%88%90%E8%AE%B0%E5%BD%95"><span class="nav-text">🎯 部署与提交完成记录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%92%AD-%E6%95%99%E5%AD%A6%E8%BF%87%E7%A8%8B%E5%B0%8F%E8%AE%B0"><span class="nav-text">💭 教学过程小记</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+            <div class="customize-info my-1">Built with Hexo and Redefine.</div>
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-shield-halved" style="color: #A31F34"></i>&nbsp;&nbsp;<a href="/">Kylinxin</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 67 篇文章
+                    </span>
+                    
+                        <span>
+                            共 151.3k 字
+                        </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+		<li class="right-bottom-tools rss flex justify-center items-center">
+			<a class="flex justify-center items-center" href="/atom.xml" target="_blank">
+				<i class="fa-regular fa-rss"></i>
+			</a>
+		</li>
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+    
+<script src="/js/build/libs/pangu.min.js"></script>
+
+
+
+	
+</body>
+
+</html>
