@@ -1,7 +1,7 @@
 ---
 title: "SpeedRunEthereum 靶场学习笔记 01：Crowdfunding"
 date: 2026-06-22 09:00:00
-updated: 2026-06-24 09:00:00
+updated: 2026-06-25 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -19,7 +19,7 @@ abbrlink: "speedrunethereum-crowdfunding"
 - 关卡：Crowdfunding
 - 完成日期：2026/06/22
 - 状态：✅ ACCEPTED（+10 XP）
-- Ethereum 101 系列进度：✅ 4/4
+- Ethereum 101 系列进度：✅ 5/5
 - 框架：Foundry
 
 ## 本关目标

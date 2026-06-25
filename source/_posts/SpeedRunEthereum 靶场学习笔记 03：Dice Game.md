@@ -1,7 +1,7 @@
 ---
 title: "SpeedRunEthereum 靶场学习笔记 03：Dice Game"
 date: 2026-06-24 09:00:00
-updated: 2026-06-24 09:00:00
+updated: 2026-06-25 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -17,10 +17,10 @@ abbrlink: "speedrunethereum-dice-game"
 > 这是我的 SpeedRunEthereum 靶场个人学习笔记。第 3 关 Dice Game 聚焦可预测的链上随机数、同交易攻击、ETH 接收、Ownable 权限控制，以及从本地测试到 Sepolia 和 Vercel 的完整部署流程。
 
 > **Challenge**: [speedrunethereum.com/challenge/dice-game](https://speedrunethereum.com/challenge/dice-game)
-> **状态**: ✅ ACCEPTED（Ethereum 101 · 4/4；8/8 本地测试、Sepolia 部署、Etherscan 验证、Vercel 上线和靶场提交均已完成）
+> **状态**: ✅ ACCEPTED（Ethereum 101 · 5/5；8/8 本地测试、Sepolia 部署、Etherscan 验证、Vercel 上线和靶场提交均已完成）
 > **框架**: Foundry
 > **日期**: 2026/06/24
-> **XP**: +10（Ethereum 101 · 4/4）
+> **XP**: +10（Ethereum 101 · 5/5）
 
 ---
 

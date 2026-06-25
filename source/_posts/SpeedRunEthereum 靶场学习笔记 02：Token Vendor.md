@@ -1,7 +1,7 @@
 ---
 title: "SpeedRunEthereum 靶场学习笔记 02：Token Vendor"
 date: 2026-06-23 09:00:00
-updated: 2026-06-24 09:00:00
+updated: 2026-06-25 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -17,7 +17,7 @@ abbrlink: "speedrunethereum-token-vendor"
 > 这是我的 SpeedRunEthereum 靶场个人学习笔记。第 2 关 Token Vendor 聚焦 ERC-20、固定汇率买卖、approve / transferFrom 授权、Ownable 权限控制、Sepolia 部署、Etherscan 验证和前端上线。
 
 > **Challenge**: [speedrunethereum.com/challenge/token-vendor](https://speedrunethereum.com/challenge/token-vendor)
-> **状态**: ✅ ACCEPTED（Ethereum 101 · 4/4）
+> **状态**: ✅ ACCEPTED（Ethereum 101 · 5/5）
 > **框架**: Foundry
 > **日期**: 2026/06/23
 > **XP**: +10

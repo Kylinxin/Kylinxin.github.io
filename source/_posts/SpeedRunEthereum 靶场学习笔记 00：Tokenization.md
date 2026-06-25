@@ -1,7 +1,7 @@
 ---
 title: "SpeedRunEthereum 靶场学习笔记 00：Tokenization"
 date: 2026-06-21 09:00:00
-updated: 2026-06-24 09:00:00
+updated: 2026-06-25 09:00:00
 categories:
   - "区块链开发"
   - "SpeedRunEthereum"
@@ -18,7 +18,7 @@ abbrlink: "speedrunethereum-tokenization"
 - 关卡：Tokenization
 - 完成日期：2026/06/21
 - 状态：✅ ACCEPTED（+10 XP）
-- Ethereum 101 系列进度：✅ 4/4
+- Ethereum 101 系列进度：✅ 5/5
 
 ## 本关目标
 

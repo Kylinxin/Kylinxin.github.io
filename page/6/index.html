@@ -518,7 +518,7 @@
 
         <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">69</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -526,7 +526,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -557,7 +557,7 @@
 </div>
                 <div class="statistics flex justify-around my-2.5">
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">69</div>
         <div class="label text-third-text-color text-sm">标签</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
@@ -565,7 +565,7 @@
         <div class="label text-third-text-color text-sm">分类</div>
     </a>
     <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
-        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">68</div>
         <div class="label text-third-text-color text-sm">文章</div>
     </a>
 </div>
@@ -613,6 +613,96 @@
 			<div class="main-content">
 				<div class="home-content-container">
     <ul class="home-article-list">
+        
+            <li class="home-article-item">
+
+                
+
+                
+
+                
+                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
+                    <h3 class="home-article-title">
+                        <a href="/2025/06/23/CVE-2023-27997-XORtigate-FortiGate-SSL-VPN-%E5%A0%86%E6%BA%A2%E5%87%BA%E5%A4%8D%E7%8E%B0/">
+                            CVE-2023-27997 / XORtigate：FortiGate SSL-VPN 堆溢出复现
+                        </a>
+                    </h3>
+
+                    <div class="home-article-content markdown-body">
+                        
+                            
+                            CVE-2023-27997 位于 FortiOS &#x2F; FortiProxy 的 SSL-VPN 预认证请求处理链。复现重点是从 FortiGate 固件中定位相关二进制，恢复 enc 参数的解码过程，再通过修复前后的二进制差异还原长度处理错误。
+以下内容面向隔离的授权研究环境，不包含完整 RCE 利用链。
+1. 漏洞与版本选择漏洞类型为 heap-based buffer overflow，入口位于 SSL-VPN 暴露面。FortiOS 7.2 分支中，7.2.0 至 7.2.4 受影响，7.2...
+                        
+                    </div>
+
+                    <div class="home-article-meta-info-container">
+    <div class="home-article-meta-info">
+        <span><i class="fa-solid fa-calendars"></i>&nbsp;
+            <span class="home-article-date" data-date="Mon Jun 23 2025 09:00:00 GMT+0800">
+                
+                    2025-06-23
+                
+            </span>
+        </span>
+        
+            <span class="home-article-category">
+                <i class="fa-solid fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/CVE/">CVE</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+        
+        
+            <span class="home-article-tag">
+                <i class="fa-solid fa-tags"></i>&nbsp;
+                <ul>
+                    
+                        <li>
+                            
+                            <a href="/tags/Fortinet/">Fortinet</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/FortiGate/">FortiGate</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/SSL-VPN/">SSL-VPN</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/CVE-2023-27997/">CVE-2023-27997</a>&nbsp;
+                        </li>
+                    
+                        <li>
+                            | 
+                            <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">漏洞分析</a>&nbsp;
+                        </li>
+                    
+                </ul>
+            </span>
+        
+    </div>
+
+    <a href="/2025/06/23/CVE-2023-27997-XORtigate-FortiGate-SSL-VPN-%E5%A0%86%E6%BA%A2%E5%87%BA%E5%A4%8D%E7%8E%B0/">阅读全文<span class="seo-reader-text">CVE-2023-27997 / XORtigate：FortiGate SSL-VPN 堆溢出复现</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
+</div>
+
+                </div>
+            </li>
         
             <li class="home-article-item">
 
@@ -1034,81 +1124,6 @@ IO_FILE 的结构123456789101112131415161718192021222324252627282930313233343536
                 </div>
             </li>
         
-            <li class="home-article-item">
-
-                
-
-                
-
-                
-                <div class="flex flex-col gap-5 px-7 pb-7 pt-7">
-                    <h3 class="home-article-title">
-                        <a href="/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/">
-                            移动开发实验2：RecycleView和Activity跳转
-                        </a>
-                    </h3>
-
-                    <div class="home-article-content markdown-body">
-                        
-                            
-                            AS类微信界面开发功能要求1、在任一tab页中实现列表效果；本功能的实现需要使用 recycleview；
-2、将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示信息
-开发技术开发工具：as 
-版本：API 24 Android 7.0
-思路分析本次实验目的是实现在任一tab页将recyclerView的每个item增加点击功能，点击后跳转到一个新的view展示信息，固需要采用到以下两点技术
-
-
-列表的实现需要使用控件recyclerView进行操作，需创建一个单独的放置r...
-                        
-                    </div>
-
-                    <div class="home-article-meta-info-container">
-    <div class="home-article-meta-info">
-        <span><i class="fa-solid fa-calendars"></i>&nbsp;
-            <span class="home-article-date" data-date="Sun Oct 01 2023 02:00:00 GMT+0800">
-                
-                    2023-10-01
-                
-            </span>
-        </span>
-        
-            <span class="home-article-category">
-                <i class="fa-solid fa-folders"></i>&nbsp;
-            <ul>
-                
-                
-                    
-                        
-                        <li>
-                            <a href="/categories/%E5%AE%9E%E9%AA%8C/">实验</a>&nbsp;
-                        </li>
-                    
-                    
-                
-            </ul>
-        </span>
-        
-        
-            <span class="home-article-tag">
-                <i class="fa-solid fa-tags"></i>&nbsp;
-                <ul>
-                    
-                        <li>
-                            
-                            <a href="/tags/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C/">移动开发实验</a>&nbsp;
-                        </li>
-                    
-                </ul>
-            </span>
-        
-    </div>
-
-    <a href="/2023/10/01/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E9%AA%8C2%EF%BC%9ARecycleView/">阅读全文<span class="seo-reader-text">移动开发实验2：RecycleView和Activity跳转</span>&nbsp;<i class="fa-solid fa-angle-right"></i></a>
-</div>
-
-                </div>
-            </li>
-        
     </ul>
 
     <div class="home-paginator px-7 py-5">
@@ -1141,11 +1156,11 @@ IO_FILE 的结构123456789101112131415161718192021222324252627282930313233343536
                 
                 <p class="post-count space-x-0.5">
                     <span>
-                        共撰写了 67 篇文章
+                        共撰写了 68 篇文章
                     </span>
                     
                         <span>
-                            共 151.3k 字
+                            共 373k 字
                         </span>
                     
                 </p>
